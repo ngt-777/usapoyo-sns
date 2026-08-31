@@ -1,0 +1,2050 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>うさぽよ SNS管理</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --navy:#1E293B;--navy2:#334155;--navy3:#475569;
+  --bg:#F1F5F9;--surface:#FFFFFF;--border:#E2E8F0;--border2:#CBD5E1;
+  --gray:#94A3B8;--gray2:#64748B;
+  --pink:#F472B6;--pink-light:#FDF2F8;--pink-dark:#DB2777;
+  --ig:#3B82F6;--ig-bg:#EFF6FF;
+  --tt:#F43F5E;--tt-bg:#FFF1F2;
+  --yt:#EF4444;--yt-bg:#FEF2F2;
+  --xb:#1E293B;--xb-bg:#F8FAFC;
+  --green:#10B981;--green-bg:#ECFDF5;
+  --red:#EF4444;--red-bg:#FEF2F2;
+  --amber:#F59E0B;--amber-bg:#FFFBEB;
+  --radius:8px;--radius-lg:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--navy);font-size:14px;line-height:1.5;display:flex;min-height:100vh}
+
+/* SIDEBAR */
+#sidebar{width:220px;min-width:220px;background:var(--navy);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:100}
+.sb-logo{padding:20px 20px 16px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo-name{font-size:15px;font-weight:700;color:#fff;letter-spacing:-.3px}
+.sb-logo-sub{font-size:11px;color:#94A3B8;margin-top:2px}
+.sb-logo-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--pink);margin-right:6px}
+nav{padding:12px 0;flex:1}
+.nav-section{font-size:10px;font-weight:600;color:#64748B;letter-spacing:.8px;text-transform:uppercase;padding:8px 20px 4px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 20px;color:#94A3B8;font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border-radius:0;position:relative}
+.nav-item:hover{color:#fff;background:rgba(255,255,255,.06)}
+.nav-item.active{color:#fff;background:rgba(244,114,182,.15)}
+.nav-item.active::before{content:'';position:absolute;left:0;top:50%;transform:translateY(-50%);width:3px;height:20px;background:var(--pink);border-radius:0 2px 2px 0}
+.nav-item svg{width:16px;height:16px;flex-shrink:0}
+.sb-bottom{padding:16px 20px;border-top:1px solid rgba(255,255,255,.08)}
+.sb-status{font-size:11px;color:#64748B}
+.sb-status span{color:var(--green);font-weight:600}
+
+/* MAIN */
+#main{margin-left:220px;flex:1;min-height:100vh}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:0 28px;height:56px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-title{font-size:16px;font-weight:700;color:var(--navy)}
+.topbar-sub{font-size:12px;color:var(--gray);margin-top:1px}
+.topbar-actions{display:flex;gap:10px;align-items:center}
+
+/* PAGE */
+.page{display:none;padding:28px;animation:fadeIn .2s ease}
+.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+
+/* CARDS */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px}
+.card-sm{padding:16px 20px}
+.card-title{font-size:13px;font-weight:600;color:var(--navy);margin-bottom:16px;display:flex;align-items:center;justify-content:space-between}
+.card-title svg{width:16px;height:16px;color:var(--gray)}
+
+/* KPI CARDS */
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;position:relative;overflow:hidden}
+.kpi-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px}
+.kpi-card.ig::before{background:var(--ig)}
+.kpi-card.tt::before{background:var(--tt)}
+.kpi-card.yt::before{background:var(--yt)}
+.kpi-card.xb::before{background:#8B5CF6}
+.kpi-platform{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.kpi-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.3px}
+.kpi-badge.ig{background:var(--ig-bg);color:var(--ig)}
+.kpi-badge.tt{background:var(--tt-bg);color:var(--tt)}
+.kpi-badge.yt{background:var(--yt-bg);color:var(--yt)}
+.kpi-badge.xb{background:#F5F3FF;color:#7C3AED}
+.kpi-num{font-size:26px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;letter-spacing:-1px;line-height:1.1;margin-bottom:10px}
+.kpi-meta{display:flex;flex-direction:column;gap:4px}
+.kpi-row{display:flex;justify-content:space-between;align-items:center;font-size:11px}
+.kpi-label{color:var(--gray)}
+.kpi-diff{font-weight:600;font-variant-numeric:tabular-nums}
+.kpi-diff.pos{color:var(--green)}
+.kpi-diff.neg{color:var(--red)}
+.kpi-diff.neu{color:var(--gray)}
+
+/* STATUS BADGES */
+.status{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
+.status-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+.status.waiting{background:#FEF9C3;color:#854D0E}.status.waiting .status-dot{background:#EAB308}
+.status.day1{background:#DBEAFE;color:#1E40AF}.status.day1 .status-dot{background:#3B82F6}
+.status.week1{background:#FCE7F3;color:#9D174D}.status.week1 .status-dot{background:#EC4899}
+.status.done{background:var(--green-bg);color:#065F46}.status.done .status-dot{background:var(--green)}
+
+/* GRID LAYOUTS */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+
+/* RANKING TABLE */
+.rank-table{width:100%}
+.rank-table th{font-size:11px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;text-align:left;border-bottom:1px solid var(--border)}
+.rank-table td{padding:10px 10px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:middle}
+.rank-table tr:last-child td{border-bottom:none}
+.rank-table tr:hover td{background:var(--bg)}
+.rank-num{font-size:12px;font-weight:700;color:var(--gray);width:28px;text-align:center}
+.rank-num.gold{color:#D97706}
+.rank-num.silver{color:#6B7280}
+.rank-num.bronze{color:#D97706;opacity:.7}
+.rank-val{font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+
+/* ALERT BOX */
+.alert-box{background:var(--amber-bg);border:1px solid #FCD34D;border-radius:var(--radius);padding:12px 16px;display:flex;align-items:flex-start;gap:10px;margin-bottom:16px}
+.alert-box svg{width:16px;height:16px;color:var(--amber);flex-shrink:0;margin-top:1px}
+.alert-body{font-size:12px;color:#92400E}
+.alert-title{font-weight:700;margin-bottom:3px}
+.alert-list{list-style:none;display:flex;flex-direction:column;gap:3px}
+.alert-list li::before{content:'→ ';opacity:.7}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group.full{grid-column:1/-1}
+label{font-size:12px;font-weight:600;color:var(--navy2)}
+input,select,textarea{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:9px 12px;font-size:13px;color:var(--navy);outline:none;transition:border .15s;font-family:inherit;width:100%}
+input:focus,select:focus,textarea:focus{border-color:var(--pink);box-shadow:0 0 0 3px rgba(244,114,182,.12)}
+textarea{resize:vertical;min-height:72px}
+.form-divider{grid-column:1/-1;border:none;border-top:1px solid var(--border);margin:4px 0}
+.form-section-title{grid-column:1/-1;font-size:12px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.6px;padding-top:8px;display:flex;align-items:center;gap:8px}
+.form-section-title::after{content:'';flex:1;height:1px;background:var(--border)}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:var(--radius);font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;border:none;font-family:inherit}
+.btn-primary{background:var(--pink);color:#fff}
+.btn-primary:hover{background:var(--pink-dark)}
+.btn-secondary{background:var(--surface);border:1px solid var(--border2);color:var(--navy2)}
+.btn-secondary:hover{background:var(--bg)}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-ghost{background:transparent;border:none;color:var(--gray2);padding:6px 10px}
+.btn-ghost:hover{color:var(--navy);background:var(--bg)}
+.btn-danger{background:#FEF2F2;border:1px solid #FECACA;color:var(--red)}
+.btn-danger:hover{background:#FEE2E2}
+
+/* POST LIST */
+.post-item{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;display:flex;align-items:center;gap:16px;cursor:pointer;transition:all .15s;margin-bottom:10px}
+.post-item:hover{border-color:var(--pink);box-shadow:var(--shadow)}
+.post-plat{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0}
+.post-plat.ig{background:var(--ig-bg);color:var(--ig)}
+.post-plat.tt{background:var(--tt-bg);color:var(--tt)}
+.post-plat.yt{background:var(--yt-bg);color:var(--yt)}
+.post-plat.xb{background:#F5F3FF;color:#7C3AED}
+.post-info{flex:1;min-width:0}
+.post-title{font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.post-meta{font-size:11px;color:var(--gray);margin-top:3px;display:flex;gap:10px;align-items:center}
+.post-cat{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:600;color:var(--navy2)}
+.post-stats{display:flex;gap:20px;align-items:center}
+.stat-col{text-align:right}
+.stat-num{font-size:13px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.stat-label{font-size:10px;color:var(--gray);margin-top:1px}
+
+/* POST DETAIL */
+.detail-header{display:flex;align-items:flex-start;gap:20px;margin-bottom:24px}
+.detail-icon{width:52px;height:52px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;flex-shrink:0}
+.detail-title{font-size:18px;font-weight:700;color:var(--navy);line-height:1.3}
+.detail-meta{font-size:12px;color:var(--gray);margin-top:6px;display:flex;gap:12px;align-items:center}
+.insight-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px}
+.insight-panel{background:var(--bg);border-radius:var(--radius-lg);padding:20px}
+.insight-panel-title{font-size:12px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+.insight-panel-title .dot{width:8px;height:8px;border-radius:50%}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.metric-row:last-child{border-bottom:none}
+.metric-name{font-size:12px;color:var(--navy2)}
+.metric-val{font-size:14px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.growth-panel{background:linear-gradient(135deg,#FDF2F8,#F0F9FF);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-top:20px}
+.growth-title{font-size:12px;font-weight:700;color:var(--gray2);text-transform:uppercase;letter-spacing:.6px;margin-bottom:16px}
+.growth-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.growth-item{text-align:center;background:var(--surface);border-radius:var(--radius);padding:12px}
+.growth-label{font-size:10px;color:var(--gray);margin-bottom:4px}
+.growth-arrow{font-size:18px;font-weight:700;margin:4px 0}
+.growth-arrow.pos{color:var(--green)}
+.growth-arrow.neg{color:var(--red)}
+.growth-pct{font-size:12px;font-weight:600;margin-top:2px}
+.growth-pct.pos{color:var(--green)}
+.growth-pct.neg{color:var(--red)}
+
+/* RATE METRICS */
+.rate-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
+.rate-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px;text-align:center}
+.rate-label{font-size:10px;color:var(--gray);margin-bottom:6px}
+.rate-val{font-size:18px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.rate-bar{height:3px;background:var(--border);border-radius:2px;margin-top:8px;overflow:hidden}
+.rate-bar-fill{height:100%;border-radius:2px;background:var(--pink);transition:width .3s}
+
+/* FOLLOWER PAGE */
+.fol-entry-form{display:flex;gap:12px;align-items:flex-end;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:20px}
+.fol-entry-form .form-group{flex:1}
+.fol-table-wrap{overflow-x:auto}
+.fol-table{width:100%;border-collapse:collapse}
+.fol-table th{font-size:11px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.5px;padding:10px 12px;text-align:left;background:var(--bg);border-bottom:1px solid var(--border)}
+.fol-table td{padding:11px 12px;border-bottom:1px solid var(--border);font-size:13px;font-variant-numeric:tabular-nums}
+.fol-table tr:hover td{background:var(--bg)}
+.fol-table tr:last-child td{border-bottom:none}
+
+/* ANALYSIS */
+.analysis-bar-container{display:flex;align-items:center;gap:10px}
+.analysis-bar{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden}
+.analysis-bar-fill{height:100%;border-radius:4px;background:var(--pink)}
+
+/* MODAL */
+.modal-overlay{position:fixed;inset:0;background:rgba(15,23,42,.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:20px;animation:fadeOverlay .2s}
+@keyframes fadeOverlay{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border-radius:var(--radius-lg);padding:28px;width:100%;max-width:580px;max-height:90vh;overflow-y:auto;animation:slideUp .2s}
+@keyframes slideUp{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.modal-title{font-size:16px;font-weight:700;color:var(--navy)}
+.modal-close{background:none;border:none;cursor:pointer;color:var(--gray);padding:4px;border-radius:4px;line-height:1}
+.modal-close:hover{color:var(--navy);background:var(--bg)}
+
+/* TABS */
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:20px}
+.tab{padding:10px 18px;font-size:13px;font-weight:600;color:var(--gray2);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab:hover{color:var(--navy)}
+.tab.active{color:var(--pink-dark);border-bottom-color:var(--pink)}
+
+/* CHART CONTAINER */
+.chart-wrap{position:relative;height:260px}
+.chart-wrap-sm{position:relative;height:200px}
+
+/* EMPTY STATE */
+.empty{text-align:center;padding:48px 20px;color:var(--gray)}
+.empty-icon{font-size:32px;margin-bottom:12px;opacity:.5}
+.empty-title{font-size:14px;font-weight:600;color:var(--navy2);margin-bottom:6px}
+.empty-sub{font-size:12px;line-height:1.6}
+
+/* TOAST */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:300;display:flex;flex-direction:column;gap:8px;pointer-events:none}
+.toast{background:var(--navy);color:#fff;border-radius:var(--radius);padding:12px 18px;font-size:13px;font-weight:500;box-shadow:var(--shadow-md);animation:toastIn .2s;pointer-events:auto;display:flex;align-items:center;gap:10px}
+.toast.success .toast-icon{color:var(--green)}
+.toast.error .toast-icon{color:#F87171}
+@keyframes toastIn{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
+
+/* THUMBNAIL */
+.thumb-upload{border:2px dashed var(--border2);border-radius:var(--radius);padding:20px;text-align:center;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.thumb-upload:hover{border-color:var(--pink);background:var(--pink-light)}
+.thumb-upload input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.thumb-upload-icon{font-size:28px;margin-bottom:6px;color:var(--gray)}
+.thumb-upload-text{font-size:12px;color:var(--gray2);font-weight:500}
+.thumb-upload-sub{font-size:11px;color:var(--gray);margin-top:3px}
+.thumb-preview{position:relative;border-radius:var(--radius);overflow:hidden;aspect-ratio:1;background:var(--bg);max-width:160px}
+.thumb-preview img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb-preview-remove{position:absolute;top:6px;right:6px;background:rgba(15,23,42,.6);border:none;border-radius:50%;width:24px;height:24px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#fff;font-size:16px;line-height:1}
+.thumb-preview-remove:hover{background:rgba(239,68,68,.8)}
+.tag-input-wrap{display:flex;flex-wrap:wrap;gap:6px;padding:8px 10px;border:1px solid var(--border2);border-radius:var(--radius);min-height:42px;cursor:text;transition:border .15s;background:var(--surface)}
+.tag-input-wrap:focus-within{border-color:var(--pink);box-shadow:0 0 0 3px rgba(244,114,182,.12)}
+.tag-chip{display:inline-flex;align-items:center;gap:4px;background:var(--pink-light);color:var(--pink-dark);border:1px solid #FBCFE8;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:600}
+.tag-chip button{background:none;border:none;cursor:pointer;color:var(--pink-dark);font-size:14px;line-height:1;padding:0;opacity:.7}
+.tag-chip button:hover{opacity:1}
+.tag-input-field{border:none;outline:none;font-size:12px;color:var(--navy);min-width:100px;flex:1;background:transparent;font-family:inherit;padding:2px 0}
+.post-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.post-thumb-placeholder{width:48px;height:48px;border-radius:8px;background:var(--bg);flex-shrink:0;border:1px solid var(--border)}
+
+.preset-tag{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--navy2);cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
+.preset-tag:hover{background:var(--pink-light);border-color:var(--pink);color:var(--pink-dark)}
+.preset-tag.selected{background:var(--pink-light);border-color:var(--pink);color:var(--pink-dark)}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:4px}
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  #sidebar{width:60px}
+  .nav-item span,.nav-section,.sb-logo-name,.sb-logo-sub,.sb-status{display:none}
+  .nav-item{padding:12px;justify-content:center}
+  #main{margin-left:60px}
+  .kpi-grid{grid-template-columns:1fr 1fr}
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<aside id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-name"><span class="sb-logo-dot"></span>うさぽよ</div>
+    <div class="sb-logo-sub">SNS管理ダッシュボード</div>
+  </div>
+  <nav>
+    <div class="nav-section">メイン</div>
+    <div class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>ダッシュボード</span>
+    </div>
+    <div class="nav-section">投稿管理</div>
+    <div class="nav-item" data-page="post-new">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      <span>投稿を登録</span>
+    </div>
+    <div class="nav-item" data-page="post-list">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="9" x2="17" y2="9"/><line x1="7" y1="13" x2="13" y2="13"/></svg>
+      <span>投稿一覧</span>
+    </div>
+    <div class="nav-section">データ</div>
+    <div class="nav-item" data-page="follower">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      <span>フォロワー推移</span>
+    </div>
+    <div class="nav-section">分析</div>
+    <div class="nav-item" data-page="content-analysis">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><polyline points="3 9 21 9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+      <span>コンテンツ分析</span>
+    </div>
+    <div class="nav-item" data-page="platform-analysis">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      <span>媒体別分析</span>
+    </div>
+    <div class="nav-section">レポート</div>
+    <div class="nav-item" data-page="weekly-report">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="8" y1="18" x2="14" y2="18"/></svg>
+      <span>週次会議レポート</span>
+    </div>
+  </nav>
+  <div class="sb-bottom">
+    <div class="sb-status">データ保存: <span>クラウド</span></div>
+  </div>
+</aside>
+
+<!-- MAIN CONTENT -->
+<main id="main">
+  <div class="topbar">
+    <div>
+      <div class="topbar-title" id="page-title">ダッシュボード</div>
+      <div class="topbar-sub" id="page-sub">うさぽよ SNS全体の状況</div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-ghost btn-sm" id="refresh-btn" onclick="refreshData()" title="最新データに更新" style="gap:5px">
+        <svg id="refresh-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        更新
+      </button>
+      <button class="btn btn-primary btn-sm" onclick="navigateTo('post-new')">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        投稿を登録
+      </button>
+    </div>
+  </div>
+
+  <!-- ① DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="kpi-grid" id="kpi-grid"></div>
+    <div id="alert-area"></div>
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">フォロワー推移 — 全媒体</div>
+        <div class="chart-wrap"><canvas id="chart-follower-all"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">カテゴリー別平均再生数</div>
+        <div class="chart-wrap"><canvas id="chart-category-plays"></canvas></div>
+      </div>
+    </div>
+    <div class="grid-2" style="margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">再生数 TOP5</div>
+        <table class="rank-table" id="rank-plays"></table>
+      </div>
+      <div class="card">
+        <div class="card-title">ER% TOP5</div>
+        <table class="rank-table" id="rank-er"></table>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-title">フォロー獲得 TOP5</div>
+        <table class="rank-table" id="rank-follow"></table>
+      </div>
+      <div class="card">
+        <div class="card-title">保存率 TOP5</div>
+        <table class="rank-table" id="rank-save"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ② 投稿登録 -->
+  <div class="page" id="page-post-new">
+    <div class="card" style="max-width:680px">
+      <div class="card-title" style="font-size:15px;margin-bottom:20px">新しい投稿を登録</div>
+      <form id="post-form" onsubmit="submitPost(event)">
+        <div class="form-grid">
+          <div class="form-group">
+            <label>投稿日 <span style="color:var(--tt)">*</span></label>
+            <input type="date" id="f-date" required>
+          </div>
+          <div class="form-group">
+            <label>投稿時間</label>
+            <input type="time" id="f-time">
+          </div>
+          <div class="form-group">
+            <label>媒体 <span style="color:var(--tt)">*</span></label>
+            <select id="f-platform" required>
+              <option value="">選択してください</option>
+              <option value="Instagram">Instagram</option>
+              <option value="TikTok">TikTok</option>
+              <option value="YouTube">YouTube</option>
+              <option value="X">X</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>投稿形式</label>
+            <select id="f-format">
+              <option value="">選択してください</option>
+              <option value="リール">リール</option>
+              <option value="フィード">フィード</option>
+              <option value="ストーリー">ストーリー</option>
+              <option value="ショート">ショート</option>
+              <option value="動画">動画</option>
+              <option value="コミュニティ">コミュニティ</option>
+              <option value="テキストのみ">テキストのみ</option>
+            </select>
+          </div>
+          <div class="form-group full">
+            <label>投稿タイトル <span style="color:var(--tt)">*</span></label>
+            <input type="text" id="f-title" placeholder="例：うさぽよあるある10選" required>
+          </div>
+          <div class="form-group">
+            <label>コンテンツカテゴリー</label>
+            <select id="f-category">
+              <option value="">選択してください</option>
+              <option>イベント系</option>
+              <option>LINEスタンプ関連</option>
+              <option>楽曲/MV</option>
+              <option>グッズ関連</option>
+              <option>質問コーナー</option>
+              <option>会話劇</option>
+              <option>漫画</option>
+              <option>企業タイアップ関連</option>
+              <option>日常イラスト</option>
+              <option>ギャル間違い探し</option>
+              <option>一言フィード</option>
+              <option>その他（書き込み）</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>投稿URL</label>
+            <input type="url" id="f-url" placeholder="https://...">
+          </div>
+          <div class="form-group full">
+            <label>投稿メモ</label>
+            <textarea id="f-memo" placeholder="内容メモ・コンセプトなど"></textarea>
+          </div>
+          <div class="form-group full">
+            <label>キャプション</label>
+            <textarea id="f-caption" placeholder="投稿に使用したキャプションテキスト" style="min-height:88px"></textarea>
+          </div>
+          <div class="form-group full">
+            <label>ハッシュタグ</label>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;align-items:center">
+              <span style="font-size:11px;color:var(--gray)">よく使うタグ：</span>
+              <button type="button" class="preset-tag" onclick="addPresetTag('うさぽよ')">#うさぽよ</button>
+              <button type="button" class="preset-tag" onclick="addPresetTag('gyaru')">#gyaru</button>
+              <button type="button" class="preset-tag" onclick="addPresetTag('ギャル')">#ギャル</button>
+              <button type="button" class="preset-tag" onclick="addPresetTag('キャラクター')">#キャラクター</button>
+              <button type="button" class="preset-tag" onclick="addPresetTag('アニメ')">#アニメ</button>
+              <button type="button" class="preset-tag" onclick="addPresetTag('ゆるキャラ')">#ゆるキャラ</button>
+              <button type="button" class="preset-tag" onclick="addPresetTag('イラスト')">#イラスト</button>
+              <button type="button" class="preset-tag" onclick="addPresetTag('LINEトーク')">#LINEトーク</button>
+            </div>
+            <div class="tag-input-wrap" id="hashtag-wrap" onclick="document.getElementById('hashtag-field').focus()">
+              <input class="tag-input-field" id="hashtag-field" placeholder="#タグを入力してEnter" onkeydown="handleTagInput(event)">
+            </div>
+            <div style="font-size:11px;color:var(--gray);margin-top:4px">Enterまたはスペースで追加。#は自動でつきます。</div>
+          </div>
+          <div class="form-group full">
+            <label>サムネイル画像</label>
+            <div id="thumb-upload-area">
+              <div class="thumb-upload">
+                <input type="file" id="f-thumb" accept="image/*" onchange="handleThumbUpload(event)">
+                <div class="thumb-upload-icon">🖼</div>
+                <div class="thumb-upload-text">クリックまたはドラッグで画像をアップロード</div>
+                <div class="thumb-upload-sub">JPG・PNG・GIF・WebP（推奨: 1:1 または 9:16）</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:20px">
+          <button type="submit" class="btn btn-primary">登録する</button>
+          <button type="button" class="btn btn-secondary" onclick="resetPostForm()">クリア</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ③ 投稿一覧 -->
+  <div class="page" id="page-post-list">
+    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
+      <select id="filter-platform" onchange="renderPostList()" style="width:140px">
+        <option value="">すべての媒体</option>
+        <option>Instagram</option><option>TikTok</option><option>YouTube</option><option>X</option>
+      </select>
+      <select id="filter-category" onchange="renderPostList()" style="width:160px">
+        <option value="">すべてのカテゴリー</option>
+        <option>イベント系</option><option>LINEスタンプ関連</option><option>楽曲/MV</option><option>グッズ関連</option><option>質問コーナー</option><option>会話劇</option><option>漫画</option><option>企業タイアップ関連</option><option>日常イラスト</option><option>ギャル間違い探し</option><option>一言フィード</option><option>その他（書き込み）</option>
+      </select>
+      <select id="filter-status" onchange="renderPostList()" style="width:160px">
+        <option value="">すべてのステータス</option>
+        <option value="waiting">翌日入力待ち</option>
+        <option value="day1">1日後入力済</option>
+        <option value="week1">1週間後待ち</option>
+        <option value="done">集計完了</option>
+      </select>
+      <span style="margin-left:auto;font-size:12px;color:var(--gray)" id="post-count-label"></span>
+    </div>
+    <div id="post-list-container"></div>
+  </div>
+
+  <!-- ④ 投稿詳細 -->
+  <div class="page" id="page-post-detail">
+    <div id="detail-content"></div>
+  </div>
+
+  <!-- ⑤ フォロワー推移 -->
+  <div class="page" id="page-follower">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title" style="font-size:14px;margin-bottom:16px">フォロワー数を入力</div>
+      <div class="fol-entry-form" style="flex-wrap:wrap">
+        <div class="form-group" style="min-width:120px">
+          <label>日付</label>
+          <input type="date" id="fol-date">
+        </div>
+        <div class="form-group" style="min-width:110px">
+          <label>Instagram</label>
+          <input type="number" id="fol-ig" placeholder="0" min="0">
+        </div>
+        <div class="form-group" style="min-width:110px">
+          <label>TikTok</label>
+          <input type="number" id="fol-tt" placeholder="0" min="0">
+        </div>
+        <div class="form-group" style="min-width:110px">
+          <label>YouTube</label>
+          <input type="number" id="fol-yt" placeholder="0" min="0">
+        </div>
+        <div class="form-group" style="min-width:110px">
+          <label>X</label>
+          <input type="number" id="fol-x" placeholder="0" min="0">
+        </div>
+        <div style="display:flex;align-items:flex-end">
+          <button class="btn btn-primary" onclick="saveFollower()">保存</button>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">フォロワー推移グラフ</div>
+      <div style="display:flex;gap:8px;margin-bottom:16px">
+        <button class="btn btn-sm btn-secondary tab-fol active" data-target="all" onclick="setFolTab(this,'all')">全媒体</button>
+        <button class="btn btn-sm btn-secondary tab-fol" data-target="ig" onclick="setFolTab(this,'ig')">Instagram</button>
+        <button class="btn btn-sm btn-secondary tab-fol" data-target="tt" onclick="setFolTab(this,'tt')">TikTok</button>
+        <button class="btn btn-sm btn-secondary tab-fol" data-target="yt" onclick="setFolTab(this,'yt')">YouTube</button>
+        <button class="btn btn-sm btn-secondary tab-fol" data-target="xb" onclick="setFolTab(this,'xb')">X</button>
+      </div>
+      <div class="chart-wrap"><canvas id="chart-follower-detail"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">フォロワー数データ</div>
+      <div class="fol-table-wrap">
+        <table class="fol-table" id="fol-table"></table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ⑥ コンテンツ分析 -->
+  <div class="page" id="page-content-analysis">
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">カテゴリー別パフォーマンス</div>
+      <div class="chart-wrap"><canvas id="chart-cat-er"></canvas></div>
+    </div>
+    <div class="card">
+      <div class="card-title">詳細比較テーブル</div>
+      <div id="content-analysis-table"></div>
+    </div>
+  </div>
+
+  <!-- ⑦ 媒体別分析 -->
+  <div class="page" id="page-platform-analysis">
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-title">媒体別　平均再生数</div>
+        <div class="chart-wrap-sm"><canvas id="chart-plat-plays"></canvas></div>
+      </div>
+      <div class="card">
+        <div class="card-title">媒体別　平均ER%</div>
+        <div class="chart-wrap-sm"><canvas id="chart-plat-er"></canvas></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title">媒体別サマリー</div>
+      <div id="platform-analysis-table"></div>
+    </div>
+  </div>
+
+  <!-- ⑧ 週次会議レポート -->
+  <div class="page" id="page-weekly-report">
+    <div class="grid-2" style="margin-bottom:20px">
+      <div class="card">
+        <div class="card-title">今月の投稿目標</div>
+        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px">
+          <div class="form-group" style="flex:1">
+            <label id="goal-month-label">目標月</label>
+            <input type="month" id="goal-month" onchange="renderWeeklyReport()">
+          </div>
+          <div class="form-group" style="flex:1">
+            <label>目標投稿本数</label>
+            <input type="number" id="goal-count" min="0" placeholder="例: 20" oninput="saveGoal()">
+          </div>
+        </div>
+        <div id="goal-progress"></div>
+      </div>
+      <div class="card">
+        <div class="card-title">フォロワー週次推移</div>
+        <div id="weekly-follower-summary"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">今月の注目投稿（いいね・フォロー獲得）</div>
+      <div id="monthly-top-posts"></div>
+    </div>
+    <div class="card">
+      <div class="card-title" style="margin-bottom:16px">会議用レポートをコピー</div>
+      <div id="report-preview" style="background:var(--bg);border-radius:var(--radius);padding:16px;font-size:12px;line-height:1.8;white-space:pre-wrap;color:var(--navy2);font-family:monospace;max-height:360px;overflow-y:auto"></div>
+      <button class="btn btn-secondary btn-sm" style="margin-top:12px" onclick="copyReport()">テキストをコピー</button>
+    </div>
+  </div>
+</main>
+
+<!-- MODAL: インサイト入力 -->
+<div class="modal-overlay" id="insight-modal" style="display:none" onclick="if(event.target===this)closeInsightModal()">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="insight-modal-title">インサイトを入力</div>
+        <div style="font-size:11px;color:var(--gray);margin-top:2px" id="insight-modal-sub"></div>
+      </div>
+      <button class="modal-close" onclick="closeInsightModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <input type="hidden" id="insight-post-id">
+    <input type="hidden" id="insight-period">
+    <input type="hidden" id="insight-platform">
+
+    <!-- スクショ解析エリア -->
+    <div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px">📷 スクショから自動入力</div>
+      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+        <div class="form-group" style="flex:1;min-width:160px">
+          <label style="font-size:11px">APIキー（Anthropic）</label>
+          <input type="password" id="api-key-input" placeholder="sk-ant-..." style="font-size:12px">
+        </div>
+        <div style="flex-shrink:0">
+          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+            スクショを選択（複数可）
+            <input type="file" id="screenshot-upload" accept="image/*" multiple style="display:none" onchange="analyzeScreenshot(event)">
+          </label>
+        </div>
+      </div>
+      <div id="screenshot-previews" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+      <div id="analyze-status" style="font-size:11px;color:var(--gray);margin-top:6px"></div>
+    </div>
+
+    <!-- 入力フォーム（媒体によって表示切替） -->
+    <div class="form-grid" id="insight-form-fields"></div>
+
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" onclick="saveInsight()">保存する</button>
+      <button class="btn btn-secondary" onclick="closeInsightModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- MODAL: 投稿情報編集 -->
+<div class="modal-overlay" id="edit-post-modal" style="display:none" onclick="if(event.target===this)closeEditModal()">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <div class="modal-title">投稿情報を編集</div>
+      <button class="modal-close" onclick="closeEditModal()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <input type="hidden" id="edit-post-id">
+    <div class="form-grid">
+      <div class="form-group full">
+        <label>投稿タイトル</label>
+        <input type="text" id="edit-title" placeholder="投稿タイトル">
+      </div>
+      <div class="form-group">
+        <label>投稿日</label>
+        <input type="date" id="edit-date">
+      </div>
+      <div class="form-group">
+        <label>投稿時間</label>
+        <input type="time" id="edit-time">
+      </div>
+      <div class="form-group">
+        <label>媒体</label>
+        <select id="edit-platform">
+          <option value="Instagram">Instagram</option>
+          <option value="TikTok">TikTok</option>
+          <option value="YouTube">YouTube</option>
+          <option value="X">X</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>投稿形式</label>
+        <select id="edit-format">
+          <option value="">選択してください</option>
+          <option value="リール">リール</option>
+          <option value="フィード">フィード</option>
+          <option value="ストーリー">ストーリー</option>
+          <option value="ショート">ショート</option>
+          <option value="動画">動画</option>
+          <option value="コミュニティ">コミュニティ</option>
+          <option value="テキストのみ">テキストのみ</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>コンテンツカテゴリー</label>
+        <select id="edit-category">
+          <option value="">選択してください</option>
+          <option>イベント系</option><option>LINEスタンプ関連</option><option>楽曲/MV</option>
+          <option>グッズ関連</option><option>質問コーナー</option><option>会話劇</option>
+          <option>漫画</option><option>企業タイアップ関連</option><option>日常イラスト</option>
+          <option>ギャル間違い探し</option><option>一言フィード</option><option>その他（書き込み）</option>
+        </select>
+      </div>
+      <div class="form-group full">
+        <label>投稿URL</label>
+        <input type="url" id="edit-url" placeholder="https://...">
+      </div>
+      <div class="form-group full">
+        <label>投稿メモ</label>
+        <textarea id="edit-memo" style="min-height:60px"></textarea>
+      </div>
+      <div class="form-group full">
+        <label>キャプション</label>
+        <textarea id="edit-caption" style="min-height:80px"></textarea>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px">
+      <button class="btn btn-primary" onclick="saveEditPost()">保存する</button>
+      <button class="btn btn-secondary" onclick="closeEditModal()">キャンセル</button>
+    </div>
+  </div>
+</div>
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+
+
+// ═══════════════════════════════════════════
+//  DATA LAYER
+// ═══════════════════════════════════════════
+// ═══════════════════════════════════════════
+//  GOOGLE APPS SCRIPT 連携
+// ═══════════════════════════════════════════
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWvcVxuNOZMvFaAylkbv1zjJopyxFsP87EY3R1lzyUESwfudLyEybE1h68_6sn9lMD/exec';
+
+async function gasGet(action) {
+  const res = await fetch(GAS_URL + '?action=' + action);
+  return await res.json();
+}
+
+async function gasPost(action, data) {
+  // thumbnailは重すぎるので除外して送信
+  const sendData = {...data};
+  if(sendData.thumbnail && sendData.thumbnail.length > 1000) sendData.thumbnail = '';
+  const payload = encodeURIComponent(JSON.stringify(sendData));
+  const url = GAS_URL + '?action=' + action + '&data=' + payload;
+  try {
+    const res = await fetch(url);
+    return await res.json();
+  } catch(e) {
+    console.warn('gasPost error:', e);
+    return {success: false};
+  }
+}
+
+function tryParse(str, fallback) {
+  if(!str || str==='') return fallback;
+  try { return JSON.parse(str); } catch(e) { return fallback; }
+}
+
+function showSyncStatus(msg, hideAfter) {
+  const el = document.getElementById('sync-status');
+  if(!el) return;
+  el.textContent = msg;
+  el.style.opacity = '1';
+  if(hideAfter) setTimeout(()=>{ el.style.opacity='0'; }, hideAfter);
+}
+
+const DB = {
+  posts: [],
+  followers: [],
+  goals: {},
+
+  async init() {
+    showSyncStatus('読み込み中...');
+    try {
+      const [pr, fr, gr] = await Promise.all([
+        gasGet('getPosts'), gasGet('getFollowers'), gasGet('getGoals')
+      ]);
+      this.posts = (pr||[]).map(r=>(({
+        id:r[0], title:r[1], platform:r[2], date:r[3], time:r[4],
+        category:r[5], format:r[6], url:r[7], memo:r[8], caption:r[9],
+        hashtags:tryParse(r[10],[]), thumbnail:r[11]||null,
+        insight1d:tryParse(r[12],null), insight7d:tryParse(r[13],null),
+        status:r[14]||'waiting'
+      }))).reverse();
+      this.followers = (fr||[]).map(r=>(({
+        date:r[0], instagram:r[1]||null, tiktok:r[2]||null, youtube:r[3]||null, x:r[4]||null
+      }))).sort((a,b)=>b.date.localeCompare(a.date));
+      this.goals = {};
+      (gr||[]).forEach(r=>{ this.goals[r[0]]=r[1]; });
+      showSyncStatus('同期済み ✓', 2000);
+    } catch(e) {
+      console.warn('GAS load error:', e);
+      showSyncStatus('⚠️ 読み込みエラー', 3000);
+    }
+  }
+};
+
+function genId(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+
+// ═══════════════════════════════════════════
+//  HELPERS
+// ═══════════════════════════════════════════
+const platClass = p=>({Instagram:'ig',TikTok:'tt',YouTube:'yt',X:'xb'})[p]||'ig';
+const platAbbr = p=>({Instagram:'IG',TikTok:'TT',YouTube:'YT',X:'X'})[p]||p;
+const platColor = p=>({Instagram:'#3B82F6',TikTok:'#F43F5E',YouTube:'#EF4444',X:'#8B5CF6'})[p]||'#94A3B8';
+
+function fmt(n,dec=0){
+  if(n===null||n===undefined||n==='')return '—';
+  return Number(n).toLocaleString('ja-JP',{maximumFractionDigits:dec});
+}
+function fmtPct(n){
+  if(n===null||n===undefined||n==='')return '—';
+  return Number(n).toFixed(2)+'%';
+}
+function fmtDiff(a,b,isPct=false){
+  if(!a||!b)return{abs:'—',pct:'—',cls:'neu'};
+  const diff=b-a;
+  const pct=a?((diff/a)*100):0;
+  const cls=diff>0?'pos':diff<0?'neg':'neu';
+  const sign=diff>=0?'+':'';
+  return{abs:`${sign}${fmt(diff)}`,pct:`${sign}${pct.toFixed(1)}%`,cls};
+}
+
+function calcInsightRates(ins){
+  if(!ins)return{};
+  const p=ins.plays||0;
+  const pr=ins.profile||0;
+  return{
+    er:p?(((ins.likes||0)+(ins.comments||0)+(ins.saves||0)+(ins.shares||0))/p*100):null,
+    likeRate:p?(ins.likes||0)/p*100:null,
+    commentRate:p?(ins.comments||0)/p*100:null,
+    saveRate:p?(ins.saves||0)/p*100:null,
+    shareRate:p?(ins.shares||0)/p*100:null,
+    profileRate:p?pr/p*100:null,
+    followConv:pr?(ins.follows||0)/pr*100:null,
+  };
+}
+
+function getPostStatus(post){
+  const now=new Date();
+  const posted=new Date(post.date);
+  const diffDays=(now-posted)/(1000*60*60*24);
+  if(post.insight7d)return'done';
+  if(post.insight1d&&diffDays>=7)return'week1';
+  if(post.insight1d)return'day1';
+  if(diffDays>=1)return'waiting';
+  return'day1'; // posted today, no need yet
+}
+
+function statusBadge(post){
+  const s=getPostStatus(post);
+  const map={
+    waiting:['待ち','waiting'],
+    day1:['1日後入力済','day1'],
+    week1:['1週間後待ち','week1'],
+    done:['集計完了','done'],
+  };
+  const[txt,cls]=map[s]||['—',''];
+  return`<span class="status ${cls}"><span class="status-dot"></span>${txt}</span>`;
+}
+
+// ═══════════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════════
+const pageTitles={
+  dashboard:['ダッシュボード','うさぽよ SNS全体の状況'],
+  'post-new':['投稿を登録','新しい投稿を追加'],
+  'post-list':['投稿一覧','すべての投稿とインサイト'],
+  'post-detail':['投稿詳細','インサイト詳細・比較'],
+  follower:['フォロワー推移','日別フォロワー数の記録'],
+  'content-analysis':['コンテンツ分析','カテゴリー別パフォーマンス'],
+  'platform-analysis':['媒体別分析','Instagram / TikTok / YouTube / X'],
+  'weekly-report':['週次会議レポート','毎週月曜の会議用サマリー'],
+};
+
+function navigateTo(page){
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  const el=document.getElementById('page-'+page);
+  if(el)el.classList.add('active');
+  const nav=document.querySelector(`.nav-item[data-page="${page}"]`);
+  if(nav)nav.classList.add('active');
+  const[title,sub]=pageTitles[page]||[page,''];
+  document.getElementById('page-title').textContent=title;
+  document.getElementById('page-sub').textContent=sub;
+  if(page==='dashboard')renderDashboard();
+  if(page==='post-list')renderPostList();
+  if(page==='follower'){renderFollowerTable();renderFollowerChart('all')}
+  if(page==='content-analysis')renderContentAnalysis();
+  if(page==='platform-analysis')renderPlatformAnalysis();
+  if(page==='weekly-report')renderWeeklyReport();
+}
+
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>navigateTo(el.dataset.page));
+});
+
+// ═══════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════
+let chartFollowerAll=null, chartCategoryPlays=null;
+
+function renderDashboard(){
+  renderKPICards();
+  renderAlerts();
+  renderFollowerAllChart();
+  renderCategoryPlaysChart();
+  renderRanking('rank-plays','plays','再生数',fmt);
+  renderRanking('rank-er','er','ER%',fmtPct,true);
+  renderRanking('rank-follow','follows','フォロー獲得',fmt);
+  renderRanking('rank-save','saveRate','保存率%',fmtPct,true);
+}
+
+function renderKPICards(){
+  const fols=DB.followers.sort((a,b)=>a.date<b.date?-1:1);
+  const platforms=[
+    {key:'ig',name:'Instagram',cls:'ig'},
+    {key:'tt',name:'TikTok',cls:'tt'},
+    {key:'yt',name:'YouTube',cls:'yt'},
+    {key:'xb',name:'X',cls:'xb'},
+  ];
+  const platFieldMap={ig:'instagram',tt:'tiktok',yt:'youtube',xb:'x'};
+  const grid=document.getElementById('kpi-grid');
+  grid.innerHTML='';
+  platforms.forEach(({key,name,cls})=>{
+    const field=platFieldMap[key];
+    const vals=fols.filter(f=>f[field]!=null).map(f=>({date:f.date,val:f[field]}));
+    const latest=vals[vals.length-1]?.val;
+    const prev=vals[vals.length-2]?.val;
+    const week=vals.length>=8?vals[vals.length-8]?.val:null;
+    const month=vals.length>=31?vals[vals.length-31]?.val:null;
+    const d1=fmtDiff(prev,latest);
+    const d7=fmtDiff(week,latest);
+    const d30=fmtDiff(month,latest);
+    grid.innerHTML+=`
+    <div class="kpi-card ${cls}">
+      <div class="kpi-platform"><span class="kpi-badge ${cls}">${platAbbr(name)}</span><span style="font-size:12px;color:var(--gray2);font-weight:500">${name}</span></div>
+      <div class="kpi-num">${latest!=null?fmt(latest):'—'}</div>
+      <div class="kpi-meta">
+        <div class="kpi-row"><span class="kpi-label">前日比</span><span class="kpi-diff ${d1.cls}">${d1.abs}</span></div>
+        <div class="kpi-row"><span class="kpi-label">7日前比</span><span class="kpi-diff ${d7.cls}">${d7.abs}</span></div>
+        <div class="kpi-row"><span class="kpi-label">30日前比</span><span class="kpi-diff ${d30.cls}">${d30.abs}</span></div>
+      </div>
+    </div>`;
+  });
+}
+
+function renderAlerts(){
+  const posts=DB.posts;
+  const needInput=posts.filter(p=>{
+    const s=getPostStatus(p);
+    return s==='waiting'||s==='week1';
+  });
+  const area=document.getElementById('alert-area');
+  if(!needInput.length){area.innerHTML='';return}
+  const items=needInput.slice(0,5).map(p=>`<li><strong>${p.platform}</strong> — ${p.title} (${p.date}) ${statusBadge(p)}</li>`).join('');
+  area.innerHTML=`
+  <div class="alert-box" style="margin-bottom:16px">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+    <div class="alert-body">
+      <div class="alert-title">インサイト入力が必要な投稿が ${needInput.length}件 あります</div>
+      <ul class="alert-list">${items}</ul>
+      ${needInput.length>5?`<div style="margin-top:4px;opacity:.7">他 ${needInput.length-5}件...</div>`:''}
+    </div>
+  </div>`;
+}
+
+function renderFollowerAllChart(){
+  const fols=DB.followers.sort((a,b)=>a.date<b.date?-1:1).slice(-60);
+  const labels=fols.map(f=>f.date.slice(5));
+  const datasets=[
+    {label:'Instagram',data:fols.map(f=>f.instagram||null),borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.08)',tension:.3,fill:false,pointRadius:2},
+    {label:'TikTok',data:fols.map(f=>f.tiktok||null),borderColor:'#F43F5E',backgroundColor:'rgba(244,63,94,.08)',tension:.3,fill:false,pointRadius:2},
+    {label:'YouTube',data:fols.map(f=>f.youtube||null),borderColor:'#EF4444',backgroundColor:'rgba(239,68,68,.08)',tension:.3,fill:false,pointRadius:2},
+    {label:'X',data:fols.map(f=>f.x||null),borderColor:'#8B5CF6',backgroundColor:'rgba(139,92,246,.08)',tension:.3,fill:false,pointRadius:2},
+  ];
+  if(chartFollowerAll)chartFollowerAll.destroy();
+  const ctx=document.getElementById('chart-follower-all').getContext('2d');
+  chartFollowerAll=new Chart(ctx,{type:'line',data:{labels,datasets},options:chartOpts({spanGaps:true})});
+}
+
+function renderCategoryPlaysChart(){
+  const posts=DB.posts;
+  const cats=[...new Set(posts.map(p=>p.category).filter(Boolean))];
+  const data=cats.map(cat=>{
+    const cp=posts.filter(p=>p.category===cat&&p.insight1d?.plays);
+    if(!cp.length)return{cat,avg:0};
+    return{cat,avg:cp.reduce((a,p)=>a+(p.insight1d.plays||0),0)/cp.length};
+  }).filter(d=>d.avg>0).sort((a,b)=>b.avg-a.avg);
+  if(chartCategoryPlays)chartCategoryPlays.destroy();
+  const ctx=document.getElementById('chart-category-plays').getContext('2d');
+  chartCategoryPlays=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.cat),
+      datasets:[{label:'平均再生数',data:data.map(d=>Math.round(d.avg)),backgroundColor:'rgba(244,114,182,.7)',borderColor:'#F472B6',borderWidth:1.5,borderRadius:4}]
+    },
+    options:chartOpts()
+  });
+}
+
+function renderRanking(elId,metric,label,fmtFn,isRate=false){
+  const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
+  const cutoffStr=cutoff.toISOString().slice(0,10);
+  const posts=DB.posts.filter(p=>p.insight1d&&p.date>=cutoffStr);
+  let sorted;
+  if(isRate){
+    sorted=posts.map(p=>{const r=calcInsightRates(p.insight1d);return{post:p,val:r[metric]||0}}).sort((a,b)=>b.val-a.val).slice(0,5);
+  } else {
+    sorted=posts.map(p=>({post:p,val:p.insight1d[metric]||0})).sort((a,b)=>b.val-a.val).slice(0,5);
+  }
+  const el=document.getElementById(elId);
+  if(!sorted.length){el.innerHTML=`<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--gray);font-size:12px">データがありません</td></tr>`;return}
+  el.innerHTML=`<thead><tr><th style="width:32px">#</th><th>投稿</th><th>媒体</th><th style="text-align:right">${label}</th></tr></thead>
+  <tbody>${sorted.map(({post,val},i)=>{
+    const gold=['🥇','🥈','🥉'];
+    return`<tr onclick="openDetail('${post.id}')" style="cursor:pointer">
+      <td class="rank-num">${gold[i]||i+1}</td>
+      <td style="max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;font-weight:500">${post.title}</td>
+      <td><span class="kpi-badge ${platClass(post.platform)}">${platAbbr(post.platform)}</span></td>
+      <td class="rank-val" style="text-align:right">${fmtFn(val)}</td>
+    </tr>`;
+  }).join('')}</tbody>`;
+}
+
+function chartOpts(extra={}){
+  return{
+    responsive:true,maintainAspectRatio:false,
+    plugins:{legend:{labels:{font:{size:11},boxWidth:12,padding:12}},tooltip:{titleFont:{size:12},bodyFont:{size:11}}},
+    scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},maxRotation:45}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10}}}},
+    ...extra
+  };
+}
+
+// ═══════════════════════════════════════════
+//  POST FORM
+// ═══════════════════════════════════════════
+let currentHashtags=[];
+let currentThumbData=null;
+
+function handleTagInput(e){
+  const field=document.getElementById('hashtag-field');
+  const raw=field.value.trim();
+  if((e.key==='Enter'||e.key===' ')&&raw){
+    e.preventDefault();
+    const tag=raw.startsWith('#')?raw:'#'+raw;
+    if(!currentHashtags.includes(tag)){
+      currentHashtags.push(tag);
+      renderTags();
+    }
+    field.value='';
+  }
+  if(e.key==='Backspace'&&field.value===''&&currentHashtags.length){
+    currentHashtags.pop();
+    renderTags();
+  }
+}
+
+function renderTags(){
+  const wrap=document.getElementById('hashtag-wrap');
+  if(!wrap)return;
+  const chips=currentHashtags.map((t,i)=>
+    `<span class="tag-chip">${t}<button type="button" onclick="removeTag(${i})">×</button></span>`
+  ).join('');
+  wrap.innerHTML=chips+`<input class="tag-input-field" id="hashtag-field" placeholder="${currentHashtags.length?'':'#タグを入力してEnter'}" onkeydown="handleTagInput(event)">`;
+  document.getElementById('hashtag-field').focus();
+}
+
+function removeTag(i){
+  currentHashtags.splice(i,1);
+  renderTags();
+  updatePresetButtons();
+}
+
+function addPresetTag(tag){
+  const t='#'+tag;
+  if(currentHashtags.includes(t)){
+    currentHashtags=currentHashtags.filter(x=>x!==t);
+  } else {
+    currentHashtags.push(t);
+  }
+  renderTags();
+  updatePresetButtons();
+}
+
+function updatePresetButtons(){
+  document.querySelectorAll('.preset-tag').forEach(btn=>{
+    const tag='#'+btn.textContent.slice(1);
+    btn.classList.toggle('selected',currentHashtags.includes(btn.textContent));
+  });
+}
+
+function handleThumbUpload(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  if(file.size>5*1024*1024){showToast('5MB以下の画像を選択してください','error');return}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    currentThumbData=ev.target.result;
+    renderThumbPreview();
+  };
+  reader.readAsDataURL(file);
+}
+
+function renderThumbPreview(){
+  const area=document.getElementById('thumb-upload-area');
+  if(currentThumbData){
+    area.innerHTML=`<div class="thumb-preview">
+      <img src="${currentThumbData}" alt="サムネイル">
+      <button type="button" class="thumb-preview-remove" onclick="removeThumb()">×</button>
+    </div>`;
+  } else {
+    area.innerHTML=`<div class="thumb-upload">
+      <input type="file" id="f-thumb" accept="image/*" onchange="handleThumbUpload(event)">
+      <div class="thumb-upload-icon">🖼</div>
+      <div class="thumb-upload-text">クリックまたはドラッグで画像をアップロード</div>
+      <div class="thumb-upload-sub">JPG・PNG・GIF・WebP（推奨: 1:1 または 9:16）</div>
+    </div>`;
+  }
+}
+
+function removeThumb(){
+  currentThumbData=null;
+  renderThumbPreview();
+}
+
+function submitPost(e){
+  e.preventDefault();
+  const post={
+    id:genId(),
+    date:document.getElementById('f-date').value,
+    time:document.getElementById('f-time').value,
+    platform:document.getElementById('f-platform').value,
+    format:document.getElementById('f-format').value,
+    title:document.getElementById('f-title').value,
+    category:document.getElementById('f-category').value,
+    url:document.getElementById('f-url').value,
+    memo:document.getElementById('f-memo').value,
+    caption:document.getElementById('f-caption').value,
+    hashtags:[...currentHashtags],
+    thumbnail:currentThumbData,
+    insight1d:null,insight7d:null,
+    createdAt:new Date().toISOString(),
+  };
+  const posts=DB.posts;
+  posts.unshift(post);
+  DB.posts=posts;
+  showToast('投稿を登録しました','success');
+  resetPostForm();
+  navigateTo('post-list');
+}
+
+function resetPostForm(){
+  document.getElementById('post-form').reset();
+  currentHashtags=[];
+  currentThumbData=null;
+  renderThumbPreview();
+  const wrap=document.getElementById('hashtag-wrap');
+  if(wrap)wrap.innerHTML=`<input class="tag-input-field" id="hashtag-field" placeholder="#タグを入力してEnter" onkeydown="handleTagInput(event)">`;
+  updatePresetButtons();
+}
+
+// ═══════════════════════════════════════════
+//  POST LIST
+// ═══════════════════════════════════════════
+function renderPostList(){
+  const posts=DB.posts;
+  const pf=document.getElementById('filter-platform').value;
+  const cf=document.getElementById('filter-category').value;
+  const sf=document.getElementById('filter-status').value;
+  let filtered=posts;
+  if(pf)filtered=filtered.filter(p=>p.platform===pf);
+  if(cf)filtered=filtered.filter(p=>p.category===cf);
+  if(sf)filtered=filtered.filter(p=>getPostStatus(p)===sf);
+  document.getElementById('post-count-label').textContent=`${filtered.length}件`;
+  const container=document.getElementById('post-list-container');
+  if(!filtered.length){
+    container.innerHTML=`<div class="empty"><div class="empty-icon">📝</div><div class="empty-title">投稿がありません</div><div class="empty-sub">「投稿を登録」から最初の投稿を追加してください</div></div>`;
+    return;
+  }
+  container.innerHTML=filtered.map(post=>{
+    const ins=post.insight1d;
+    const rates=calcInsightRates(ins);
+    const thumbEl=post.thumbnail
+      ?`<img class="post-thumb" src="${post.thumbnail}" alt="">`
+      :`<div class="post-thumb-placeholder"></div>`;
+    return`<div class="post-item" onclick="openDetail('${post.id}')">
+      ${thumbEl}
+      <div class="post-plat ${platClass(post.platform)}">${platAbbr(post.platform)}</div>
+      <div class="post-info">
+        <div class="post-title">${post.title}</div>
+        <div class="post-meta">
+          <span>${post.date}</span>
+          ${post.category?`<span class="post-cat">${post.category}</span>`:''}
+          ${post.format?`<span class="post-cat">${post.format}</span>`:''}
+          ${statusBadge(post)}
+        </div>
+      </div>
+      <div class="post-stats">
+        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.plays):'—'}</div><div class="stat-label">再生数</div></div>
+        <div class="stat-col"><div class="stat-num">${ins&&rates.er!=null?rates.er.toFixed(2)+'%':'—'}</div><div class="stat-label">ER%</div></div>
+        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+//  POST DETAIL
+// ═══════════════════════════════════════════
+function openDetail(id){
+  const post=DB.posts.find(p=>p.id===id);
+  if(!post)return;
+  renderDetail(post);
+  navigateTo('post-detail');
+}
+
+function renderDetail(post){
+  const ins1=post.insight1d;
+  const ins7=post.insight7d;
+  const r1=calcInsightRates(ins1);
+  const r7=calcInsightRates(ins7);
+  const status=getPostStatus(post);
+
+  const insightPanel=(ins,rates,label,colorDot,platform)=>{
+    if(!ins)return`<div class="insight-panel"><div class="insight-panel-title"><div class="dot" style="background:${colorDot}"></div>${label}</div><div class="empty" style="padding:24px 0"><div class="empty-sub">データが入力されていません</div></div></div>`;
+    const fields=(INSIGHT_FIELDS[platform]||INSIGHT_FIELDS.Instagram).filter(f=>f.type!=='section');
+    const pctVal=(v)=>v!=null?v+'%':null;
+    const valMap={
+      plays:fmt(ins.plays),likes:fmt(ins.likes),comments:fmt(ins.comments),follows:fmt(ins.follows),
+      saves:fmt(ins.saves),shares:fmt(ins.shares),profile:fmt(ins.profile),unique:fmt(ins.unique),
+      folRate:pctVal(ins.folRate),nonFolRate:pctVal(ins.nonFolRate),
+      ageGroup:ins.ageGroup||null,agePct:pctVal(ins.agePct),
+      watchTime:ins.watchTime!=null?ins.watchTime+(platform==='YouTube'?'時間':'分'):null,
+      avgView:ins.avgView!=null?ins.avgView+'秒':null,
+      impressions:fmt(ins.impressions),engagement:fmt(ins.engagement),
+      uniquePlays:fmt(ins.uniquePlays),detailClicks:fmt(ins.detailClicks),
+    };
+    const rows=fields.map(f=>{
+      const v=valMap[KEY_MAP[f.id]];
+      if(v===null||v===undefined||v==='—')return'';
+      return`<div class="metric-row"><div class="metric-name">${f.label}</div><div class="metric-val">${v}</div></div>`;
+    }).filter(Boolean);
+    return`<div class="insight-panel">
+      <div class="insight-panel-title"><div class="dot" style="background:${colorDot}"></div>${label}</div>
+      ${rows.join('')||'<div style="font-size:12px;color:var(--gray);padding:8px 0">入力済みの項目がありません</div>'}
+    </div>`;
+  };
+
+  const growthItems=[
+    {label:'再生数',v1:ins1?.plays,v7:ins7?.plays},
+    {label:'いいね',v1:ins1?.likes,v7:ins7?.likes},
+    {label:'コメント',v1:ins1?.comments,v7:ins7?.comments},
+    {label:'保存',v1:ins1?.saves,v7:ins7?.saves},
+    {label:'シェア',v1:ins1?.shares,v7:ins7?.shares},
+    {label:'フォロー獲得',v1:ins1?.follows,v7:ins7?.follows},
+  ];
+
+  const rateItems=[
+    {label:'ER%',v1:r1.er,v7:r7.er},
+    {label:'いいね率',v1:r1.likeRate,v7:r7.likeRate},
+    {label:'コメント率',v1:r1.commentRate,v7:r7.commentRate},
+    {label:'保存率',v1:r1.saveRate,v7:r7.saveRate},
+    {label:'シェア率',v1:r1.shareRate,v7:r7.shareRate},
+    {label:'プロフ遷移率',v1:r1.profileRate,v7:r7.profileRate},
+    {label:'フォロー転換率',v1:r1.followConv,v7:r7.followConv},
+  ];
+
+  const growthHTML=growthItems.map(({label,v1,v7})=>{
+    if(v1==null||v7==null)return`<div class="growth-item"><div class="growth-label">${label}</div><div style="font-size:11px;color:var(--gray);margin-top:8px">データなし</div></div>`;
+    const d=fmtDiff(v1,v7);
+    return`<div class="growth-item">
+      <div class="growth-label">${label}</div>
+      <div style="font-size:11px;color:var(--gray);margin-top:4px">${fmt(v1)} → ${fmt(v7)}</div>
+      <div class="growth-arrow ${d.cls}">${d.abs}</div>
+      <div class="growth-pct ${d.cls}">${d.pct}</div>
+    </div>`;
+  }).join('');
+
+  const rateHTML=rateItems.map(({label,v1,v7})=>{
+    const showV=v7!=null?v7:v1;
+    const pct=showV!=null?showV.toFixed(2)+'%':'—';
+    const max=20; // assume 20% is "good" for bar
+    const barW=showV!=null?Math.min(showV/max*100,100):0;
+    return`<div class="rate-card">
+      <div class="rate-label">${label}</div>
+      <div class="rate-val">${pct}</div>
+      <div class="rate-bar"><div class="rate-bar-fill" style="width:${barW}%"></div></div>
+    </div>`;
+  }).join('');
+
+  const btn1d=status==='waiting'?`<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>`
+    :`<button class="btn btn-sm btn-secondary" onclick="openInsightModal('${post.id}','1d')">編集</button>`;
+  const btn7d=(status==='done'||status==='week1')
+    ?`<button class="${status==='week1'?'btn btn-primary':'btn btn-secondary'} btn-sm" onclick="openInsightModal('${post.id}','7d')">${status==='done'?'1週間後を編集':'1週間後データを入力'}</button>`
+    :`<button class="btn btn-sm btn-ghost" disabled style="opacity:.5">1週間後データ（まだ入力不可）</button>`;
+
+  document.getElementById('detail-content').innerHTML=`
+  <div style="margin-bottom:16px">
+    <button class="btn btn-ghost btn-sm" onclick="navigateTo('post-list')">← 一覧に戻る</button>
+  </div>
+  <div class="detail-header">
+    ${post.thumbnail?`<img src="${post.thumbnail}" alt="サムネイル" style="width:80px;height:80px;object-fit:cover;border-radius:12px;flex-shrink:0;border:1px solid var(--border)">`:`<div class="detail-icon ${platClass(post.platform)}">${platAbbr(post.platform)}</div>`}
+    <div style="flex:1;min-width:0">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        ${post.thumbnail?`<span class="kpi-badge ${platClass(post.platform)}">${platAbbr(post.platform)}</span>`:''}
+        <div class="detail-title" id="detail-title-display">${post.title}</div>
+        <button class="btn btn-ghost btn-sm" onclick="startEditPost('${post.id}')" title="編集" style="padding:4px 8px;flex-shrink:0">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          編集
+        </button>
+      </div>
+      <div class="detail-meta">
+        <span>${post.date}${post.time?' '+post.time:''}</span>
+        ${post.category?`<span class="post-cat">${post.category}</span>`:''}
+        ${post.format?`<span class="post-cat">${post.format}</span>`:''}
+        ${statusBadge(post)}
+        ${post.url?`<a href="${post.url}" target="_blank" style="font-size:11px;color:var(--ig)">投稿を開く ↗</a>`:''}
+      </div>
+      ${post.memo?`<div style="margin-top:8px;font-size:12px;color:var(--gray2);background:var(--bg);border-radius:6px;padding:8px 12px">${post.memo}</div>`:''}
+      ${post.caption?`<div style="margin-top:8px;background:var(--bg);border-radius:6px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">キャプション</div><div style="font-size:12px;color:var(--navy2);line-height:1.6;white-space:pre-wrap">${post.caption}</div></div>`:''}
+      ${post.hashtags&&post.hashtags.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">${post.hashtags.map(t=>`<span class="tag-chip">${t}</span>`).join('')}</div>`:''}
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;margin-bottom:20px">
+    ${btn1d}
+    ${btn7d}
+    <button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">削除</button>
+  </div>
+  <div class="insight-grid">
+    ${insightPanel(ins1,r1,'1日後インサイト','#3B82F6',post.platform)}
+    ${insightPanel(ins7,r7,'1週間後インサイト','#F472B6',post.platform)}
+  </div>
+  ${(ins1&&ins7)?`
+  <div class="growth-panel">
+    <div class="growth-title">1日後 → 1週間後　増加</div>
+    <div class="growth-grid">${growthHTML}</div>
+  </div>`:''}
+  <div style="margin-top:20px">
+    <div class="card-title" style="margin-bottom:12px">自動計算指標（${ins7?'1週間後':ins1?'1日後':'データなし'}）</div>
+    <div class="rate-grid">${rateHTML}</div>
+  </div>`;
+}
+
+function startEditPost(id){
+  const post=DB.posts.find(p=>p.id===id);
+  if(!post)return;
+  document.getElementById('edit-post-id').value=id;
+  document.getElementById('edit-title').value=post.title||'';
+  document.getElementById('edit-date').value=post.date||'';
+  document.getElementById('edit-time').value=post.time||'';
+  document.getElementById('edit-platform').value=post.platform||'Instagram';
+  document.getElementById('edit-format').value=post.format||'';
+  document.getElementById('edit-category').value=post.category||'';
+  document.getElementById('edit-url').value=post.url||'';
+  document.getElementById('edit-memo').value=post.memo||'';
+  document.getElementById('edit-caption').value=post.caption||'';
+  document.getElementById('edit-post-modal').style.display='flex';
+}
+
+function closeEditModal(){
+  document.getElementById('edit-post-modal').style.display='none';
+}
+
+async function saveEditPost(){
+  const id=document.getElementById('edit-post-id').value;
+  const title=document.getElementById('edit-title').value.trim();
+  if(!title){showToast('タイトルを入力してください','error');return}
+  const post=DB.posts.find(p=>p.id===id);
+  if(!post)return;
+  const updated={...post,
+    title,
+    date:document.getElementById('edit-date').value,
+    time:document.getElementById('edit-time').value,
+    platform:document.getElementById('edit-platform').value,
+    format:document.getElementById('edit-format').value,
+    category:document.getElementById('edit-category').value,
+    url:document.getElementById('edit-url').value,
+    memo:document.getElementById('edit-memo').value,
+    caption:document.getElementById('edit-caption').value,
+  };
+  await gasPost('updatePost', updated);
+  await DB.init();
+  const refreshed=DB.posts.find(p=>p.id===id);
+  closeEditModal();
+  showToast('投稿情報を更新しました','success');
+  renderDetail(refreshed);
+}
+
+function deletePost(id){
+  if(!confirm('この投稿を削除しますか？'))return;
+  DB.posts=DB.posts.filter(p=>p.id!==id);
+  showToast('投稿を削除しました');
+  navigateTo('post-list');
+}
+
+// ═══════════════════════════════════════════
+//  INSIGHT MODAL
+// ═══════════════════════════════════════════
+// ── Media-aware field definitions ──────────────────
+// section区切りはtype:'section'で表現
+const INSIGHT_FIELDS = {
+  Instagram: [
+    {type:'section', label:'基本指標'},
+    {id:'i-plays',      label:'再生数',                   type:'number'},
+    {id:'i-unique',     label:'閲覧者数（ユニーク）',         type:'number'},
+    {type:'section', label:'インタラクション'},
+    {id:'i-likes',      label:'いいね',                   type:'number'},
+    {id:'i-comments',   label:'コメント数',                 type:'number'},
+    {id:'i-shares',     label:'再投稿数',                  type:'number'},
+    {id:'i-saves',      label:'保存数',                   type:'number'},
+    {type:'section', label:'閲覧後アクション'},
+    {id:'i-profile',    label:'プロフィールアクセス数',        type:'number'},
+    {id:'i-follows',    label:'フォロー獲得数',              type:'number'},
+    {type:'section', label:'オーディエンス'},
+    {id:'i-fol-rate',   label:'フォロワー閲覧率 (%)',        type:'number', step:'0.1'},
+    {id:'i-nonfol-rate',label:'非フォロワー閲覧率 (%)',      type:'number', step:'0.1'},
+    {id:'i-age-group',  label:'主年齢層',                  type:'select'},
+    {id:'i-age-pct',    label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
+  ],
+  TikTok: [
+    {type:'section', label:'基本指標'},
+    {id:'i-plays',      label:'投稿の視聴数',               type:'number'},
+    {id:'i-watch-time', label:'総再生時間（分）',             type:'number'},
+    {type:'section', label:'インタラクション'},
+    {id:'i-likes',      label:'いいね',                   type:'number'},
+    {id:'i-comments',   label:'コメント数',                 type:'number'},
+    {id:'i-shares',     label:'シェア数',                  type:'number'},
+    {id:'i-saves',      label:'保存数',                   type:'number'},
+    {id:'i-follows',    label:'新しいフォロワー数',            type:'number'},
+    {type:'section', label:'視聴者'},
+    {id:'i-fol-rate',   label:'非フォロワー閲覧率 (%)',      type:'number', step:'0.1'},
+    {id:'i-nonfol-rate',label:'フォロワー閲覧率 (%)',        type:'number', step:'0.1'},
+    {id:'i-age-group',  label:'主年齢層',                  type:'select'},
+    {id:'i-age-pct',    label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
+  ],
+  YouTube: [
+    {type:'section', label:'基本指標'},
+    {id:'i-plays',      label:'エンゲージ ビュー',           type:'number'},
+    {id:'i-unique',     label:'ユニーク視聴者数',             type:'number'},
+    {id:'i-watch-time', label:'総再生時間（時間）',           type:'number', step:'0.1'},
+    {id:'i-avg-view',   label:'平均視聴時間（秒）',           type:'number'},
+    {type:'section', label:'インタラクション'},
+    {id:'i-likes',      label:'いいね',                   type:'number'},
+    {id:'i-comments',   label:'コメント数',                 type:'number'},
+    {id:'i-follows',    label:'チャンネル登録増加数',          type:'number'},
+    {type:'section', label:'視聴者'},
+    {id:'i-fol-rate',   label:'登録者の視聴割合 (%)',        type:'number', step:'0.1'},
+    {id:'i-nonfol-rate',label:'未登録の視聴割合 (%)',        type:'number', step:'0.1'},
+    {id:'i-age-group',  label:'主年齢層',                  type:'select'},
+    {id:'i-age-pct',    label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
+  ],
+  X: [
+    {type:'section', label:'基本指標'},
+    {id:'i-impressions',label:'インプレッション数',           type:'number'},
+    {id:'i-plays',      label:'再生数（動画）',              type:'number'},
+    {id:'i-unique-plays',label:'ユニーク再生数（動画）',      type:'number'},
+    {type:'section', label:'インタラクション'},
+    {id:'i-likes',      label:'いいね',                   type:'number'},
+    {id:'i-shares',     label:'リツイート数',                type:'number'},
+    {id:'i-comments',   label:'コメント数（返信）',           type:'number'},
+    {id:'i-engagement', label:'エンゲージメント数（合計）',    type:'number'},
+    {type:'section', label:'閲覧後アクション'},
+    {id:'i-profile',    label:'プロフィールアクセス数',        type:'number'},
+    {id:'i-detail-clicks',label:'詳細のクリック数',          type:'number'},
+    {id:'i-follows',    label:'フォロー獲得数',              type:'number'},
+  ],
+};
+const AGE_OPTIONS = ['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
+
+const KEY_MAP = {
+  'i-plays':'plays','i-likes':'likes','i-comments':'comments','i-follows':'follows',
+  'i-saves':'saves','i-shares':'shares','i-profile':'profile','i-unique':'unique',
+  'i-fol-rate':'folRate','i-nonfol-rate':'nonFolRate','i-age-group':'ageGroup',
+  'i-age-pct':'agePct','i-watch-time':'watchTime','i-avg-view':'avgView',
+  'i-impressions':'impressions','i-engagement':'engagement',
+  'i-unique-plays':'uniquePlays','i-detail-clicks':'detailClicks',
+};
+
+function buildInsightForm(platform, ins){
+  const fields = INSIGHT_FIELDS[platform] || INSIGHT_FIELDS.Instagram;
+  return fields.map(f=>{
+    if(f.type==='section'){
+      return`<div class="form-section-title" style="grid-column:1/-1">${f.label}</div>`;
+    }
+    const v = ins?.[KEY_MAP[f.id]]??'';
+    if(f.type==='select'){
+      const opts = AGE_OPTIONS.map(o=>`<option${v===o?' selected':''}>${o}</option>`).join('');
+      return`<div class="form-group"><label>${f.label}</label><select id="${f.id}"><option value="">未入力</option>${opts}</select></div>`;
+    }
+    return`<div class="form-group"><label>${f.label}</label><input type="number" id="${f.id}" min="0" ${f.step?`step="${f.step}"`:''}  placeholder="0" value="${v}"></div>`;
+  }).join('');
+}
+
+function openInsightModal(postId,period){
+  const post=DB.posts.find(p=>p.id===postId);
+  if(!post)return;
+  const ins=period==='1d'?post.insight1d:post.insight7d;
+  const platLabel={'Instagram':'Instagram','TikTok':'TikTok','YouTube':'YouTube','X':'X'}[post.platform]||post.platform;
+  document.getElementById('insight-modal-title').textContent=`${period==='1d'?'1日後':'1週間後'} インサイト — ${post.title.slice(0,20)}`;
+  document.getElementById('insight-modal-sub').textContent=`${platLabel} · ${post.date}`;
+  document.getElementById('insight-post-id').value=postId;
+  document.getElementById('insight-period').value=period;
+  document.getElementById('insight-platform').value=post.platform;
+  document.getElementById('insight-form-fields').innerHTML=buildInsightForm(post.platform,ins);
+  document.getElementById('analyze-status').textContent='';
+  document.getElementById('screenshot-upload').value='';
+  document.getElementById('insight-modal').style.display='flex';
+}
+
+function closeInsightModal(){
+  document.getElementById('insight-modal').style.display='none';
+}
+
+function getInsightFormData(){
+  const getNum=id=>{const el=document.getElementById(id);if(!el)return null;const v=el.value;return v===''?null:Number(v)};
+  const getStr=id=>{const el=document.getElementById(id);return el?el.value||null:null};
+  const data={savedAt:new Date().toISOString()};
+  // collect all possible field ids via KEY_MAP
+  Object.entries(KEY_MAP).forEach(([fieldId,dataKey])=>{
+    if(dataKey==='ageGroup') data[dataKey]=getStr(fieldId);
+    else data[dataKey]=getNum(fieldId);
+  });
+  return data;
+}
+
+function saveInsight(){
+  const postId=document.getElementById('insight-post-id').value;
+  const period=document.getElementById('insight-period').value;
+  const ins=getInsightFormData();
+  const posts=DB.posts;
+  const idx=posts.findIndex(p=>p.id===postId);
+  if(idx===-1)return;
+  if(period==='1d')posts[idx].insight1d=ins;
+  else posts[idx].insight7d=ins;
+  DB.posts=posts;
+  closeInsightModal();
+  showToast('インサイトを保存しました','success');
+  renderDetail(posts[idx]);
+}
+
+// ── Screenshot OCR via Claude API ──────────────────
+function fileToBase64(file){
+  return new Promise((res,rej)=>{
+    const r=new FileReader();
+    r.onload=ev=>res({b64:ev.target.result.split(',')[1],mediaType:file.type||'image/jpeg'});
+    r.onerror=rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function applyParsedInsight(parsed){
+  const setVal=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=='')el.value=v};
+  setVal('i-plays',parsed.plays);setVal('i-likes',parsed.likes);
+  setVal('i-comments',parsed.comments);setVal('i-saves',parsed.saves);
+  setVal('i-shares',parsed.shares);setVal('i-follows',parsed.follows);
+  setVal('i-profile',parsed.profile);setVal('i-unique',parsed.unique);
+  setVal('i-fol-rate',parsed.folRate);setVal('i-nonfol-rate',parsed.nonFolRate);
+  setVal('i-age-pct',parsed.agePct);setVal('i-watch-time',parsed.watchTime);
+  setVal('i-avg-view',parsed.avgView);
+  setVal('i-impressions',parsed.impressions);setVal('i-engagement',parsed.engagement);
+  setVal('i-unique-plays',parsed.uniquePlays);setVal('i-detail-clicks',parsed.detailClicks);
+  const ageEl=document.getElementById('i-age-group');
+  if(ageEl&&parsed.ageGroup)ageEl.value=parsed.ageGroup;
+}
+
+async function analyzeScreenshot(e){
+  const files=[...e.target.files];
+  if(!files.length)return;
+  const apiKey=document.getElementById('api-key-input').value.trim();
+  if(!apiKey){showToast('APIキーを入力してください','error');return}
+  const platform=document.getElementById('insight-platform').value;
+  const statusEl=document.getElementById('analyze-status');
+  const previewEl=document.getElementById('screenshot-previews');
+
+  previewEl.innerHTML=files.map((_,i)=>`<div id="prev-${i}" style="position:relative;width:52px;height:52px;border-radius:6px;overflow:hidden;border:2px solid var(--border);flex-shrink:0"><img src="" style="width:100%;height:100%;object-fit:cover"><div style="position:absolute;inset:0;background:rgba(0,0,0,.35);display:flex;align-items:center;justify-content:center"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div></div>`).join('');
+  files.forEach((file,i)=>{const rd=new FileReader();rd.onload=ev=>{const img=document.querySelector(`#prev-${i} img`);if(img)img.src=ev.target.result};rd.readAsDataURL(file)});
+
+  statusEl.textContent=`⏳ ${files.length}枚を順番に解析中...`;
+  statusEl.style.color='var(--amber)';
+
+  const prompt=`これは${platform}の投稿インサイト画面のスクリーンショットです。
+画像から以下の数値を読み取り、JSON形式のみで返してください（説明文不要）。
+存在しない・見えない項目はnullにしてください。
+
+{
+  "plays": 再生数または視聴数（数値）,
+  "likes": いいね数（数値）,
+  "comments": コメント数（数値）,
+  "saves": 保存数（数値）,
+  "shares": シェアまたは再投稿数（数値）,
+  "follows": フォロー獲得数またはチャンネル登録増加数（数値）,
+  "profile": プロフィールアクセス数（数値）,
+  "unique": ユニーク視聴者数または閲覧者数（数値）,
+  "folRate": フォロワーまたは登録者の閲覧割合（%の数値のみ、例:56.4）,
+  "nonFolRate": 非フォロワーまたは未登録の閲覧割合（%の数値のみ）,
+  "ageGroup": 最も多い年齢層（例:"25-34歳"）,
+  "agePct": その年齢層の割合（%の数値のみ）,
+  "watchTime": 総再生時間（数値、YouTubeは時間単位、TikTokは分単位）,
+  "avgView": 平均視聴時間（秒数）,
+  "impressions": インプレッション数（Xのみ）,
+  "engagement": エンゲージメント数（Xのみ）,
+  "uniquePlays": ユニーク再生数（Xの動画のみ）,
+  "detailClicks": 詳細のクリック数（Xのみ）
+}`;
+
+  let merged={};
+  let successCount=0;
+
+  for(let i=0;i<files.length;i++){
+    const prevBox=document.querySelector(`#prev-${i}`);
+    statusEl.textContent=`⏳ ${i+1} / ${files.length}枚目を解析中...`;
+    try{
+      const {b64,mediaType}=await fileToBase64(files[i]);
+      const resp=await fetch('https://api.anthropic.com/v1/messages',{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+        body:JSON.stringify({
+          model:'claude-sonnet-4-6',max_tokens:512,
+          messages:[{role:'user',content:[
+            {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
+            {type:'text',text:prompt}
+          ]}]
+        })
+      });
+      const data=await resp.json();
+      if(data.error)throw new Error(data.error.message);
+      const text=data.content[0].text.replace(/```json|```/g,'').trim();
+      const parsed=JSON.parse(text);
+      Object.entries(parsed).forEach(([k,v])=>{if(v!=null)merged[k]=v});
+      successCount++;
+      if(prevBox)prevBox.style.borderColor='var(--green)';
+    }catch(err){
+      if(prevBox)prevBox.style.borderColor='var(--red)';
+      console.warn(`Image ${i+1} failed:`,err.message);
+    }
+  }
+
+  if(successCount===0){
+    statusEl.textContent='❌ すべての画像の読み取りに失敗しました';
+    statusEl.style.color='var(--red)';
+    return;
+  }
+  applyParsedInsight(merged);
+  const failCount=files.length-successCount;
+  statusEl.textContent=`✅ ${successCount}枚読み取り完了${failCount?' ('+failCount+'枚失敗)':''}。数値を確認して保存してください`;
+  statusEl.style.color=failCount?'var(--amber)':'var(--green)';
+}
+
+// ═══════════════════════════════════════════
+//  FOLLOWER
+// ═══════════════════════════════════════════
+let chartFolDetail=null;
+let folTab='all';
+
+async function saveFollower(){
+  const date=document.getElementById('fol-date').value;
+  if(!date){showToast('日付を入力してください','error');return}
+  const getVal=id=>{const v=document.getElementById(id).value;return v===''?null:Number(v)};
+  const entry={date,instagram:getVal('fol-ig'),tiktok:getVal('fol-tt'),youtube:getVal('fol-yt'),x:getVal('fol-x')};
+  await gasPost('saveFollower', entry);
+  await DB.init();
+  showToast('フォロワー数を保存しました','success');
+  document.getElementById('fol-ig').value='';document.getElementById('fol-tt').value='';
+  document.getElementById('fol-yt').value='';document.getElementById('fol-x').value='';
+  renderFollowerTable();renderFollowerChart(folTab);
+}
+
+function renderFollowerTable(){
+  const fols=[...DB.followers].sort((a,b)=>a.date>b.date?-1:1);
+  const table=document.getElementById('fol-table');
+  const fields=['instagram','tiktok','youtube','x'];
+  const labels=['Instagram','TikTok','YouTube','X'];
+  if(!fols.length){table.innerHTML=`<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--gray);font-size:12px">データがありません</td></tr>`;return}
+  const getPrevVal=(date,field)=>{
+    const prev=fols.filter(f=>f.date<date&&f[field]!=null).sort((a,b)=>b.date<a.date?-1:1)[0];
+    return prev?.[field]??null;
+  };
+  table.innerHTML=`<thead><tr>
+    <th>日付</th><th>Instagram</th><th>前日比</th><th>TikTok</th><th>前日比</th><th>YouTube</th><th>前日比</th><th>X</th><th>前日比</th><th></th>
+  </tr></thead><tbody>${fols.map(f=>`<tr>
+    <td style="font-weight:600">${f.date}</td>
+    ${fields.map(field=>{
+      const cur=f[field];const prev=getPrevVal(f.date,field);
+      const diff=cur!=null&&prev!=null?cur-prev:null;
+      const cls=diff>0?'color:var(--green);font-weight:600':diff<0?'color:var(--red);font-weight:600':'color:var(--gray)';
+      return`<td>${cur!=null?fmt(cur):'—'}</td><td style="${cls}">${diff!=null?(diff>=0?'+':'')+fmt(diff):'—'}</td>`;
+    }).join('')}
+    <td><button class="btn btn-ghost btn-sm" onclick="deleteFolEntry('${f.date}')" style="padding:3px 8px;font-size:11px">削除</button></td>
+  </tr>`).join('')}</tbody>`;
+}
+
+function deleteFolEntry(date){
+  if(!confirm(`${date} のデータを削除しますか？`))return;
+  DB.followers=DB.followers.filter(f=>f.date!==date);
+  renderFollowerTable();renderFollowerChart(folTab);
+  showToast('削除しました');
+}
+
+function setFolTab(btn,tab){
+  document.querySelectorAll('.tab-fol').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  folTab=tab;
+  renderFollowerChart(tab);
+}
+
+function renderFollowerChart(tab){
+  const fols=DB.followers.sort((a,b)=>a.date<b.date?-1:1).slice(-90);
+  const labels=fols.map(f=>f.date.slice(5));
+  let datasets;
+  if(tab==='all'){
+    datasets=[
+      {label:'Instagram',data:fols.map(f=>f.instagram||null),borderColor:'#3B82F6',tension:.3,fill:false,pointRadius:2},
+      {label:'TikTok',data:fols.map(f=>f.tiktok||null),borderColor:'#F43F5E',tension:.3,fill:false,pointRadius:2},
+      {label:'YouTube',data:fols.map(f=>f.youtube||null),borderColor:'#EF4444',tension:.3,fill:false,pointRadius:2},
+      {label:'X',data:fols.map(f=>f.x||null),borderColor:'#8B5CF6',tension:.3,fill:false,pointRadius:2},
+    ];
+  } else {
+    const map={ig:['instagram','#3B82F6','Instagram'],tt:['tiktok','#F43F5E','TikTok'],yt:['youtube','#EF4444','YouTube'],xb:['x','#8B5CF6','X']};
+    const[field,color,name]=map[tab];
+    datasets=[{label:name,data:fols.map(f=>f[field]||null),borderColor:color,backgroundColor:color+'18',tension:.3,fill:true,pointRadius:2}];
+  }
+  if(chartFolDetail)chartFolDetail.destroy();
+  const ctx=document.getElementById('chart-follower-detail').getContext('2d');
+  chartFolDetail=new Chart(ctx,{type:'line',data:{labels,datasets},options:chartOpts({spanGaps:true})});
+}
+
+// ═══════════════════════════════════════════
+//  CONTENT ANALYSIS
+// ═══════════════════════════════════════════
+let chartCatER=null;
+
+function renderContentAnalysis(){
+  const posts=DB.posts.filter(p=>p.insight1d);
+  const cats=[...new Set(posts.map(p=>p.category||'その他'))];
+  const data=cats.map(cat=>{
+    const cp=posts.filter(p=>(p.category||'その他')===cat);
+    const avg=(field)=>{
+      const vals=cp.map(p=>p.insight1d[field]||0);
+      return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0;
+    };
+    const avgRate=(field)=>{
+      const vals=cp.map(p=>calcInsightRates(p.insight1d)[field]).filter(v=>v!=null);
+      return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null;
+    };
+    return{cat,count:cp.length,plays:avg('plays'),likes:avg('likes'),comments:avg('comments'),saves:avg('saves'),shares:avg('shares'),follows:avg('follows'),er:avgRate('er'),profileRate:avgRate('profileRate')};
+  }).sort((a,b)=>b.plays-a.plays);
+
+  if(chartCatER)chartCatER.destroy();
+  const ctx=document.getElementById('chart-cat-er').getContext('2d');
+  chartCatER=new Chart(ctx,{
+    type:'bar',
+    data:{
+      labels:data.map(d=>d.cat),
+      datasets:[
+        {label:'平均ER%',data:data.map(d=>d.er!=null?+d.er.toFixed(3):0),backgroundColor:'rgba(244,114,182,.7)',borderColor:'#F472B6',borderWidth:1.5,borderRadius:4,yAxisID:'y1'},
+        {label:'平均再生数',data:data.map(d=>Math.round(d.plays)),backgroundColor:'rgba(59,130,246,.25)',borderColor:'#3B82F6',borderWidth:1.5,borderRadius:4,yAxisID:'y2'},
+      ]
+    },
+    options:{
+      responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{labels:{font:{size:11}}}},
+      scales:{
+        x:{ticks:{font:{size:10}}},
+        y1:{type:'linear',position:'left',ticks:{font:{size:10},callback:v=>v.toFixed(1)+'%'}},
+        y2:{type:'linear',position:'right',ticks:{font:{size:10}},grid:{drawOnChartArea:false}},
+      }
+    }
+  });
+
+  const container=document.getElementById('content-analysis-table');
+  if(!data.length){container.innerHTML=`<div class="empty"><div class="empty-sub">投稿インサイトデータがありません</div></div>`;return}
+  const maxPlays=Math.max(...data.map(d=>d.plays))||1;
+  container.innerHTML=`<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--bg)">
+      ${['カテゴリー','投稿数','平均再生数','平均ER%','平均いいね','平均コメント','平均保存','平均シェア','平均フォロー獲得'].map(h=>`<th style="font-size:11px;color:var(--gray);font-weight:600;text-transform:uppercase;letter-spacing:.4px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap">${h}</th>`).join('')}
+    </tr></thead>
+    <tbody>${data.map(d=>`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:12px;font-weight:600;font-size:13px">${d.cat}</td>
+      <td style="padding:12px;font-size:13px;font-variant-numeric:tabular-nums">${d.count}</td>
+      <td style="padding:12px">
+        <div style="font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;margin-bottom:4px">${fmt(Math.round(d.plays))}</div>
+        <div class="analysis-bar-container"><div class="analysis-bar"><div class="analysis-bar-fill" style="width:${(d.plays/maxPlays*100).toFixed(0)}%"></div></div></div>
+      </td>
+      <td style="padding:12px;font-size:13px;font-weight:700;color:${d.er!=null&&d.er>3?'var(--green)':'var(--navy)'}">${d.er!=null?d.er.toFixed(2)+'%':'—'}</td>
+      <td style="padding:12px;font-size:13px;font-variant-numeric:tabular-nums">${fmt(Math.round(d.likes))}</td>
+      <td style="padding:12px;font-size:13px;font-variant-numeric:tabular-nums">${fmt(Math.round(d.comments))}</td>
+      <td style="padding:12px;font-size:13px;font-variant-numeric:tabular-nums">${fmt(Math.round(d.saves))}</td>
+      <td style="padding:12px;font-size:13px;font-variant-numeric:tabular-nums">${fmt(Math.round(d.shares))}</td>
+      <td style="padding:12px;font-size:13px;font-variant-numeric:tabular-nums;font-weight:700">${fmt(Math.round(d.follows))}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════
+//  PLATFORM ANALYSIS
+// ═══════════════════════════════════════════
+let chartPlatPlays=null,chartPlatER=null;
+
+function renderPlatformAnalysis(){
+  const posts=DB.posts.filter(p=>p.insight1d);
+  const platforms=['Instagram','TikTok','YouTube','X'];
+  const data=platforms.map(plat=>{
+    const pp=posts.filter(p=>p.platform===plat);
+    const avg=(field)=>{const vals=pp.map(p=>p.insight1d[field]||0);return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:0};
+    const avgRate=(field)=>{const vals=pp.map(p=>calcInsightRates(p.insight1d)[field]).filter(v=>v!=null);return vals.length?vals.reduce((a,b)=>a+b,0)/vals.length:null};
+    return{plat,count:pp.length,plays:avg('plays'),er:avgRate('er'),follows:avg('follows'),saves:avg('saves')};
+  });
+  const colors=['#3B82F6','#F43F5E','#EF4444','#8B5CF6'];
+
+  if(chartPlatPlays)chartPlatPlays.destroy();
+  const ctx1=document.getElementById('chart-plat-plays').getContext('2d');
+  chartPlatPlays=new Chart(ctx1,{type:'bar',data:{labels:platforms,datasets:[{label:'平均再生数',data:data.map(d=>Math.round(d.plays)),backgroundColor:colors.map(c=>c+'BB'),borderColor:colors,borderWidth:2,borderRadius:6}]},options:chartOpts()});
+
+  if(chartPlatER)chartPlatER.destroy();
+  const ctx2=document.getElementById('chart-plat-er').getContext('2d');
+  chartPlatER=new Chart(ctx2,{type:'bar',data:{labels:platforms,datasets:[{label:'平均ER%',data:data.map(d=>d.er!=null?+d.er.toFixed(3):0),backgroundColor:colors.map(c=>c+'BB'),borderColor:colors,borderWidth:2,borderRadius:6}]},options:{...chartOpts(),scales:{...chartOpts().scales,y:{...chartOpts().scales.y,ticks:{...chartOpts().scales.y.ticks,callback:v=>v.toFixed(1)+'%'}}}}});
+
+  const container=document.getElementById('platform-analysis-table');
+  container.innerHTML=`<table style="width:100%;border-collapse:collapse">
+    <thead><tr style="background:var(--bg)">
+      ${['媒体','投稿本数','平均再生数','平均ER%','平均フォロー獲得','平均保存数'].map(h=>`<th style="font-size:11px;color:var(--gray);font-weight:600;letter-spacing:.4px;padding:10px 12px;text-align:left;border-bottom:1px solid var(--border)">${h}</th>`).join('')}
+    </tr></thead>
+    <tbody>${data.map((d,i)=>`<tr style="border-bottom:1px solid var(--border)">
+      <td style="padding:12px"><span class="kpi-badge ${platClass(d.plat)}">${d.plat}</span></td>
+      <td style="padding:12px;font-size:13px">${d.count}</td>
+      <td style="padding:12px;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">${fmt(Math.round(d.plays))}</td>
+      <td style="padding:12px;font-size:14px;font-weight:700;color:${d.er!=null&&d.er>3?'var(--green)':'var(--navy)'}">${d.er!=null?d.er.toFixed(2)+'%':'—'}</td>
+      <td style="padding:12px;font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">${fmt(Math.round(d.follows))}</td>
+      <td style="padding:12px;font-size:14px;font-variant-numeric:tabular-nums">${fmt(Math.round(d.saves))}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+// ═══════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════
+function showToast(msg,type='success'){
+  const container=document.getElementById('toast-container');
+  const toast=document.createElement('div');
+  toast.className=`toast ${type}`;
+  const icon=type==='success'?'✓':'✕';
+  toast.innerHTML=`<span class="toast-icon" style="font-weight:700">${icon}</span>${msg}`;
+  container.appendChild(toast);
+  setTimeout(()=>{toast.style.opacity='0';toast.style.transform='translateY(4px)';toast.style.transition='all .2s';setTimeout(()=>toast.remove(),200)},2500);
+}
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+// Clear any old sample data from previous version
+if(localStorage.getItem('up_posts')){
+  const posts=JSON.parse(localStorage.getItem('up_posts'));
+  if(posts.some(p=>p.id&&p.id.startsWith('s'))){
+    localStorage.removeItem('up_posts');
+    localStorage.removeItem('up_followers');
+  }
+}
+
+// Set today's date as default
+document.getElementById('f-date').valueAsDate=new Date();
+document.getElementById('fol-date').valueAsDate=new Date();
+
+
+
+
+// ═══════════════════════════════════════════
+//  WEEKLY REPORT
+// ═══════════════════════════════════════════
+function renderWeeklyReport(){
+  const now=new Date();
+  const defMonth=now.toISOString().slice(0,7);
+  const monthInput=document.getElementById('goal-month');
+  if(!monthInput.value)monthInput.value=defMonth;
+  const month=monthInput.value;
+  const [yr,mo]=month.split('-').map(Number);
+
+  // Load saved goal
+  const goals=JSON.parse(localStorage.getItem('up_goals')||'{}');
+  const goal=goals[month]||0;
+  document.getElementById('goal-count').value=goal||'';
+
+  // Posts this month — タイトル重複を除いてカウント（同一タイトルは複数媒体でも1本）
+  const monthPosts=DB.posts.filter(p=>p.date&&p.date.startsWith(month));
+  const uniqueTitles=new Set(monthPosts.map(p=>(p.title||'').trim().toLowerCase()).filter(Boolean));
+  const uniqueCount=uniqueTitles.size;
+  const totalCount=monthPosts.length;
+  const pct=goal>0?Math.round(uniqueCount/goal*100):0;
+  const barW=Math.min(pct,100);
+  const barColor=pct>=100?'var(--green)':pct>=60?'var(--ig)':'var(--amber)';
+  const dupNote=totalCount>uniqueCount?`<span style="font-size:10px;color:var(--gray)">（投稿数 ${totalCount}本 / うち重複タイトル ${totalCount-uniqueCount}本を除く）</span>`:'';
+  document.getElementById('goal-progress').innerHTML=`
+    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
+      <span style="font-size:28px;font-weight:700;color:var(--navy)">${uniqueCount}<span style="font-size:14px;color:var(--gray);font-weight:400"> / ${goal||'—'} 本</span></span>
+      <span style="font-size:18px;font-weight:700;color:${barColor}">${goal?pct+'%':'目標未設定'}</span>
+    </div>
+    ${dupNote}
+    <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin-top:8px">
+      <div style="height:100%;width:${barW}%;background:${barColor};border-radius:5px;transition:width .4s"></div>
+    </div>
+    <div style="font-size:11px;color:var(--gray);margin-top:6px">${month} の投稿進捗 · 残り ${goal?Math.max(0,goal-uniqueCount):'—'} 本</div>`;
+
+  // Weekly follower summary (last 4 weeks)
+  const fols=[...DB.followers].sort((a,b)=>a.date>b.date?1:-1);
+  const weeks=[];
+  for(let w=0;w<4;w++){
+    const d=new Date(now);d.setDate(d.getDate()-w*7);
+    const ds=d.toISOString().slice(0,10);
+    const entry=fols.filter(f=>f.date<=ds).pop();
+    weeks.unshift({label:`${w===0?'今週':w+'週前'}`,date:ds,data:entry});
+  }
+  const platFields=[{key:'instagram',label:'IG',cls:'ig'},{key:'tiktok',label:'TT',cls:'tt'},{key:'youtube',label:'YT',cls:'yt'},{key:'x',label:'X',cls:'xb'}];
+  let folHtml=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);color:var(--gray);font-weight:600">週</th>${platFields.map(p=>`<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);color:var(--gray);font-weight:600">${p.label}</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);color:var(--gray);font-weight:600">前週比</th>`).join('')}</tr></thead><tbody>`;
+  weeks.forEach((w,i)=>{
+    folHtml+=`<tr style="border-bottom:1px solid var(--border)"><td style="padding:8px;font-weight:600">${w.label}</td>`;
+    platFields.forEach(p=>{
+      const cur=w.data?.[p.key];
+      const prev=i>0?weeks[i-1].data?.[p.key]:null;
+      const diff=cur!=null&&prev!=null?cur-prev:null;
+      const cls=diff>0?'color:var(--green);font-weight:600':diff<0?'color:var(--red);font-weight:600':'color:var(--gray)';
+      folHtml+=`<td style="padding:8px;text-align:right;font-variant-numeric:tabular-nums">${cur!=null?cur.toLocaleString():'—'}</td>`;
+      folHtml+=`<td style="padding:8px;text-align:right;${cls}">${diff!=null?(diff>=0?'+':'')+diff.toLocaleString():'—'}</td>`;
+    });
+    folHtml+='</tr>';
+  });
+  folHtml+='</tbody></table></div>';
+  document.getElementById('weekly-follower-summary').innerHTML=folHtml;
+
+  // Monthly top posts by likes + follows
+  const monthWithIns=monthPosts.filter(p=>p.insight1d);
+  const topByLikes=[...monthWithIns].sort((a,b)=>(b.insight1d.likes||0)-(a.insight1d.likes||0)).slice(0,3);
+  const topByFollows=[...monthWithIns].sort((a,b)=>(b.insight1d.follows||0)-(a.insight1d.follows||0)).slice(0,3);
+
+  const postRow=p=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+    ${p.thumbnail?`<img src="${p.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">`:`<div style="width:40px;height:40px;border-radius:6px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center"><span class="kpi-badge ${platClass(p.platform)}">${platAbbr(p.platform)}</span></div>`}
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
+      <div style="font-size:11px;color:var(--gray)">${p.date}</div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">${fmt(p.insight1d.likes||0)} ❤</div>
+      <div style="font-size:11px;color:var(--green);font-weight:600">+${fmt(p.insight1d.follows||0)} フォロー</div>
+    </div>
+  </div>`;
+
+  document.getElementById('monthly-top-posts').innerHTML=monthWithIns.length
+    ?`<div class="grid-2" style="gap:16px">
+        <div><div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">いいね TOP3</div>${topByLikes.map(postRow).join('')||'<div style="color:var(--gray);font-size:12px;padding:12px 0">データなし</div>'}</div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">フォロー獲得 TOP3</div>${topByFollows.map(postRow).join('')||'<div style="color:var(--gray);font-size:12px;padding:12px 0">データなし</div>'}</div>
+      </div>`
+    :'<div class="empty"><div class="empty-sub">今月はまだインサイトデータがありません</div></div>';
+
+  // Generate text report
+  buildTextReport(month, monthPosts, topByLikes, topByFollows, weeks, goal, platFields);
+}
+
+async function saveGoal(){
+  const month=document.getElementById('goal-month').value;
+  const count=parseInt(document.getElementById('goal-count').value)||0;
+  await gasPost('saveGoal', {month, count});
+  await DB.init();
+  renderWeeklyReport();
+}
+
+function buildTextReport(month, monthPosts, topLikes, topFollows, weeks, goal, platFields){
+  const now=new Date();
+  const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));
+  const lines=[];
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  lines.push(`うさぽよ SNS週次レポート`);
+  lines.push(`${monday.toLocaleDateString('ja-JP')} 時点`);
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  lines.push('');
+  lines.push('【フォロワー数（今週）】');
+  const thisWeek=weeks[weeks.length-1];const prevWeek=weeks[weeks.length-2];
+  platFields.forEach(p=>{
+    const cur=thisWeek.data?.[p.key];
+    const prev=prevWeek?.data?.[p.key];
+    const diff=cur!=null&&prev!=null?cur-prev:null;
+    const sign=diff!=null?(diff>=0?'+':'')+diff:'±?';
+    lines.push(`  ${p.label}：${cur!=null?cur.toLocaleString():'—'} （前週比 ${sign}）`);
+  });
+  lines.push('');
+  lines.push(`【${month} 投稿進捗】`);
+  const rptUniq=new Set(monthPosts.map(p=>(p.title||'').trim().toLowerCase()).filter(Boolean)).size;
+  const rptDup=monthPosts.length-rptUniq;
+  lines.push(`  投稿数：${rptUniq}本${goal?' / 目標 '+goal+'本 ('+Math.round(rptUniq/goal*100)+'%)':('{目標未設定}')}${rptDup?' ※重複タイトル '+rptDup+'本除く':''}`);
+  lines.push('');
+  lines.push(`【今月の注目投稿（いいね TOP3）】`);
+  topLikes.forEach((p,i)=>{
+    lines.push(`  ${i+1}. ${p.title}`);
+    lines.push(`     いいね ${fmt(p.insight1d.likes||0)} / フォロー獲得 +${fmt(p.insight1d.follows||0)}`);
+  });
+  if(!topLikes.length)lines.push('  データなし');
+  lines.push('');
+  lines.push(`【今月の注目投稿（フォロー獲得 TOP3）】`);
+  topFollows.forEach((p,i)=>{
+    lines.push(`  ${i+1}. ${p.title}`);
+    lines.push(`     フォロー獲得 +${fmt(p.insight1d.follows||0)} / いいね ${fmt(p.insight1d.likes||0)}`);
+  });
+  if(!topFollows.length)lines.push('  データなし');
+  lines.push('');
+  lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
+  document.getElementById('report-preview').textContent=lines.join('\n');
+}
+
+function copyReport(){
+  const text=document.getElementById('report-preview').textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast('レポートをコピーしました','success')).catch(()=>showToast('コピーに失敗しました','error'));
+}
+
+renderDashboard();
+</script>
+</body>
+</html>
