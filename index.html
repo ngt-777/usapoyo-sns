@@ -319,6 +319,10 @@ textarea{resize:vertical;min-height:72px}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="10" y2="14"/><line x1="8" y1="18" x2="14" y2="18"/></svg>
       <span>週次会議レポート</span>
     </div>
+    <div class="nav-item" data-page="daily-report">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      <span>日次レポート</span>
+    </div>
   </nav>
   <div class="sb-bottom">
     <div class="sb-status">データ保存: <span>クラウド</span></div>
@@ -597,6 +601,28 @@ textarea{resize:vertical;min-height:72px}
   </div>
 
   <!-- ⑧ 週次会議レポート -->
+  <!-- 日次レポートページ -->
+  <div class="page" id="page-daily-report">
+    <div class="grid-2" style="gap:16px;margin-bottom:16px">
+      <div class="card">
+        <div class="card-title">対象日を選択</div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <input type="date" id="daily-target-date" style="padding:8px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px">
+          <button class="btn btn-primary btn-sm" onclick="renderDailyReport()">レポートを生成</button>
+        </div>
+      </div>
+      <div class="card" style="display:flex;align-items:center;gap:12px">
+        <button class="btn btn-secondary" onclick="copyDailyReport()" style="width:100%">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+          テキストをコピー
+        </button>
+      </div>
+    </div>
+    <div id="daily-report-preview" class="card" style="white-space:pre-wrap;font-size:13px;line-height:1.8;color:var(--navy2);font-family:monospace;min-height:200px">
+      日付を選択してレポートを生成してください
+    </div>
+  </div>
+
   <div class="page" id="page-weekly-report">
     <div class="grid-2" style="margin-bottom:20px">
       <div class="card">
@@ -731,6 +757,15 @@ textarea{resize:vertical;min-height:72px}
           <option>漫画</option><option>企業タイアップ関連</option><option>日常イラスト</option>
           <option>ギャル間違い探し</option><option>一言フィード</option><option>その他（書き込み）</option>
         </select>
+      </div>
+      <div class="form-group full">
+        <label>サムネイル画像</label>
+        <div id="edit-thumb-preview" style="margin-bottom:8px"></div>
+        <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          画像を選択
+          <input type="file" id="edit-thumb-input" accept="image/*" style="display:none" onchange="onEditThumbChange(event)">
+        </label>
       </div>
       <div class="form-group full">
         <label>投稿URL</label>
@@ -897,19 +932,21 @@ function getPostStatus(post){
   const posted=new Date(post.date);
   const diffDays=(now-posted)/(1000*60*60*24);
   if(post.insight7d)return'done';
+  if(post.skip1d&&diffDays>=7)return'week1'; // 1日後スキップ済・1週間後待ち
+  if(post.skip1d)return'skip1d'; // 1日後スキップ済・1週間後まだ
   if(post.insight1d&&diffDays>=7)return'week1';
   if(post.insight1d)return'day1';
-  if(diffDays>=1)return'waiting';
-  return'day1'; // posted today, no need yet
+  return'waiting'; // インサイト未入力はすべて「待ち」
 }
 
 function statusBadge(post){
   const s=getPostStatus(post);
   const map={
-    waiting:['待ち','waiting'],
-    day1:['1日後入力済','day1'],
-    week1:['1週間後待ち','week1'],
-    done:['集計完了','done'],
+    waiting: ['待ち','waiting'],
+    day1:    ['1日後入力済','day1'],
+    skip1d:  ['1日後スキップ','day1'],
+    week1:   ['1週間後待ち','week1'],
+    done:    ['集計完了','done'],
   };
   const[txt,cls]=map[s]||['—',''];
   return`<span class="status ${cls}"><span class="status-dot"></span>${txt}</span>`;
@@ -927,6 +964,7 @@ const pageTitles={
   'content-analysis':['コンテンツ分析','カテゴリー別パフォーマンス'],
   'platform-analysis':['媒体別分析','Instagram / TikTok / YouTube / X'],
   'weekly-report':['週次会議レポート','毎週月曜の会議用サマリー'],
+  'daily-report':['日次レポート','その日のフォロワー数と直近投稿のインサイト'],
 };
 
 function navigateTo(page){
@@ -945,6 +983,7 @@ function navigateTo(page){
   if(page==='content-analysis')renderContentAnalysis();
   if(page==='platform-analysis')renderPlatformAnalysis();
   if(page==='weekly-report')renderWeeklyReport();
+  if(page==='daily-report')initDailyReport();
 }
 
 document.querySelectorAll('.nav-item').forEach(el=>{
@@ -1253,6 +1292,7 @@ async function refreshData(){
     else if(pageId==='content-analysis')renderContentAnalysis();
     else if(pageId==='platform-analysis')renderPlatformAnalysis();
     else if(pageId==='weekly-report')renderWeeklyReport();
+    else if(pageId==='daily-report')renderDailyReport();
   }
   if(btn)btn.disabled=false;
   if(icon)icon.style.animation='';
@@ -1398,11 +1438,17 @@ function renderDetail(post){
     </div>`;
   }).join('');
 
-  const btn1d=status==='waiting'?`<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>`
-    :`<button class="btn btn-sm btn-secondary" onclick="openInsightModal('${post.id}','1d')">編集</button>`;
-  const btn7d=(status==='done'||status==='week1')
-    ?`<button class="${status==='week1'?'btn btn-primary':'btn btn-secondary'} btn-sm" onclick="openInsightModal('${post.id}','7d')">${status==='done'?'1週間後を編集':'1週間後データを入力'}</button>`
-    :`<button class="btn btn-sm btn-ghost" disabled style="opacity:.5">1週間後データ（まだ入力不可）</button>`;
+  // 1日後ボタン
+  const btn1d = status==='waiting'
+    ? `<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>
+       <button class="btn btn-danger btn-sm" onclick="skip1dInsight('${post.id}')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5">1日後データ不可</button>`
+    : (status==='day1'||status==='skip1d')
+      ? `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後を編集</button>`
+      : '';
+  // 1週間後ボタン
+  const btn7d = (status==='done'||status==='week1'||status==='skip1d')
+    ? `<button class="${(status==='week1'||status==='skip1d')?'btn btn-primary':'btn btn-secondary'} btn-sm" onclick="openInsightModal('${post.id}','7d')">${status==='done'?'1週間後を編集':'1週間後データを入力'}</button>`
+    : `<button class="btn btn-sm btn-ghost" disabled style="opacity:.5">1週間後データ（まだ入力不可）</button>`;
 
   document.getElementById('detail-content').innerHTML=`
   <div style="margin-bottom:16px">
@@ -1451,9 +1497,25 @@ function renderDetail(post){
   </div>`;
 }
 
+let editThumbData=null;
+
+function onEditThumbChange(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  if(file.size>5*1024*1024){showToast('5MB以下の画像を選択してください','error');return;}
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    editThumbData=ev.target.result;
+    const prev=document.getElementById('edit-thumb-preview');
+    if(prev)prev.innerHTML=`<img src="${editThumbData}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`;
+  };
+  reader.readAsDataURL(file);
+}
+
 function startEditPost(id){
   const post=DB.posts.find(p=>p.id===id);
   if(!post)return;
+  editThumbData=post.thumbnail||null;
   document.getElementById('edit-post-id').value=id;
   document.getElementById('edit-title').value=post.title||'';
   document.getElementById('edit-date').value=post.date||'';
@@ -1464,6 +1526,8 @@ function startEditPost(id){
   document.getElementById('edit-url').value=post.url||'';
   document.getElementById('edit-memo').value=post.memo||'';
   document.getElementById('edit-caption').value=post.caption||'';
+  const prev=document.getElementById('edit-thumb-preview');
+  if(prev)prev.innerHTML=post.thumbnail?`<img src="${post.thumbnail}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`:''
   document.getElementById('edit-post-modal').style.display='flex';
 }
 
@@ -1487,6 +1551,7 @@ async function saveEditPost(){
     url:document.getElementById('edit-url').value,
     memo:document.getElementById('edit-memo').value,
     caption:document.getElementById('edit-caption').value,
+    thumbnail:editThumbData||post.thumbnail||null,
   };
   await gasPost('updatePost', updated);
   await DB.init();
@@ -1633,19 +1698,32 @@ function getInsightFormData(){
   return data;
 }
 
-function saveInsight(){
+async function skip1dInsight(id){
+  if(!confirm('1日後データを「取得不可」としてスキップします。よろしいですか？'))return;
+  const post=DB.posts.find(p=>p.id===id);
+  if(!post)return;
+  const updated={...post, skip1d:true};
+  await gasPost('updatePost', updated);
+  await DB.init();
+  const refreshed=DB.posts.find(p=>p.id===id);
+  showToast('1日後データをスキップしました');
+  renderDetail(refreshed);
+}
+
+async function saveInsight(){
   const postId=document.getElementById('insight-post-id').value;
   const period=document.getElementById('insight-period').value;
   const ins=getInsightFormData();
-  const posts=DB.posts;
-  const idx=posts.findIndex(p=>p.id===postId);
-  if(idx===-1)return;
-  if(period==='1d')posts[idx].insight1d=ins;
-  else posts[idx].insight7d=ins;
-  DB.posts=posts;
+  const post=DB.posts.find(p=>p.id===postId);
+  if(!post)return;
+  const key=period==='1d'?'insight1d':'insight7d';
+  const updated={...post, [key]:ins};
+  await gasPost('updatePost', updated);
+  await DB.init();
+  const refreshed=DB.posts.find(p=>p.id===postId);
   closeInsightModal();
   showToast('インサイトを保存しました','success');
-  renderDetail(posts[idx]);
+  renderDetail(refreshed);
 }
 
 // ── Screenshot OCR via Claude API ──────────────────
@@ -2008,6 +2086,87 @@ document.getElementById('fol-date').valueAsDate=new Date();
 // ═══════════════════════════════════════════
 //  WEEKLY REPORT
 // ═══════════════════════════════════════════
+function initDailyReport(){
+  // デフォルトで今日の日付をセット
+  const el=document.getElementById('daily-target-date');
+  if(el&&!el.value){
+    const today=new Date();
+    el.value=today.toISOString().slice(0,10);
+  }
+  renderDailyReport();
+}
+
+function renderDailyReport(){
+  const dateEl=document.getElementById('daily-target-date');
+  const targetDate=dateEl?dateEl.value:'';
+  if(!targetDate){
+    document.getElementById('daily-report-preview').textContent='日付を選択してください';
+    return;
+  }
+
+  // フォロワーデータ取得（対象日のもの）
+  const fols=[...DB.followers].sort((a,b)=>a.date.localeCompare(b.date));
+  const todayFol=fols.find(f=>f.date===targetDate);
+  const prevFol=fols.filter(f=>f.date<targetDate).pop();
+
+  const diff=(cur,prev)=>{
+    if(cur==null||cur===''||cur===undefined)return'—';
+    if(prev==null||prev===''||prev===undefined)return fmt(cur)+' (前回比 —)';
+    const d=Number(cur)-Number(prev);
+    const sign=d>0?'+':d<0?'':'+';
+    return fmt(cur)+` (前回比 ${sign}${d})`;
+  };
+
+  const ig=todayFol?diff(todayFol.instagram,prevFol?.instagram):'—（未入力）';
+  const tt=todayFol?diff(todayFol.tiktok,   prevFol?.tiktok):   '—（未入力）';
+  const yt=todayFol?diff(todayFol.youtube,  prevFol?.youtube):  '—（未入力）';
+  const xb=todayFol?diff(todayFol.x,        prevFol?.x):        '—（未入力）';
+
+  // 直近の投稿インサイト（対象日以前で最新のもの、インサイト入力済）
+  const recentPosts=[...DB.posts]
+    .filter(p=>p.date<=targetDate&&(p.insight1d||p.insight7d))
+    .sort((a,b)=>b.date.localeCompare(a.date))
+    .slice(0,5);
+
+  const lines=[];
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push(`うさぽよ 日次レポート`);
+  lines.push(`${targetDate} 時点`);
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  lines.push('');
+  lines.push('【フォロワー数】');
+  lines.push(`  IG：${ig}`);
+  lines.push(`  TT：${tt}`);
+  lines.push(`  YT：${yt}`);
+  lines.push(`  X ：${xb}`);
+  lines.push('');
+
+  if(recentPosts.length){
+    lines.push('【直近の投稿インサイト】');
+    recentPosts.forEach(p=>{
+      const ins=p.insight7d||p.insight1d;
+      const period=p.insight7d?'1週間後':'1日後';
+      lines.push(`');
+      lines.push(`  ■ ${p.title}（${p.platform} / ${p.date}）[${period}]`);
+      lines.push(`    再生数：${ins.plays!=null?fmt(ins.plays):'—'}`);
+      lines.push(`    いいね：${ins.likes!=null?fmt(ins.likes):'—'}`);
+      lines.push(`    フォロー獲得：${ins.follows!=null?fmt(ins.follows):'—'}`);
+    });
+  } else {
+    lines.push('【直近の投稿インサイト】');
+    lines.push('  インサイト入力済みの投稿がありません');
+  }
+
+  lines.push('');
+  lines.push('━━━━━━━━━━━━━━━━━━━━━━━━━━');
+  document.getElementById('daily-report-preview').textContent=lines.join('\n');
+}
+
+function copyDailyReport(){
+  const text=document.getElementById('daily-report-preview').textContent;
+  navigator.clipboard.writeText(text).then(()=>showToast('コピーしました','success')).catch(()=>showToast('コピー失敗','error'));
+}
+
 function renderWeeklyReport(){
   const now=new Date();
   const defMonth=now.toISOString().slice(0,7);
