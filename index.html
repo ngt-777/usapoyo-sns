@@ -771,9 +771,11 @@ async function gasGet(action) {
 }
 
 async function gasPost(action, data) {
-  // thumbnailは重すぎるので除外して送信
+  // thumbnail・caption・memoは除外（URL長さ制限のため）
   const sendData = {...data};
-  if(sendData.thumbnail && sendData.thumbnail.length > 1000) sendData.thumbnail = '';
+  delete sendData.thumbnail;
+  if(sendData.caption && sendData.caption.length > 200) sendData.caption = sendData.caption.slice(0,200);
+  if(sendData.memo && sendData.memo.length > 200) sendData.memo = sendData.memo.slice(0,200);
   const payload = encodeURIComponent(JSON.stringify(sendData));
   const url = GAS_URL + '?action=' + action + '&data=' + payload;
   try {
