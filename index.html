@@ -819,11 +819,19 @@ const DB = {
       // 日付をYYYY-MM-DDに正規化し、同じ日付は最後の1件のみ残す
       const folMap = {};
       (fr||[]).forEach(r=>{
-        const rawDate = String(r[0]||'');
-        const date = rawDate.slice(0,10); // ISO形式でも "2026-08-27" でも先頭10文字
+        let rawDate = String(r[0]||'');
+        // "2026-08-30T15:00:00.000Z" → "2026-08-31" (JST補正: UTC+9)
+        let date;
+        if(rawDate.includes('T')){
+          const d = new Date(rawDate);
+          d.setHours(d.getHours()+9); // UTC→JST
+          date = d.toISOString().slice(0,10);
+        } else {
+          date = rawDate.slice(0,10);
+        }
         if(!date || date.length < 10) return;
         folMap[date] = {
-          date, 
+          date,
           instagram: r[1]!==''&&r[1]!=null ? Number(r[1]) : null,
           tiktok:    r[2]!==''&&r[2]!=null ? Number(r[2]) : null,
           youtube:   r[3]!==''&&r[3]!=null ? Number(r[3]) : null,
@@ -1085,11 +1093,24 @@ function renderRanking(elId,metric,label,fmtFn,isRate=false){
   }).join('')}</tbody>`;
 }
 
+function fmtAxisBig(v){
+  if(Math.abs(v)>=10000) return Math.round(v/10000)+'万';
+  if(Math.abs(v)>=1000) return Math.round(v/1000)+'K';
+  return v;
+}
+
 function chartOpts(extra={}){
   return{
     responsive:true,maintainAspectRatio:false,
     plugins:{legend:{labels:{font:{size:11},boxWidth:12,padding:12}},tooltip:{titleFont:{size:12},bodyFont:{size:11}}},
-    scales:{x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},maxRotation:45}},y:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10}}}},
+    scales:{
+      x:{grid:{color:'rgba(0,0,0,.04)'},ticks:{font:{size:10},maxRotation:45}},
+      y:{
+        grid:{color:'rgba(0,0,0,.04)'},
+        beginAtZero:false,
+        ticks:{font:{size:10}, callback:v=>Number.isInteger(v)?v:'' }
+      }
+    },
     ...extra
   };
 }
@@ -1856,8 +1877,8 @@ function renderContentAnalysis(){
       plugins:{legend:{labels:{font:{size:11}}}},
       scales:{
         x:{ticks:{font:{size:10}}},
-        y1:{type:'linear',position:'left',ticks:{font:{size:10},callback:v=>v.toFixed(1)+'%'}},
-        y2:{type:'linear',position:'right',ticks:{font:{size:10}},grid:{drawOnChartArea:false}},
+        y1:{type:'linear',position:'left',beginAtZero:false,ticks:{font:{size:10},callback:v=>v.toFixed(1)+'%'}},
+        y2:{type:'linear',position:'right',beginAtZero:true,ticks:{font:{size:10},callback:v=>fmtAxisBig(v)},grid:{drawOnChartArea:false}},
       }
     }
   });
@@ -2104,7 +2125,24 @@ function copyReport(){
   navigator.clipboard.writeText(text).then(()=>showToast('レポートをコピーしました','success')).catch(()=>showToast('コピーに失敗しました','error'));
 }
 
-renderDashboard();
+// 起動時にGASからデータを読み込む
+(async function(){
+  // ローディング表示
+  document.body.insertAdjacentHTML('beforeend', `
+    <div id="app-loading" style="position:fixed;inset:0;background:rgba(15,20,40,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:99999;gap:16px">
+      <div style="width:44px;height:44px;border:4px solid rgba(255,255,255,.2);border-top:4px solid #ec4899;border-radius:50%;animation:spin .8s linear infinite"></div>
+      <div style="color:#fff;font-size:14px;font-weight:500">データを読み込んでいます...</div>
+    </div>
+  `);
+  try {
+    await DB.init();
+  } catch(e) {
+    console.warn('DB init failed:', e);
+  }
+  const el = document.getElementById('app-loading');
+  if(el) el.remove();
+  navigateTo('dashboard');
+})();
 </script>
 </body>
 </html>
