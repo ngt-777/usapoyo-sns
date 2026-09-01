@@ -2146,7 +2146,7 @@ function renderDailyReport(){
     recentPosts.forEach(p=>{
       const ins=p.insight7d||p.insight1d;
       const period=p.insight7d?'1週間後':'1日後';
-      lines.push(`');
+      lines.push('');
       lines.push(`  ■ ${p.title}（${p.platform} / ${p.date}）[${period}]`);
       lines.push(`    再生数：${ins.plays!=null?fmt(ins.plays):'—'}`);
       lines.push(`    いいね：${ins.likes!=null?fmt(ins.likes):'—'}`);
@@ -2331,4 +2331,3 @@ function copyReport(){
 </script>
 </body>
 </html>
-
