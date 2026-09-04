@@ -846,8 +846,19 @@ const DB = {
       const [pr, fr, gr] = await Promise.all([
         gasGet('getPosts'), gasGet('getFollowers'), gasGet('getGoals')
       ]);
+      const normDate=v=>{
+        if(!v)return'';
+        const s=String(v);
+        if(s.includes('T')){
+          // ISO形式 → JST補正
+          const d=new Date(s);
+          d.setHours(d.getHours()+9);
+          return d.toISOString().slice(0,10);
+        }
+        return s.slice(0,10);
+      };
       this.posts = (pr||[]).map(r=>(({
-        id:r[0], title:r[1], platform:r[2], date:r[3], time:r[4],
+        id:r[0], title:r[1], platform:r[2], date:normDate(r[3]), time:r[4],
         category:r[5], format:r[6], url:r[7], memo:r[8], caption:r[9],
         hashtags:tryParse(r[10],[]), thumbnail:r[11]||null,
         insight1d:tryParse(r[12],null), insight7d:tryParse(r[13],null),
