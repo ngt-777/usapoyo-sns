@@ -672,25 +672,7 @@ textarea{resize:vertical;min-height:72px}
     <input type="hidden" id="insight-period">
     <input type="hidden" id="insight-platform">
 
-    <!-- スクショ解析エリア -->
-    <div style="background:var(--bg);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px">
-      <div style="font-size:12px;font-weight:700;color:var(--navy2);margin-bottom:10px">📷 スクショから自動入力</div>
-      <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-        <div class="form-group" style="flex:1;min-width:160px">
-          <label style="font-size:11px">APIキー（Anthropic）</label>
-          <input type="password" id="api-key-input" placeholder="sk-ant-..." style="font-size:12px">
-        </div>
-        <div style="flex-shrink:0">
-          <label class="btn btn-secondary btn-sm" style="cursor:pointer;display:inline-flex;align-items:center;gap:6px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            スクショを選択（複数可）
-            <input type="file" id="screenshot-upload" accept="image/*" multiple style="display:none" onchange="analyzeScreenshot(event)">
-          </label>
-        </div>
-      </div>
-      <div id="screenshot-previews" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
-      <div id="analyze-status" style="font-size:11px;color:var(--gray);margin-top:6px"></div>
-    </div>
+
 
     <!-- 入力フォーム（媒体によって表示切替） -->
     <div class="form-grid" id="insight-form-fields"></div>
