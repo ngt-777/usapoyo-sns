@@ -283,18 +283,15 @@ a{color:var(--accent)}
       <div class="fg"><label class="fl">担当者</label><select class="fsel" id="tm-asgn"></select></div>
       <div class="fg"><label class="fl">確認者</label><select class="fsel" id="tm-rev"></select></div>
     </div>
-    <div class="frow">
-      <div class="fg"><label class="fl">ステータス</label>
-        <select class="fsel" id="tm-status">
-          <option value="未着手">⚪ 未着手</option><option value="進行中">🔵 進行中</option>
-          <option value="確認待ち">🟡 確認待ち</option><option value="外部返答待ち">🟠 外部返答待ち</option>
-          <option value="素材待ち">🟣 素材待ち</option><option value="要対応">🔴 要対応</option>
-          <option value="完了">🟢 完了</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl">優先度</label>
-        <select class="fsel" id="tm-pri"><option value="高">🔴 高</option><option value="中" selected>🟡 中</option><option value="低">⚪ 低</option></select>
-      </div>
+    <input type="hidden" id="tm-parent">
+    <div id="tm-parent-label" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--purbg);border-radius:var(--rs);font-size:12px;color:var(--pur)">📎 サブタスクとして追加</div>
+    <div class="fg"><label class="fl">ステータス</label>
+      <select class="fsel" id="tm-status">
+        <option value="未着手">⚪ 未着手</option><option value="進行中">🔵 進行中</option>
+        <option value="確認待ち">🟡 確認待ち</option><option value="外部返答待ち">🟠 外部返答待ち</option>
+        <option value="素材待ち">🟣 素材待ち</option><option value="要対応">🔴 要対応</option>
+        <option value="完了">🟢 完了</option>
+      </select>
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">期限</label><input class="fi" type="date" id="tm-dl"></div>
@@ -359,21 +356,29 @@ a{color:var(--accent)}
 
 <!-- Quick Task Modal -->
 <div id="quick-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeQuickModal()">
-  <div class="mbox" style="max-width:440px"><div class="mhead"><div class="mtitle">タスクを追加</div><button class="mclose" onclick="closeQuickModal()">✕</button></div>
+  <div class="mbox"><div class="mhead"><div class="mtitle">タスクを追加</div><button class="mclose" onclick="closeQuickModal()">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="qm-mid">
     <div class="fg"><label class="fl">タスク名 *</label><input class="fi" id="qm-name" placeholder="例：質問コーナー制作"></div>
+    <div class="fg"><label class="fl">説明・メモ</label><textarea class="fta" id="qm-desc" style="height:54px" placeholder="詳細・背景など"></textarea></div>
     <div class="frow">
       <div class="fg"><label class="fl">担当者</label><select class="fsel" id="qm-asgn"></select></div>
+      <div class="fg"><label class="fl">確認者</label><select class="fsel" id="qm-rev"></select></div>
+    </div>
+    <div class="frow">
       <div class="fg"><label class="fl">ステータス</label>
         <select class="fsel" id="qm-status">
           <option value="未着手">⚪ 未着手</option><option value="進行中">🔵 進行中</option>
           <option value="確認待ち">🟡 確認待ち</option><option value="外部返答待ち">🟠 外部返答待ち</option>
-          <option value="要対応">🔴 要対応</option><option value="完了">🟢 完了</option>
+          <option value="素材待ち">🟣 素材待ち</option><option value="要対応">🔴 要対応</option>
+          <option value="完了">🟢 完了</option>
         </select>
       </div>
+      <div class="fg"><label class="fl">期限</label><input class="fi" type="date" id="qm-dl"></div>
     </div>
-    <div class="fg"><label class="fl">期限</label><input class="fi" type="date" id="qm-dl"></div>
+    <div class="fg"><label class="fl">終了見込み</label><input class="fi" type="date" id="qm-est"></div>
+    <div class="fg"><label class="fl">次のアクション</label><input class="fi" id="qm-na" placeholder="例：回答確認後にSTORES登録へ"></div>
+    <div class="fg"><label class="fl">関連URL</label><input class="fi" id="qm-url" placeholder="https://..."></div>
     <div style="display:flex;gap:18px;margin-top:6px">
       <label class="fchk"><input type="checkbox" id="qm-today"> 今日やる</label>
       <label class="fchk"><input type="checkbox" id="qm-mtg"> 次回会議で確認</label>
@@ -407,6 +412,9 @@ a{color:var(--accent)}
     <div class="fg"><label class="fl">カテゴリ（タップして選択）</label>
       <input type="hidden" id="sm-cat">
       <div id="sm-cat-tags" style="display:flex;flex-wrap:wrap;gap:4px;margin-top:2px"></div>
+      <div id="sm-cat-custom" style="display:none;margin-top:8px">
+        <input class="fi" id="sm-cat-input" placeholder="カテゴリ名を入力..." oninput="document.getElementById('sm-cat').value=this.value||'その他（書き込み）'">
+      </div>
     </div>
     <div class="fg"><label class="fl">担当</label><select class="fsel" id="sm-asgn"></select></div>
     <div class="fg"><label class="fl">投稿概要</label><textarea class="fta" id="sm-desc" style="height:54px"></textarea></div>
@@ -484,17 +492,20 @@ async function showMemSel(){
   try{
     const{data,error}=await sb.from('pm_members').select('*').order('sort_order');
     if(error)throw error;
-    if(data&&data.length>0){D.members=data;renderMemGrid();document.getElementById('member-screen').style.display='flex';}
-    else{await seedAll();const{data:d2}=await sb.from('pm_members').select('*').order('sort_order');D.members=d2||[];renderMemGrid();document.getElementById('member-screen').style.display='flex';}
+    if(data&&data.length>0){D.members=data;}
+    else{await seedAll();const{data:d2}=await sb.from('pm_members').select('*').order('sort_order');D.members=d2||[];}
+    // Skip selection screen
+    if(!curMember)curMember={name:'ゲスト',id:null};
+    showApp();
   }catch(e){alert('Supabase接続エラー:\n'+e.message);localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');location.reload();}
 }
 function renderMemGrid(){
   const ord=['長田','小森','西村'];
   const sorted=[...D.members.filter(m=>ord.includes(m.name)).sort((a,b)=>ord.indexOf(a.name)-ord.indexOf(b.name)),...D.members.filter(m=>!ord.includes(m.name))];
-  document.getElementById('mem-sel-grid').innerHTML=sorted.map(m=>`<div class="mem-btn" onclick='selectMember(${JSON.stringify(m)})'>${m.name}<span class="role">${m.role||''}</span></div>`).join('');
+  document.getElementById('mem-sel-grid').innerHTML=sorted.map(m=>`<div class="mem-btn" onclick='selectMember(${JSON.stringify(m)})'>${m.name}</div>`).join('');
 }
-function selectMember(m){curMember=m;sessionStorage.setItem('cur_member',JSON.stringify(m));document.getElementById('member-screen').style.display='none';showApp();}
-function changeMember(){sessionStorage.removeItem('cur_member');document.getElementById('member-screen').style.display='flex';}
+function selectMember(m){curMember=m;sessionStorage.setItem('cur_member',JSON.stringify(m));document.getElementById('member-screen').style.display='none';document.getElementById('cur-mem').textContent=m.name||'ゲスト';renderTaskboard();}
+function changeMember(){renderMemGrid();document.getElementById('member-screen').style.display='flex';}
 async function showApp(){
   document.getElementById('app').style.display='flex';
   document.getElementById('cur-mem').textContent=curMember?.name||'ゲスト';
@@ -673,19 +684,27 @@ function renderProject(){
   if(!h)h='<div class="empty"><h3>プロジェクトがありません</h3></div>';
   document.getElementById('proj-body').innerHTML=h;
 }
-function tRow(t){
+function tRow(t,depth){
+  depth=depth||0;
   const ck=t.status==='完了',subs=D.tasks.filter(s=>s.parent_task_id===t.id);
-  return`<div class="trow"><div class="tchk ${ck?'ck':''}" onclick="toggleTask('${t.id}')">${ck?'✓':''}</div>
-    <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')">${t.name}</div>
-    <div class="tm2">${t.meeting_check?'<span title="次回会議で確認" style="font-size:12px">📋</span>':''}${t.bottleneck?`<span title="${t.bottleneck}" style="font-size:12px;cursor:help">🚧</span>`:''}
-      <span class="tass">${mn(t.assignee_id)}</span>${badge(t.status)}
+  const pad=8+depth*20,fs=Math.max(11,13-depth);
+  const bg=depth>0?`rgba(240,238,252,${Math.min(depth*0.5,0.8)})`:'transparent';
+  const arrow=depth===1?'↳ ':depth===2?'  ↳ ':depth>2?'    ↳ ':'';
+  return`<div class="trow" style="padding-left:${pad}px;background:${bg}">
+    <div class="tchk ${ck?'ck':''}" onclick="toggleTask('${t.id}')">${ck?'✓':''}</div>
+    <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')" style="font-size:${fs}px">${arrow}${t.name}</div>
+    <div class="tm2">
+      ${t.meeting_check?'<span title="次回会議で確認" style="font-size:12px">📋</span>':''}
+      ${t.bottleneck?`<span title="${t.bottleneck}" style="font-size:12px;cursor:help">🚧</span>`:''}
+      <span class="tass">${mn(t.assignee_id)}</span>
+      ${badge(t.status)}
       ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
-      <button class="btn bg" style="padding:2px 6px;font-size:11px" onclick="openTaskModal('${t.id}')">✏</button>
+      <button class="btn bg" style="padding:2px 5px;font-size:11px" onclick="openTaskModal('${t.id}')">✏</button>
+      <button class="btn bg" style="padding:2px 5px;font-size:11px;color:var(--accent)" title="サブタスクを追加" onclick="openTaskModal(null,null,'${t.id}')">＋</button>
     </div></div>
-  ${subs.map(s=>`<div class="trow sub-tr"><div class="tchk ${s.status==='完了'?'ck':''}" onclick="toggleTask('${s.id}')">${s.status==='完了'?'✓':''}</div>
-    <div class="tn ${s.status==='完了'?'done':''}" onclick="showDetail('${s.id}')" style="font-size:12px">↳ ${s.name}</div>
-    <div class="tm2"><span class="tass">${mn(s.assignee_id)}</span>${badge(s.status)}</div></div>`).join('')}`;
+  ${subs.map(s=>tRow(s,depth+1)).join('')}`;
 }
+
 function setProjF(id){projF=id;renderProject();}
 function togglePB(id){const el=document.getElementById('pb-'+id);if(el)el.style.display=el.style.display==='none'?'':'none';}
 
@@ -898,8 +917,12 @@ function renderReq(){
   document.getElementById('req-body').innerHTML=h;
 }
 
-function openTaskModal(id,preProj){
-  document.getElementById('tm-title').textContent=id?'タスクを編集':'タスクを追加';
+function openTaskModal(id,preProj,parentId){
+  const par=parentId?D.tasks.find(t=>t.id===parentId):null;
+  if(parentId&&!preProj&&par)preProj=par.project_id;
+  document.getElementById('tm-title').textContent=id?'タスクを編集':par?`「${par.name.slice(0,15)}」のサブタスクを追加`:'タスクを追加';
+  const pl=document.getElementById('tm-parent-label');
+  if(pl)pl.style.display=parentId?'block':'none';
   document.getElementById('tm-cat').innerHTML='<option value="">カテゴリ</option>'+D.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   ['tm-asgn','tm-rev'].forEach(s=>{document.getElementById(s).innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');});
   if(id){
@@ -909,7 +932,7 @@ function openTaskModal(id,preProj){
     document.getElementById('tm-cat').value=p?.category_id||'';updateProjByCat();
     document.getElementById('tm-proj').value=t.project_id||'';document.getElementById('tm-name').value=t.name||'';document.getElementById('tm-desc').value=t.description||'';
     document.getElementById('tm-asgn').value=t.assignee_id||'';document.getElementById('tm-rev').value=t.reviewer_id||'';
-    document.getElementById('tm-status').value=t.status||'未着手';document.getElementById('tm-pri').value=t.priority||'中';
+    document.getElementById('tm-status').value=t.status||'未着手';
     document.getElementById('tm-dl').value=t.deadline||'';document.getElementById('tm-est').value=t.estimated_completion||'';
     document.getElementById('tm-bn').value=t.bottleneck||'';document.getElementById('tm-wf').value=t.waiting_for||'';
     document.getElementById('tm-na').value=t.next_action||'';document.getElementById('tm-url').value=(t.related_urls&&t.related_urls[0])||'';
@@ -917,11 +940,12 @@ function openTaskModal(id,preProj){
   }else{
     document.getElementById('tm-id').value='';
     ['tm-name','tm-desc','tm-bn','tm-wf','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('tm-status').value='未着手';document.getElementById('tm-pri').value='中';
+    document.getElementById('tm-status').value='未着手';
     document.getElementById('tm-asgn').value='';document.getElementById('tm-rev').value='';
     document.getElementById('tm-mtg').checked=false;document.getElementById('tm-today').checked=false;
     if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
   }
+  document.getElementById('tm-parent').value=parentId||'';
   document.getElementById('task-modal').style.display='flex';
 }
 function updateProjByCat(){const cid=document.getElementById('tm-cat').value;const fp=cid?D.projects.filter(p=>p.category_id===cid):D.projects;document.getElementById('tm-proj').innerHTML='<option value="">プロジェクト</option>'+fp.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');}
@@ -1042,21 +1066,40 @@ async function saveMtg(){
 
 function initCatTags(selected){
   const cats=['イベント系','LINEスタンプ関連','楽曲/MV','グッズ関連','質問コーナー','会話劇','漫画','企業タイアップ関連','日常イラスト','ギャル間違い探し','一言フィード','その他（書き込み）'];
+  const isCustom=selected&&!cats.includes(selected);
+  const dispSel=isCustom?'その他（書き込み）':selected;
   const el=document.getElementById('sm-cat-tags');if(!el)return;
-  el.innerHTML=cats.map(c=>`<div class="cat-tag${c===selected?' on':''}" style="--cc:${CAT_COLORS[c]||'#9CA3AF'}" onclick="selectCatTag(this,'${c}')">${c}</div>`).join('');
+  el.innerHTML=cats.map(c=>`<div class="cat-tag${c===dispSel?' on':''}" style="--cc:${CAT_COLORS[c]||'#9CA3AF'}" onclick="selectCatTag(this,'${c}')">${c}</div>`).join('');
   document.getElementById('sm-cat').value=selected||'';
+  const cust=document.getElementById('sm-cat-custom');
+  if(cust){
+    cust.style.display=isCustom?'block':'none';
+    if(isCustom&&document.getElementById('sm-cat-input'))document.getElementById('sm-cat-input').value=selected;
+  }
 }
 function selectCatTag(el,cat){
   document.querySelectorAll('#sm-cat-tags .cat-tag').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');document.getElementById('sm-cat').value=cat;
+  el.classList.add('on');
+  const cust=document.getElementById('sm-cat-custom');
+  if(cat==='その他（書き込み）'){
+    cust.style.display='block';
+    const v=document.getElementById('sm-cat-input').value.trim();
+    document.getElementById('sm-cat').value=v||'その他（書き込み）';
+    setTimeout(()=>document.getElementById('sm-cat-input').focus(),50);
+  }else{
+    cust.style.display='none';
+    document.getElementById('sm-cat').value=cat;
+  }
 }
 
 function openQuickModal(memberId){
-  document.getElementById('qm-asgn').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  const mSel='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  document.getElementById('qm-asgn').innerHTML=mSel;
+  document.getElementById('qm-rev').innerHTML=mSel;
   document.getElementById('qm-mid').value=memberId||'';
   if(memberId)document.getElementById('qm-asgn').value=memberId;
   else if(curMember&&curMember.id)document.getElementById('qm-asgn').value=curMember.id;
-  ['qm-name','qm-dl'].forEach(x=>document.getElementById(x).value='');
+  ['qm-name','qm-desc','qm-dl','qm-est','qm-na','qm-url'].forEach(x=>document.getElementById(x).value='');
   document.getElementById('qm-status').value='未着手';
   document.getElementById('qm-today').checked=false;
   document.getElementById('qm-mtg').checked=false;
@@ -1066,9 +1109,18 @@ function closeQuickModal(){document.getElementById('quick-modal').style.display=
 async function saveQuickTask(){
   const name=document.getElementById('qm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
   const status=document.getElementById('qm-status').value;
-  const data={name,assignee_id:document.getElementById('qm-asgn').value||null,status,
+  const qurl=document.getElementById('qm-url').value.trim();
+  const data={name,
+    description:document.getElementById('qm-desc').value.trim()||null,
+    assignee_id:document.getElementById('qm-asgn').value||null,
+    reviewer_id:document.getElementById('qm-rev').value||null,
+    status,
     deadline:document.getElementById('qm-dl').value||null,
-    today_flag:document.getElementById('qm-today').checked,meeting_check:document.getElementById('qm-mtg').checked,
+    estimated_completion:document.getElementById('qm-est').value||null,
+    next_action:document.getElementById('qm-na').value.trim()||null,
+    related_urls:qurl?[qurl]:[],
+    today_flag:document.getElementById('qm-today').checked,
+    meeting_check:document.getElementById('qm-mtg').checked,
     updated_at:new Date().toISOString()};
   if(status==='完了')data.completed_at=new Date().toISOString();
   const{error}=await sb.from('pm_tasks').insert(data);
