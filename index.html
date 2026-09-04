@@ -851,7 +851,7 @@ const DB = {
         category:r[5], format:r[6], url:r[7], memo:r[8], caption:r[9],
         hashtags:tryParse(r[10],[]), thumbnail:r[11]||null,
         insight1d:tryParse(r[12],null), insight7d:tryParse(r[13],null),
-        status:r[14]||'waiting'
+        status:r[14]||'waiting', skip1d:r[15]==='true'||r[15]===true
       }))).reverse();
       // 日付をYYYY-MM-DDに正規化し、同じ日付は最後の1件のみ残す
       const folMap = {};
@@ -928,15 +928,17 @@ function calcInsightRates(ins){
 }
 
 function getPostStatus(post){
-  const now=new Date();
-  const posted=new Date(post.date);
-  const diffDays=(now-posted)/(1000*60*60*24);
+  // 日付をYYYY-MM-DDの文字列として比較（タイムゾーン問題を回避）
+  const todayStr=new Date().toLocaleDateString('sv-SE'); // "2026-08-31"形式
+  const postedStr=post.date||'';
+  const toDay=d=>new Date(d.replace(/-/g,'/'));// "/"区切りにするとローカル時刻で解釈
+  const diffDays=postedStr?((toDay(todayStr)-toDay(postedStr))/(1000*60*60*24)):0;
   if(post.insight7d)return'done';
-  if(post.skip1d&&diffDays>=7)return'week1'; // 1日後スキップ済・1週間後待ち
-  if(post.skip1d)return'skip1d'; // 1日後スキップ済・1週間後まだ
+  if(post.skip1d&&diffDays>=7)return'week1';
+  if(post.skip1d)return'skip1d';
   if(post.insight1d&&diffDays>=7)return'week1';
   if(post.insight1d)return'day1';
-  return'waiting'; // インサイト未入力はすべて「待ち」
+  return'waiting';
 }
 
 function statusBadge(post){
@@ -1438,17 +1440,21 @@ function renderDetail(post){
     </div>`;
   }).join('');
 
+  // 投稿からの経過日数
+  const todayStr2=new Date().toLocaleDateString('sv-SE');
+  const toDay2=d=>new Date(d.replace(/-/g,'/'));
+  const daysSincePost=post.date?((toDay2(todayStr2)-toDay2(post.date))/(1000*60*60*24)):0;
   // 1日後ボタン
-  const btn1d = status==='waiting'
-    ? `<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>
-       <button class="btn btn-danger btn-sm" onclick="skip1dInsight('${post.id}')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5">1日後データ不可</button>`
-    : (status==='day1'||status==='skip1d')
-      ? `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後を編集</button>`
-      : '';
-  // 1週間後ボタン
-  const btn7d = (status==='done'||status==='week1'||status==='skip1d')
-    ? `<button class="${(status==='week1'||status==='skip1d')?'btn btn-primary':'btn btn-secondary'} btn-sm" onclick="openInsightModal('${post.id}','7d')">${status==='done'?'1週間後を編集':'1週間後データを入力'}</button>`
-    : `<button class="btn btn-sm btn-ghost" disabled style="opacity:.5">1週間後データ（まだ入力不可）</button>`;
+  const btn1d = (status==='waiting'||status==='day1'||status==='skip1d')
+    ? (status==='waiting'
+        ? `<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>
+           <button class="btn btn-sm" onclick="skip1dInsight('${post.id}')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">1日後データ不可</button>`
+        : `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後を編集</button>`)
+    : '';
+  // 1週間後ボタン：7日経過したら表示
+  const btn7d = daysSincePost>=7
+    ? `<button class="${(status==='week1'||status==='skip1d')?'btn btn-primary':'btn btn-secondary'} btn-sm" onclick="openInsightModal('${post.id}','7d')">${post.insight7d?'1週間後を編集':'1週間後データを入力'}</button>`
+    : `<button class="btn btn-sm btn-ghost" disabled style="opacity:.5">1週間後データ（投稿から7日後に入力可）</button>`;
 
   document.getElementById('detail-content').innerHTML=`
   <div style="margin-bottom:16px">
@@ -2079,8 +2085,8 @@ if(localStorage.getItem('up_posts')){
 }
 
 // Set today's date as default
-document.getElementById('f-date').valueAsDate=new Date();
-document.getElementById('fol-date').valueAsDate=new Date();
+document.getElementById('f-date').value=new Date().toLocaleDateString('sv-SE');
+document.getElementById('fol-date').value=new Date().toLocaleDateString('sv-SE');
 
 
 
