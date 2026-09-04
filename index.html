@@ -2223,9 +2223,8 @@ function renderWeeklyReport(){
   const month=monthInput.value;
   const [yr,mo]=month.split('-').map(Number);
 
-  // Load saved goal
-  const goals=JSON.parse(localStorage.getItem('up_goals')||'{}');
-  const goal=goals[month]||0;
+  // Load saved goal from DB
+  const goal=DB.goals[month]||0;
   document.getElementById('goal-count').value=goal||'';
 
   // Posts this month — タイトル重複を除いてカウント（同一タイトルは複数媒体でも1本）
