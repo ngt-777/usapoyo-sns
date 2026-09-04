@@ -1438,12 +1438,12 @@ function renderDetail(post){
   const toDay2=d=>new Date(d.replace(/-/g,'/'));
   const daysSincePost=post.date?((toDay2(todayStr2)-toDay2(post.date))/(1000*60*60*24)):0;
   // 1日後ボタン
-  const btn1d = (status==='waiting'||status==='day1'||status==='skip1d')
-    ? (status==='waiting'
-        ? `<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>
-           <button class="btn btn-sm" onclick="skip1dInsight('${post.id}')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">1日後データ不可</button>`
-        : `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後を編集</button>`)
-    : '';
+  const btn1d = status==='waiting'
+    ? `<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>
+       <button class="btn btn-sm" onclick="skip1dInsight('${post.id}')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">1日後データ不可</button>`
+    : (status==='day1'||status==='skip1d'||status==='week1'||status==='done')
+      ? `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','1d')">${post.insight1d?'1日後を編集':post.skip1d?'1日後スキップ済（編集）':'1日後を編集'}</button>`
+      : '';
   // 1週間後ボタン：7日経過したら表示
   const btn7d = daysSincePost>=7
     ? `<button class="${(status==='week1'||status==='skip1d')?'btn btn-primary':'btn btn-secondary'} btn-sm" onclick="openInsightModal('${post.id}','7d')">${post.insight7d?'1週間後を編集':'1週間後データを入力'}</button>`
