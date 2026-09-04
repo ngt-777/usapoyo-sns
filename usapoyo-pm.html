@@ -194,8 +194,7 @@ a{color:var(--accent)}
     </div>
     <nav class="nav-sec">
       <div class="nav-sec-l">メイン</div>
-      <div class="nav-item active" data-page="dashboard" onclick="nav('dashboard')"><span class="ni">🏠</span><span>ダッシュボード</span></div>
-      <div class="nav-item" data-page="project" onclick="nav('project')"><span class="ni">📋</span><span>プロジェクト</span></div>
+      <div class="nav-item active" data-page="project" onclick="nav('project')"><span class="ni">📋</span><span>プロジェクト</span></div>
       <div class="nav-item" data-page="taskboard" onclick="nav('taskboard')"><span class="ni">📌</span><span>タスクボード</span></div>
     </nav>
     <nav class="nav-sec">
@@ -207,19 +206,17 @@ a{color:var(--accent)}
       <div class="nav-sec-l">運用</div>
       <div class="nav-item" data-page="meeting" onclick="nav('meeting')"><span class="ni">📝</span><span>定例会議</span></div>
       <div class="nav-item" data-page="requests" onclick="nav('requests')"><span class="ni">📩</span><span>他部署依頼</span></div>
+      <div class="nav-item" data-page="links" onclick="nav('links')"><span class="ni">📦</span><span>素材・リンク</span></div>
     </nav>
   </div>
 
   <div id="main">
-    <div class="page active" id="page-dashboard">
-      <div class="ph"><div><div class="pt">ダッシュボード</div><div class="ps" id="dash-date"></div></div><button class="btn bp" onclick="openTaskModal()">＋ タスク追加</button></div>
-      <div id="dash-body"><div class="ld">読み込み中...</div></div>
-    </div>
-    <div class="page" id="page-project">
+    <div class="page active" id="page-project">
       <div class="ph"><div><div class="pt">プロジェクト</div><div class="ps">カテゴリ → プロジェクト → タスク</div></div><button class="btn bp" onclick="openTaskModal()">＋ タスク追加</button></div>
       <div class="chips" id="proj-chips"></div>
       <div id="proj-body"><div class="ld">読み込み中...</div></div>
     </div>
+
     <div class="page" id="page-taskboard">
       <div class="ph" style="align-items:flex-start">
         <div><div class="pt">タスクボード</div><div class="ps" id="tb-date"></div></div>
@@ -265,6 +262,11 @@ a{color:var(--accent)}
       <div class="ph"><div><div class="pt">他部署依頼</div><div class="ps">外部依頼・割り込み業務の管理</div></div><button class="btn bp" onclick="openReqModal()">＋ 依頼追加</button></div>
       <div id="req-body"><div class="ld">読み込み中...</div></div>
     </div>
+
+    <div class="page" id="page-links">
+      <div class="ph"><div><div class="pt">📦 素材・リンク</div><div class="ps">Drive・ドキュメント・アカウント・ツールのリンク集</div></div><button class="btn bp" onclick="openLinkModal()">＋ リンクを追加</button></div>
+      <div id="links-body"><div class="ld">読み込み中...</div></div>
+    </div>
   </div>
 </div>
 
@@ -297,8 +299,6 @@ a{color:var(--accent)}
       <div class="fg"><label class="fl">期限</label><input class="fi" type="date" id="tm-dl"></div>
       <div class="fg"><label class="fl">終了見込み</label><input class="fi" type="date" id="tm-est"></div>
     </div>
-    <div class="fg"><label class="fl">ボトルネック</label><input class="fi" id="tm-bn" placeholder="例：原さんからの回答待ち"></div>
-    <div class="fg"><label class="fl">確認待ち内容</label><input class="fi" id="tm-wf" placeholder="例：サンプル完成日の回答"></div>
     <div class="fg"><label class="fl">次のアクション</label><input class="fi" id="tm-na" placeholder="例：回答確認後にSTORES登録へ"></div>
     <div class="fg"><label class="fl">関連URL</label><input class="fi" id="tm-url" placeholder="https://..."></div>
     <div style="display:flex;gap:18px;margin-top:6px">
@@ -433,6 +433,30 @@ a{color:var(--accent)}
   </div></div>
 </div>
 
+<!-- Link Modal -->
+<div id="link-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeLinkModal()">
+  <div class="mbox" style="max-width:500px"><div class="mhead"><div class="mtitle" id="lm-title">リンクを追加</div><button class="mclose" onclick="closeLinkModal()">✕</button></div>
+  <div class="mbody">
+    <input type="hidden" id="lm-id">
+    <div class="frow">
+      <div class="fg"><label class="fl">アイコン（絵文字）</label><input class="fi" id="lm-icon" placeholder="📂" style="font-size:20px;text-align:center"></div>
+      <div class="fg"><label class="fl">カテゴリ</label>
+        <select class="fsel" id="lm-cat">
+          <option>ツール</option><option>公式アカウント</option><option>LINEスタンプ</option>
+          <option>ドキュメント</option><option>音源・動画</option><option>グッズ</option><option>その他</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">名前 *</label><input class="fi" id="lm-name" placeholder="例：うさぽよじゃんけん 音源"></div>
+    <div class="fg"><label class="fl">URL *</label><input class="fi" id="lm-url" placeholder="https://..."></div>
+    <div class="fg"><label class="fl">説明</label><input class="fi" id="lm-desc" placeholder="例：最新音源データ格納先"></div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeLinkModal()">キャンセル</button>
+      <button class="btn bp" onclick="saveLinkItem()">保存する</button>
+    </div>
+  </div></div>
+</div>
 <!-- Meeting Modal -->
 <div id="mtg-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeMtgModal()">
   <div class="mbox" style="max-width:480px"><div class="mhead"><div class="mtitle">会議を作成</div><button class="mclose" onclick="closeMtgModal()">✕</button></div>
@@ -453,9 +477,9 @@ a{color:var(--accent)}
 <script>
 // STATE
 let sb=null;
-const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[]};
+const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[]};
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
-let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';
+let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='project';
 const CAT_COLORS={'イベント系':'#F97316','LINEスタンプ関連':'#10B981','楽曲/MV':'#8B5CF6','グッズ関連':'#F59E0B','質問コーナー':'#3B82F6','会話劇':'#EC4899','漫画':'#14B8A6','企業タイアップ関連':'#6366F1','日常イラスト':'#84CC16','ギャル間違い探し':'#EF4444','一言フィード':'#A78BFA','その他（書き込み）':'#9CA3AF'};
 const SC={'要対応':'su','確認待ち':'sw','承認待ち':'sw','進行中':'sp','完了':'sd','未着手':'sn','外部返答待ち':'se','素材待ち':'sm','要確認':'sw','回答待ち':'se','予約投稿済':'se','投稿完了':'sd','制作中':'sp'};
 
@@ -485,8 +509,14 @@ SELECT 'OK' as result;`;}
 
 async function start(){
   if(!sb){if(!loadSetup())return;const u=localStorage.getItem('sb_url'),k=localStorage.getItem('sb_key');if(!u||!k)return;sb=supabase.createClient(u,k);}
-  const saved=sessionStorage.getItem('cur_member');
-  if(saved){curMember=JSON.parse(saved);showApp();}else{await showMemSel();}
+  // 選択画面スキップ：直接アプリへ
+  try{
+    const{data}=await sb.from('pm_members').select('*').order('sort_order');
+    if(data&&data.length>0)D.members=data;
+    else{await seedAll();const{data:d2}=await sb.from('pm_members').select('*').order('sort_order');D.members=d2||[];}
+  }catch(e){alert('Supabase接続エラー:\n'+e.message);localStorage.removeItem('sb_url');localStorage.removeItem('sb_key');location.reload();return;}
+  curMember={name:'ゲスト',id:null};
+  showApp();
 }
 async function showMemSel(){
   try{
@@ -512,10 +542,12 @@ async function showApp(){
   const ds=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
   document.getElementById('dash-date').textContent=ds;
   if(document.getElementById('tb-date'))document.getElementById('tb-date').textContent=ds;
-  await loadAll();renderDash();
+  await loadAll();
+  if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
+  renderProject();
 }
 async function loadAll(){
-  const[a,b,c,d,e,f,g,h]=await Promise.all([
+  const[a,b,c,d,e,f,g,h,i]=await Promise.all([
     sb.from('pm_members').select('*').order('sort_order'),
     sb.from('pm_categories').select('*').order('sort_order'),
     sb.from('pm_projects').select('*').order('created_at'),
@@ -523,10 +555,12 @@ async function loadAll(){
     sb.from('pm_milestones').select('*').order('date'),
     sb.from('pm_sns_posts').select('*').order('scheduled_date'),
     sb.from('pm_meetings').select('*').order('scheduled_date',{ascending:false}),
-    sb.from('pm_other_requests').select('*').order('delivery_deadline')
+    sb.from('pm_other_requests').select('*').order('delivery_deadline'),
+    sb.from('pm_links').select('*').order('sort_order')
   ]);
   D.members=a.data||[];D.categories=b.data||[];D.projects=c.data||[];D.tasks=d.data||[];
   D.milestones=e.data||[];D.sns=f.data||[];D.meetings=g.data||[];D.requests=h.data||[];
+  D.links=(typeof i!=='undefined'?i.data:null)||[];
 }
 const mn=id=>{if(!id)return'未設定';const m=D.members.find(x=>x.id===id);return m?m.name:'未設定';};
 const pn=id=>{if(!id)return'—';const p=D.projects.find(x=>x.id===id);return p?p.name:'—';};
@@ -546,13 +580,13 @@ function nav(page){
   document.querySelector('.nav-item[data-page="'+page+'"]')?.classList.add('active');
   curPage=page;
   loadAll().then(()=>{
-    if(page==='dashboard')renderDash();
-    else if(page==='project')renderProject();
+    if(page==='project')renderProject();
     else if(page==='taskboard')renderTaskboard();
     else if(page==='calendar')renderCal();
     else if(page==='sns')renderSns();
     else if(page==='meeting')renderMeeting();
     else if(page==='requests')renderReq();
+    else if(page==='links')renderLinks();
   });
 }
 
@@ -934,7 +968,7 @@ function openTaskModal(id,preProj,parentId){
     document.getElementById('tm-asgn').value=t.assignee_id||'';document.getElementById('tm-rev').value=t.reviewer_id||'';
     document.getElementById('tm-status').value=t.status||'未着手';
     document.getElementById('tm-dl').value=t.deadline||'';document.getElementById('tm-est').value=t.estimated_completion||'';
-    document.getElementById('tm-bn').value=t.bottleneck||'';document.getElementById('tm-wf').value=t.waiting_for||'';
+
     document.getElementById('tm-na').value=t.next_action||'';document.getElementById('tm-url').value=(t.related_urls&&t.related_urls[0])||'';
     document.getElementById('tm-mtg').checked=!!t.meeting_check;document.getElementById('tm-today').checked=!!t.today_flag;
   }else{
@@ -956,8 +990,8 @@ async function saveTask(){
   const data={project_id:document.getElementById('tm-proj').value||null,name,description:document.getElementById('tm-desc').value.trim()||null,
     assignee_id:document.getElementById('tm-asgn').value||null,reviewer_id:document.getElementById('tm-rev').value||null,
     status,priority:document.getElementById('tm-pri').value,deadline:document.getElementById('tm-dl').value||null,
-    estimated_completion:document.getElementById('tm-est').value||null,bottleneck:document.getElementById('tm-bn').value.trim()||null,
-    waiting_for:document.getElementById('tm-wf').value.trim()||null,next_action:document.getElementById('tm-na').value.trim()||null,
+    estimated_completion:document.getElementById('tm-est').value||null,
+    next_action:document.getElementById('tm-na').value.trim()||null,
     related_urls:url?[url]:[],meeting_check:document.getElementById('tm-mtg').checked,today_flag:document.getElementById('tm-today').checked,updated_at:new Date().toISOString()};
   if(status==='完了')data.completed_at=new Date().toISOString();
   const{error}=id?await sb.from('pm_tasks').update(data).eq('id',id):await sb.from('pm_tasks').insert(data);
@@ -1144,6 +1178,98 @@ async function deleteSnsPost(id){
   const{error}=await sb.from('pm_sns_posts').delete().eq('id',id);
   if(error){alert('削除エラー: '+error.message);return;}
   closeDetail();await loadAll();renderSns();
+}
+
+
+// ── LINKS ──
+function renderLinks(){
+  const catOrd=['ツール','公式アカウント','LINEスタンプ','ドキュメント','音源・動画','グッズ','その他'];
+  const cats=[...new Set(D.links.map(l=>l.category))].sort((a,b)=>{
+    const ia=catOrd.indexOf(a),ib=catOrd.indexOf(b);
+    return(ia===-1?99:ia)-(ib===-1?99:ib);
+  });
+  if(!D.links.length){
+    document.getElementById('links-body').innerHTML='<div class="empty"><h3>リンクがありません</h3><p>「＋ リンクを追加」から登録してください</p></div>';
+    return;
+  }
+  let h='';
+  cats.forEach(cat=>{
+    const items=D.links.filter(l=>l.category===cat).sort((a,b)=>a.sort_order-b.sort_order);
+    h+=`<div style="margin-bottom:24px">
+      <div style="font-size:11px;font-weight:700;color:var(--ts);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border)">${cat}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
+        ${items.map(l=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;gap:10px;align-items:flex-start">
+          <div style="font-size:24px;flex-shrink:0;line-height:1.2">${l.icon||'🔗'}</div>
+          <div style="flex:1;min-width:0">
+            <a href="${l.url}" target="_blank" style="font-size:13px;font-weight:700;color:var(--accent);display:block;margin-bottom:3px;text-decoration:none">${l.name}</a>
+            ${l.description?`<div style="font-size:11px;color:var(--ts);margin-bottom:5px">${l.description}</div>`:''}
+            <div style="font-size:10px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.url}</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
+            <button class="btn bg" style="padding:2px 6px;font-size:11px" onclick="openLinkModal('${l.id}')">✏</button>
+            <button class="btn-del" style="padding:2px 6px;font-size:11px" onclick="deleteLinkItem('${l.id}')">×</button>
+          </div>
+        </div>`).join('')}
+      </div>
+    </div>`;
+  });
+  document.getElementById('links-body').innerHTML=h;
+}
+
+function openLinkModal(id){
+  document.getElementById('lm-title').textContent=id?'リンクを編集':'リンクを追加';
+  if(id){
+    const l=D.links.find(x=>x.id===id);if(!l)return;
+    document.getElementById('lm-id').value=l.id;document.getElementById('lm-icon').value=l.icon||'';
+    document.getElementById('lm-cat').value=l.category||'その他';document.getElementById('lm-name').value=l.name||'';
+    document.getElementById('lm-url').value=l.url||'';document.getElementById('lm-desc').value=l.description||'';
+  }else{
+    ['lm-id','lm-icon','lm-name','lm-url','lm-desc'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('lm-cat').value='その他';
+  }
+  document.getElementById('link-modal').style.display='flex';
+}
+function closeLinkModal(){document.getElementById('link-modal').style.display='none';}
+
+async function saveLinkItem(){
+  const name=document.getElementById('lm-name').value.trim(),url=document.getElementById('lm-url').value.trim();
+  if(!name||!url){alert('名前とURLは必須です');return;}
+  const id=document.getElementById('lm-id').value;
+  const data={name,url,icon:document.getElementById('lm-icon').value.trim()||'🔗',
+    category:document.getElementById('lm-cat').value,description:document.getElementById('lm-desc').value.trim()||null};
+  const{error}=id?await sb.from('pm_links').update(data).eq('id',id):await sb.from('pm_links').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeLinkModal();await loadAll();renderLinks();
+}
+
+async function deleteLinkItem(id){
+  if(!confirm('このリンクを削除しますか？'))return;
+  const{error}=await sb.from('pm_links').delete().eq('id',id);
+  if(error){alert('削除エラー: '+error.message);return;}
+  await loadAll();renderLinks();
+}
+
+async function seedLinks(){
+  const seeds=[
+    {name:'QRコード・クリック数計測',url:'https://00m.in/user',category:'ツール',description:'QRコード生成＆クリック数確認',icon:'📊',sort_order:1},
+    {name:'AI音声生成ツール',url:'https://fish.audio/ja/app/',category:'ツール',description:'AI音声生成',icon:'🎤',sort_order:2},
+    {name:'TuneCore',url:'https://www.tunecore.co.jp/dashboard/reports/estimate?_acid=NDgyNDUx',category:'ツール',description:'楽曲配信・レポート確認',icon:'🎧',sort_order:3},
+    {name:'LINE Creator Market',url:'https://creator.line.me/ja/',category:'ツール',description:'LINEスタンプ売上確認',icon:'💚',sort_order:4},
+    {name:'STORES',url:'https://dashboard.stores.app/',category:'ツール',description:'グッズ販売管理',icon:'🛍️',sort_order:5},
+    {name:'Instagram',url:'https://www.instagram.com/usapoyo_gal/reels/?hl=ja',category:'公式アカウント',description:'@usapoyo_gal',icon:'📸',sort_order:10},
+    {name:'TikTok',url:'https://www.tiktok.com/ja-JP/',category:'公式アカウント',description:'TikTok公式',icon:'🎵',sort_order:11},
+    {name:'YouTube Studio',url:'https://studio.youtube.com/channel/UCne0zg3-54OW12wJlAnsM2w',category:'公式アカウント',description:'YouTubeチャンネル管理',icon:'▶️',sort_order:12},
+    {name:'X (Twitter)',url:'https://x.com/usapoyo_gal',category:'公式アカウント',description:'@usapoyo_gal',icon:'🐦',sort_order:13},
+    {name:'lit.link（リンク集約）',url:'https://lit.link/usapoyo428',category:'公式アカウント',description:'公式アカウントリンク集約',icon:'🔗',sort_order:14},
+    {name:'LINEスタンプ vol.1',url:'https://line.me/S/sticker/31807297/?lang=ja&utm_source=gnsh_stickerDetail',category:'LINEスタンプ',description:'うさぽよ vol.1',icon:'💚',sort_order:20},
+    {name:'LINEスタンプ vol.2',url:'https://line.me/S/sticker/33010610/?lang=ja&utm_source=gnsh_stickerDetail',category:'LINEスタンプ',description:'うさぽよ vol.2',icon:'💚',sort_order:21},
+    {name:'定例会議まとめ',url:'https://docs.google.com/document/d/1CdmnXCdIhvMgWylPqFSqy9As46QDuRXqURS7TUs7CGA/edit?usp=sharing',category:'ドキュメント',description:'定例会議議事録まとめ',icon:'📄',sort_order:30},
+    {name:'グッズ詳細スケジュール',url:'https://docs.google.com/presentation/d/1ekgmhFyDzXcfyTbZt6dsiuH3RqFAU8sNUfjI0jMJvQs/edit?usp=sharing',category:'ドキュメント',description:'うさぽよグッズ詳細スケジュール',icon:'📊',sort_order:31},
+    {name:'うさぽよじゃんけん 音源',url:'https://drive.google.com/file/d/1NUCDJQXhHbUU0ma4z7i7f6JuAmltnqus/view?usp=sharing',category:'音源・動画',description:'最新音源データ',icon:'🎵',sort_order:40},
+    {name:'MV ティザー・事前告知',url:'https://drive.google.com/drive/folders/1UiZ4vFqlTHMFisVuKqaRLqvoUrm8zgcu?usp=drive_link',category:'音源・動画',description:'カウントダウンイラスト等',icon:'📂',sort_order:41},
+    {name:'踊ってみた データ格納先',url:'https://drive.google.com/drive/folders/11UNYGkSV8KKgSXWoDkc8bBLKOZFVMrCT?usp=drive_link',category:'音源・動画',description:'踊ってみたデータ',icon:'📂',sort_order:42},
+  ];
+  await sb.from('pm_links').insert(seeds);
 }
 
 async function seedAll(){
