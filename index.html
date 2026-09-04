@@ -1323,7 +1323,8 @@ function renderPostList(){
     return;
   }
   container.innerHTML=filtered.map(post=>{
-    const ins=post.insight1d;
+    // 最新のインサイト（7日後があれば7日後、なければ1日後）を表示
+    const ins=post.insight7d||post.insight1d;
     const rates=calcInsightRates(ins);
     const thumbEl=post.thumbnail
       ?`<img class="post-thumb" src="${post.thumbnail}" alt="">`
@@ -1379,12 +1380,23 @@ function renderDetail(post){
       avgView:ins.avgView!=null?ins.avgView+'秒':null,
       impressions:fmt(ins.impressions),engagement:fmt(ins.engagement),
       uniquePlays:fmt(ins.uniquePlays),detailClicks:fmt(ins.detailClicks),
+      src1Name:ins.src1Name||null,src1Pct:ins.src1Pct!=null?ins.src1Pct+'%':null,
+      src2Name:ins.src2Name||null,src2Pct:ins.src2Pct!=null?ins.src2Pct+'%':null,
+      src3Name:ins.src3Name||null,src3Pct:ins.src3Pct!=null?ins.src3Pct+'%':null,
     };
-    const rows=fields.map(f=>{
+    const skipSrcIds=new Set(['i-src1-name','i-src1-pct','i-src2-name','i-src2-pct','i-src3-name','i-src3-pct']);
+    const rows=fields.filter(f=>!skipSrcIds.has(f.id)).map(f=>{
       const v=valMap[KEY_MAP[f.id]];
       if(v===null||v===undefined||v==='—')return'';
       return`<div class="metric-row"><div class="metric-name">${f.label}</div><div class="metric-val">${v}</div></div>`;
     }).filter(Boolean);
+    if(ins.src1Name){
+      const srcText=[ins.src1Name,ins.src2Name,ins.src3Name].filter(Boolean).map((n,i)=>{
+        const pct=[ins.src1Pct,ins.src2Pct,ins.src3Pct][i];
+        return`${i+1}位: ${n}${pct!=null?' ('+pct+'%)':''}`;
+      }).join(' / ');
+      rows.push(`<div class="metric-row" style="grid-column:1/-1"><div class="metric-name">閲覧ソース</div><div class="metric-val" style="font-size:11px">${srcText}</div></div>`);
+    }
     return`<div class="insight-panel">
       <div class="insight-panel-title"><div class="dot" style="background:${colorDot}"></div>${label}</div>
       ${rows.join('')||'<div style="font-size:12px;color:var(--gray);padding:8px 0">入力済みの項目がありません</div>'}
@@ -1592,6 +1604,13 @@ const INSIGHT_FIELDS = {
     {id:'i-nonfol-rate',label:'非フォロワー閲覧率 (%)',      type:'number', step:'0.1'},
     {id:'i-age-group',  label:'主年齢層',                  type:'select'},
     {id:'i-age-pct',    label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
+    {type:'section', label:'閲覧数上位のソース（任意）'},
+    {id:'i-src1-name',  label:'1位ソース',                 type:'src-select'},
+    {id:'i-src1-pct',   label:'1位 割合 (%)',              type:'number', step:'0.1'},
+    {id:'i-src2-name',  label:'2位ソース',                 type:'src-select'},
+    {id:'i-src2-pct',   label:'2位 割合 (%)',              type:'number', step:'0.1'},
+    {id:'i-src3-name',  label:'3位ソース',                 type:'src-select'},
+    {id:'i-src3-pct',   label:'3位 割合 (%)',              type:'number', step:'0.1'},
   ],
   TikTok: [
     {type:'section', label:'基本指標'},
@@ -1650,6 +1669,9 @@ const KEY_MAP = {
   'i-age-pct':'agePct','i-watch-time':'watchTime','i-avg-view':'avgView',
   'i-impressions':'impressions','i-engagement':'engagement',
   'i-unique-plays':'uniquePlays','i-detail-clicks':'detailClicks',
+  'i-src1-name':'src1Name','i-src1-pct':'src1Pct',
+  'i-src2-name':'src2Name','i-src2-pct':'src2Pct',
+  'i-src3-name':'src3Name','i-src3-pct':'src3Pct',
 };
 
 function buildInsightForm(platform, ins){
@@ -1661,6 +1683,11 @@ function buildInsightForm(platform, ins){
     const v = ins?.[KEY_MAP[f.id]]??'';
     if(f.type==='select'){
       const opts = AGE_OPTIONS.map(o=>`<option${v===o?' selected':''}>${o}</option>`).join('');
+      return`<div class="form-group"><label>${f.label}</label><select id="${f.id}"><option value="">未入力</option>${opts}</select></div>`;
+    }
+    if(f.type==='src-select'){
+      const SRC_OPTIONS=['フィード','発見タブ','リールタブ','プロフィール','ハッシュタグ・検索','ストーリーズ','その他'];
+      const opts = SRC_OPTIONS.map(o=>`<option${v===o?' selected':''}>${o}</option>`).join('');
       return`<div class="form-group"><label>${f.label}</label><select id="${f.id}"><option value="">未入力</option>${opts}</select></div>`;
     }
     return`<div class="form-group"><label>${f.label}</label><input type="number" id="${f.id}" min="0" ${f.step?`step="${f.step}"`:''}  placeholder="0" value="${v}"></div>`;
@@ -1690,8 +1717,9 @@ function getInsightFormData(){
   const getStr=id=>{const el=document.getElementById(id);return el?el.value||null:null};
   const data={savedAt:new Date().toISOString()};
   // collect all possible field ids via KEY_MAP
+  const strKeys=['ageGroup','src1Name','src2Name','src3Name'];
   Object.entries(KEY_MAP).forEach(([fieldId,dataKey])=>{
-    if(dataKey==='ageGroup') data[dataKey]=getStr(fieldId);
+    if(strKeys.includes(dataKey)) data[dataKey]=getStr(fieldId);
     else data[dataKey]=getNum(fieldId);
   });
   return data;
