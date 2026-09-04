@@ -1412,16 +1412,6 @@ function renderDetail(post){
     {label:'フォロー獲得',v1:ins1?.follows,v7:ins7?.follows},
   ];
 
-  const rateItems=[
-    {label:'ER%',v1:r1.er,v7:r7.er},
-    {label:'いいね率',v1:r1.likeRate,v7:r7.likeRate},
-    {label:'コメント率',v1:r1.commentRate,v7:r7.commentRate},
-    {label:'保存率',v1:r1.saveRate,v7:r7.saveRate},
-    {label:'シェア率',v1:r1.shareRate,v7:r7.shareRate},
-    {label:'プロフ遷移率',v1:r1.profileRate,v7:r7.profileRate},
-    {label:'フォロー転換率',v1:r1.followConv,v7:r7.followConv},
-  ];
-
   const growthHTML=growthItems.map(({label,v1,v7})=>{
     if(v1==null||v7==null)return`<div class="growth-item"><div class="growth-label">${label}</div><div style="font-size:11px;color:var(--gray);margin-top:8px">データなし</div></div>`;
     const d=fmtDiff(v1,v7);
@@ -1433,17 +1423,7 @@ function renderDetail(post){
     </div>`;
   }).join('');
 
-  const rateHTML=rateItems.map(({label,v1,v7})=>{
-    const showV=v7!=null?v7:v1;
-    const pct=showV!=null?showV.toFixed(2)+'%':'—';
-    const max=20; // assume 20% is "good" for bar
-    const barW=showV!=null?Math.min(showV/max*100,100):0;
-    return`<div class="rate-card">
-      <div class="rate-label">${label}</div>
-      <div class="rate-val">${pct}</div>
-      <div class="rate-bar"><div class="rate-bar-fill" style="width:${barW}%"></div></div>
-    </div>`;
-  }).join('');
+
 
   // 投稿からの経過日数
   const todayStr2=new Date().toLocaleDateString('sv-SE');
@@ -1502,10 +1482,50 @@ function renderDetail(post){
     <div class="growth-title">1日後 → 1週間後　増加</div>
     <div class="growth-grid">${growthHTML}</div>
   </div>`:''}
-  <div style="margin-top:20px">
-    <div class="card-title" style="margin-bottom:12px">自動計算指標（${ins7?'1週間後':ins1?'1日後':'データなし'}）</div>
-    <div class="rate-grid">${rateHTML}</div>
-  </div>`;
+  ${(ins1||ins7)?`
+  <div style="margin-top:16px">
+    <div class="card-title" style="margin-bottom:10px">エンゲージメント指標（${ins7?'1週間後':ins1?'1日後':''}）</div>
+    <div style="font-size:11px;color:var(--gray);margin-bottom:10px">再生数に対する各アクションの割合。高いほど反応が良い投稿です。</div>
+    <div class="rate-grid">${(()=>{
+      const ins=ins7||ins1;
+      const base=ins.plays||ins.unique||0;
+      const platform=post.platform||'Instagram';
+      const pct=(v)=>base>0&&v!=null?(v/base*100).toFixed(2)+'%':'—';
+      const bar=(v)=>base>0&&v!=null?Math.min(v/base*100/5*100,100):0; // 5%を満点とする
+      // 媒体別の判断基準（再生数ベース・ナノ〜マイクロ帯）
+      const benchmarks={
+        Instagram:{likes:{good:3,great:6},comments:{good:0.3,great:1},saves:{good:1,great:3},follows:{good:0.2,great:0.5}},
+        TikTok:   {likes:{good:5,great:10},comments:{good:0.5,great:2},saves:{good:1,great:3},follows:{good:0.3,great:0.8}},
+        YouTube:  {likes:{good:3,great:6},comments:{good:0.3,great:1},follows:{good:0.5,great:1.5}},
+        X:        {likes:{good:1,great:3},comments:{good:0.1,great:0.5}},
+      };
+      const bm=benchmarks[platform]||benchmarks.Instagram;
+      const grade=(v,key)=>{
+        if(!bm[key]||v==null||base===0)return'';
+        const r=v/base*100;
+        if(r>=bm[key].great)return'🟢';
+        if(r>=bm[key].good)return'🟡';
+        return'🔴';
+      };
+      const tipStr=(key)=>{
+        if(!bm[key])return'';
+        return`目安 ${bm[key].good}%〜${bm[key].great}%`;
+      };
+      const items=[
+        {label:'いいね率',val:ins.likes,key:'likes'},
+        {label:'コメント率',val:ins.comments,key:'comments'},
+        {label:'保存率',val:ins.saves,key:'saves'},
+        {label:'フォロー転換率',val:ins.follows,key:'follows'},
+      ].filter(i=>i.val!=null&&bm[i.key]);
+      return items.map(({label,val,key})=>`
+        <div class="rate-card">
+          <div class="rate-label">${grade(val,key)} ${label} <span style="font-size:9px;color:var(--gray)">${tipStr(key)}</span></div>
+          <div class="rate-val">${pct(val)}</div>
+          <div class="rate-bar"><div class="rate-bar-fill" style="width:${bar(val)}%;background:${(()=>{if(!bm[key]||val==null||base===0)return'var(--ig)';const r=val/base*100;return r>=bm[key].great?'var(--green)':r>=bm[key].good?'var(--amber)':'var(--red)'})()}"></div></div>
+        </div>`).join('');
+    })()}</div>
+  </div>`:''}
+`;
 }
 
 let editThumbData=null;
