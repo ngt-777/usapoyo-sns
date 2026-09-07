@@ -329,20 +329,26 @@ a{color:var(--accent)}
       <div class="fg"><label class="fl">依頼名 *</label><input class="fi" id="rm-name"></div>
       <div class="fg"><label class="fl">依頼元</label><input class="fi" id="rm-req" placeholder="例：ひめらぶ"></div>
     </div>
-    <div class="fg"><label class="fl">依頼内容</label><textarea class="fta" id="rm-content" style="height:54px"></textarea></div>
-    <div class="frow">
-      <div class="fg"><label class="fl">担当者</label><select class="fsel" id="rm-asgn"></select></div>
-      <div class="fg"><label class="fl">作業量</label><select class="fsel" id="rm-vol"><option value="小">小</option><option value="中" selected>中</option><option value="大">大</option></select></div>
+    <div class="fg">
+      <label class="fl">依頼内容（候補から選ぶか直接入力）</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
+        <div class="chip" onclick="setReqPreset('ロゴ制作')">ロゴ制作</div>
+        <div class="chip" onclick="setReqPreset('ジャケットイラスト制作')">ジャケットイラスト制作</div>
+        <div class="chip" onclick="setReqPreset('グッズデザイン')">グッズデザイン</div>
+        <div class="chip" onclick="setReqPreset('20○○年○○月○○日発売 ○号 ○P入稿データ制作')">入稿データ制作</div>
+      </div>
+      <textarea class="fta" id="rm-content" style="height:54px" placeholder="依頼内容を入力（上の候補を選ぶと自動入力）"></textarea>
     </div>
+    <div class="fg"><label class="fl">担当者</label><select class="fsel" id="rm-asgn"></select></div>
     <div class="frow">
-      <div class="fg"><label class="fl">回答期限</label><input class="fi" type="date" id="rm-resdl"></div>
+      <div class="fg"><label class="fl">初稿あげる期限</label><input class="fi" type="date" id="rm-resdl"></div>
       <div class="fg"><label class="fl">納品期限</label><input class="fi" type="date" id="rm-deldl"></div>
     </div>
     <div class="frow">
+      <div class="fg"><label class="fl">依頼金額（円）</label><input class="fi" type="number" id="rm-fee" value="30000" placeholder="30000"></div>
       <div class="fg"><label class="fl">ステータス</label>
         <select class="fsel" id="rm-status"><option value="未着手">未着手</option><option value="進行中">進行中</option><option value="回答待ち">回答待ち</option><option value="要確認">要確認</option><option value="完了">完了</option></select>
       </div>
-      <div class="fg"><label class="fl">優先度</label><select class="fsel" id="rm-pri"><option value="高">高</option><option value="中" selected>中</option><option value="低">低</option></select></div>
     </div>
     <div class="fg"><label class="fl">メモ</label><textarea class="fta" id="rm-notes" style="height:48px"></textarea></div>
     <label class="fchk" style="margin-bottom:14px"><input type="checkbox" id="rm-aff"> うさぽよ業務のスケジュールに影響する</label>
@@ -433,19 +439,37 @@ a{color:var(--accent)}
   </div></div>
 </div>
 
+<!-- Project Modal -->
+<div id="proj-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeProjModal()">
+  <div class="mbox" style="max-width:440px"><div class="mhead"><div class="mtitle">プロジェクトを追加</div><button class="mclose" onclick="closeProjModal()">✕</button></div>
+  <div class="mbody">
+    <input type="hidden" id="pm-cat-id">
+    <div class="fg"><label class="fl">プロジェクト名 *</label><input class="fi" id="pm-name" placeholder="例：Tシャツ"></div>
+    <div class="fg"><label class="fl">説明</label><textarea class="fta" id="pm-desc" style="height:54px" placeholder="プロジェクトの概要など"></textarea></div>
+    <div class="fg"><label class="fl">ステータス</label>
+      <select class="fsel" id="pm-status">
+        <option value="進行中">進行中</option><option value="確認待ち">確認待ち</option>
+        <option value="未着手">未着手</option><option value="完了">完了</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeProjModal()">キャンセル</button>
+      <button class="btn bp" onclick="saveProj()">追加する</button>
+    </div>
+  </div></div>
+</div>
+
 <!-- Link Modal -->
 <div id="link-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeLinkModal()">
   <div class="mbox" style="max-width:500px"><div class="mhead"><div class="mtitle" id="lm-title">リンクを追加</div><button class="mclose" onclick="closeLinkModal()">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="lm-id">
-    <div class="frow">
-      <div class="fg"><label class="fl">アイコン（絵文字）</label><input class="fi" id="lm-icon" placeholder="📂" style="font-size:20px;text-align:center"></div>
-      <div class="fg"><label class="fl">カテゴリ</label>
-        <select class="fsel" id="lm-cat">
+    <div class="fg"><label class="fl">カテゴリ</label>
+      <select class="fsel" id="lm-cat">
           <option>ツール</option><option>公式アカウント</option><option>LINEスタンプ</option>
           <option>ドキュメント</option><option>音源・動画</option><option>グッズ</option><option>その他</option>
-        </select>
-      </div>
+      </select>
     </div>
     <div class="fg"><label class="fl">名前 *</label><input class="fi" id="lm-name" placeholder="例：うさぽよじゃんけん 音源"></div>
     <div class="fg"><label class="fl">URL *</label><input class="fi" id="lm-url" placeholder="https://..."></div>
@@ -695,7 +719,7 @@ function renderProject(){
   let h='';
   fCats.forEach(cat=>{
     const cps=D.projects.filter(p=>p.category_id===cat.id);if(!cps.length)return;
-    h+=`<div class="pcat"><div class="pcat-hd"><span>${cat.icon||'📁'}</span><h3>${cat.name}</h3></div>`;
+    h+=`<div class="pcat"><div class="pcat-hd"><span>${cat.icon||'📁'}</span><h3 style="flex:1">${cat.name}</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button></div>`;
     cps.forEach(proj=>{
       const pt=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
       const done=pt.filter(t=>t.status==='完了').length,total=pt.length,prog=total>0?Math.round(done/total*100):0;
@@ -1024,7 +1048,7 @@ async function copyAgenda(){
 
 function renderReq(){
   const act=D.requests.filter(r=>r.status!=='完了'),done=D.requests.filter(r=>r.status==='完了');
-  const vc={小:'var(--grn)',中:'var(--yel)',大:'var(--red)'};
+  
   let h='';
   if(!act.length)h='<div class="empty"><h3>進行中の依頼なし</h3><p>「＋ 依頼追加」から登録してください</p></div>';
   else act.forEach(r=>{h+=`<div class="card mb" style="border-left:3px solid var(--org)">
@@ -1035,7 +1059,8 @@ function renderReq(){
     ${r.content?`<div style="font-size:13px;color:var(--ts);margin-bottom:10px;white-space:pre-wrap">${r.content}</div>`:''}
     <div style="display:flex;gap:18px;flex-wrap:wrap">
       <div style="font-size:12px"><span style="color:var(--tm)">担当：</span><strong>${mn(r.assignee_id)}</strong></div>
-      ${r.response_deadline?`<div style="font-size:12px"><span style="color:var(--tm)">回答期限：</span><strong style="color:${isOv(r.response_deadline)?'var(--red)':isSn(r.response_deadline)?'var(--yel)':'inherit'}">${fd(r.response_deadline)}</strong></div>`:''}
+      ${r.fee?`<div style="font-size:12px"><span style="color:var(--tm)">依頼金額：</span><strong>${Number(r.fee).toLocaleString()}円</strong></div>`:''}
+      ${r.response_deadline?`<div style="font-size:12px"><span style="color:var(--tm)">初稿あげる期限：</span><strong style="color:${isOv(r.response_deadline)?'var(--red)':isSn(r.response_deadline)?'var(--yel)':'inherit'}">${fd(r.response_deadline)}</strong></div>`:''}
       ${r.delivery_deadline?`<div style="font-size:12px"><span style="color:var(--tm)">納品：</span><strong style="color:${isOv(r.delivery_deadline)?'var(--red)':isSn(r.delivery_deadline)?'var(--yel)':'inherit'}">${fd(r.delivery_deadline)}</strong></div>`:''}
       <div style="font-size:12px"><span style="color:var(--tm)">作業量：</span><strong style="color:${vc[r.work_volume]||'inherit'}">${r.work_volume||'—'}</strong></div>
     </div>
@@ -1069,7 +1094,7 @@ function openTaskModal(id,preProj,parentId){
     document.getElementById('tm-mtg').checked=!!t.meeting_check;document.getElementById('tm-today').checked=!!t.today_flag;
   }else{
     document.getElementById('tm-id').value='';
-    ['tm-name','tm-desc','tm-bn','tm-wf','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
+    ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('tm-status').value='未着手';
     document.getElementById('tm-asgn').value='';document.getElementById('tm-rev').value='';
     document.getElementById('tm-mtg').checked=false;document.getElementById('tm-today').checked=false;
@@ -1129,17 +1154,20 @@ function showDetail(id){
 }
 function closeDetail(){document.getElementById('detail-modal').style.display='none';}
 
+function setReqPreset(text){document.getElementById('rm-content').value=text;document.getElementById('rm-content').focus();}
 function openReqModal(id){
   document.getElementById('rm-title').textContent=id?'他部署依頼を編集':'他部署依頼を追加';
   document.getElementById('rm-asgn').innerHTML='<option value="">要確認</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
   if(id){const r=D.requests.find(x=>x.id===id);if(!r)return;
-    document.getElementById('rm-id').value=r.id;document.getElementById('rm-name').value=r.name||'';document.getElementById('rm-req').value=r.requester||'';
-    document.getElementById('rm-content').value=r.content||'';document.getElementById('rm-asgn').value=r.assignee_id||'';document.getElementById('rm-vol').value=r.work_volume||'中';
+    document.getElementById('rm-id').value=r.id;document.getElementById('rm-name').value=r.name||'';
+    document.getElementById('rm-req').value=r.requester||'';document.getElementById('rm-content').value=r.content||'';
+    document.getElementById('rm-asgn').value=r.assignee_id||'';
     document.getElementById('rm-resdl').value=r.response_deadline||'';document.getElementById('rm-deldl').value=r.delivery_deadline||'';
-    document.getElementById('rm-status').value=r.status||'未着手';document.getElementById('rm-pri').value=r.priority||'中';
+    document.getElementById('rm-fee').value=r.fee||30000;
+    document.getElementById('rm-status').value=r.status||'未着手';
     document.getElementById('rm-notes').value=r.notes||'';document.getElementById('rm-aff').checked=!!r.affects_usapoyo;
   }else{['rm-id','rm-name','rm-req','rm-content','rm-notes','rm-resdl','rm-deldl'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('rm-asgn').value='';document.getElementById('rm-vol').value='中';document.getElementById('rm-status').value='未着手';document.getElementById('rm-pri').value='中';document.getElementById('rm-aff').checked=false;}
+    document.getElementById('rm-asgn').value='';document.getElementById('rm-fee').value=30000;document.getElementById('rm-status').value='未着手';document.getElementById('rm-aff').checked=false;}
   document.getElementById('req-modal').style.display='flex';
 }
 function closeReqModal(){document.getElementById('req-modal').style.display='none';}
@@ -1147,9 +1175,10 @@ async function saveReq(){
   const name=document.getElementById('rm-name').value.trim();if(!name){alert('依頼名を入力してください');return;}
   const id=document.getElementById('rm-id').value;
   const data={name,requester:document.getElementById('rm-req').value.trim(),content:document.getElementById('rm-content').value.trim()||null,
-    assignee_id:document.getElementById('rm-asgn').value||null,work_volume:document.getElementById('rm-vol').value,
+    assignee_id:document.getElementById('rm-asgn').value||null,
     response_deadline:document.getElementById('rm-resdl').value||null,delivery_deadline:document.getElementById('rm-deldl').value||null,
-    status:document.getElementById('rm-status').value,priority:document.getElementById('rm-pri').value,
+    fee:parseInt(document.getElementById('rm-fee').value)||30000,
+    status:document.getElementById('rm-status').value,
     notes:document.getElementById('rm-notes').value.trim()||null,affects_usapoyo:document.getElementById('rm-aff').checked};
   const{error}=id?await sb.from('pm_other_requests').update(data).eq('id',id):await sb.from('pm_other_requests').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
@@ -1295,7 +1324,6 @@ function renderLinks(){
       <div style="font-size:11px;font-weight:700;color:var(--ts);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border)">${cat}</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
         ${items.map(l=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;gap:10px;align-items:flex-start">
-          <div style="font-size:24px;flex-shrink:0;line-height:1.2">${l.icon||'🔗'}</div>
           <div style="flex:1;min-width:0">
             <a href="${l.url}" target="_blank" style="font-size:13px;font-weight:700;color:var(--accent);display:block;margin-bottom:3px;text-decoration:none">${l.name}</a>
             ${l.description?`<div style="font-size:11px;color:var(--ts);margin-bottom:5px">${l.description}</div>`:''}
@@ -1316,11 +1344,11 @@ function openLinkModal(id){
   document.getElementById('lm-title').textContent=id?'リンクを編集':'リンクを追加';
   if(id){
     const l=D.links.find(x=>x.id===id);if(!l)return;
-    document.getElementById('lm-id').value=l.id;document.getElementById('lm-icon').value=l.icon||'';
+    document.getElementById('lm-id').value=l.id;
     document.getElementById('lm-cat').value=l.category||'その他';document.getElementById('lm-name').value=l.name||'';
     document.getElementById('lm-url').value=l.url||'';document.getElementById('lm-desc').value=l.description||'';
   }else{
-    ['lm-id','lm-icon','lm-name','lm-url','lm-desc'].forEach(x=>document.getElementById(x).value='');
+    ['lm-id','lm-name','lm-url','lm-desc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('lm-cat').value='その他';
   }
   document.getElementById('link-modal').style.display='flex';
@@ -1331,7 +1359,7 @@ async function saveLinkItem(){
   const name=document.getElementById('lm-name').value.trim(),url=document.getElementById('lm-url').value.trim();
   if(!name||!url){alert('名前とURLは必須です');return;}
   const id=document.getElementById('lm-id').value;
-  const data={name,url,icon:document.getElementById('lm-icon').value.trim()||'🔗',
+  const data={name,url,
     category:document.getElementById('lm-cat').value,description:document.getElementById('lm-desc').value.trim()||null};
   const{error}=id?await sb.from('pm_links').update(data).eq('id',id):await sb.from('pm_links').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
@@ -1366,6 +1394,23 @@ async function seedLinks(){
     {name:'踊ってみた データ格納先',url:'https://drive.google.com/drive/folders/11UNYGkSV8KKgSXWoDkc8bBLKOZFVMrCT?usp=drive_link',category:'音源・動画',description:'踊ってみたデータ',icon:'📂',sort_order:42},
   ];
   await sb.from('pm_links').insert(seeds);
+}
+
+function openProjModal(catId){
+  document.getElementById('pm-cat-id').value=catId||'';
+  ['pm-name','pm-desc'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('pm-status').value='進行中';
+  document.getElementById('proj-modal').style.display='flex';
+}
+function closeProjModal(){document.getElementById('proj-modal').style.display='none';}
+async function saveProj(){
+  const name=document.getElementById('pm-name').value.trim();if(!name){alert('プロジェクト名を入力してください');return;}
+  const data={category_id:document.getElementById('pm-cat-id').value||null,name,
+    description:document.getElementById('pm-desc').value.trim()||null,
+    status:document.getElementById('pm-status').value};
+  const{error}=await sb.from('pm_projects').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeProjModal();await loadAll();renderProject();
 }
 
 async function seedAll(){
