@@ -850,10 +850,10 @@ function renderSns(){
     </div>
     <div style="display:grid;grid-template-columns:repeat(7,1fr)">
       ${cells.map(cell=>{
-        if(!cell)return`<div style="min-height:80px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#FAFAFA"></div>`;
+        if(!cell)return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#FAFAFA"></div>`;
         const dow2=new Date(cell.ds+'T00:00:00').getDay();
         const it=isToday(cell.ds);
-        return`<div style="min-height:80px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
+        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
           <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${it?'#fff':dow2===0?'var(--red)':dow2===6?'var(--blu)':'var(--tp)'};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}">  ${cell.day}</span></div>
           ${cell.posts.slice(0,3).map(p=>`<div style="font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:${(CAT_COLORS[p.category]||'#9CA3AF')}22;color:${CAT_COLORS[p.category]||'#9CA3AF'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
           ${cell.posts.length>3?`<div style="font-size:10px;color:var(--tm)">+${cell.posts.length-3}件</div>`:''}
@@ -890,40 +890,136 @@ function openSnsDetail(id){
 
 function renderMeeting(){
   const ags=D.tasks.filter(t=>t.status!=='完了'&&(t.meeting_check||t.status==='要対応'||(t.deadline&&isOv(t.deadline))||t.bottleneck));
+  const grp={};
+  ags.forEach(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;const cn=c?c.name:'その他';if(!grp[cn])grp[cn]=[];grp[cn].push(t);});
+  const catKeys=Object.keys(grp);
   const affR=D.requests.filter(r=>r.affects_usapoyo&&r.status!=='完了'&&((r.delivery_deadline&&isSn(r.delivery_deadline))||r.work_volume==='大'));
-  let h=`<div class="card mb"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
-    <div class="ct" style="margin-bottom:0">📋 次回定例アジェンダ候補 <span style="font-size:11px;color:var(--tm);background:var(--bg);padding:1px 7px;border-radius:10px">${ags.length}</span></div>
-    <button class="btn bp bsm" onclick="copyAgenda()">📋 アジェンダをコピー</button></div>
-    ${ags.length===0?'<div style="font-size:12px;color:var(--tm)">アジェンダ候補なし</div>':
-      ags.map(t=>`<div class="ag-item"><div style="flex:1"><div class="ag-t">${t.name}</div>
-        <div class="ag-m">${pn(t.project_id)} ・ ${mn(t.assignee_id)}${t.deadline?' ・ 期限：'+fd(t.deadline):''}${t.meeting_check?' ・ 📋':''}${t.status==='要対応'?' ・ 🔴':''}${t.bottleneck?' ・ 🚧'+t.bottleneck:''}</div>
-      </div>${badge(t.status)}</div>`).join('')}
-    ${affR.length?`<div class="bn bn-org" style="margin-top:12px"><span>📩</span><div><strong>稼働影響：他部署案件あり</strong><br>${affR.map(r=>`${r.name}（${r.requester}）納品：${fd(r.delivery_deadline)} 作業量：${r.work_volume}`).join('<br>')}</div></div>`:''}
-  </div>
-  <div class="card"><div class="ct">📅 会議履歴</div>
+
+  let h=`<div class="card mb" style="border-left:4px solid var(--accent)">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div class="ct" style="margin-bottom:0">📋 アジェンダ一覧</div>
+      <button class="btn bp bsm" onclick="copyAgenda()">📋 コピー</button>
+    </div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      ${catKeys.map((cn,i)=>`<div style="font-size:13px;padding:4px 12px;background:var(--purbg);color:var(--pur);border-radius:var(--rs);font-weight:600">${i+1}. ${cn}</div>`).join('')}
+      ${affR.length?`<div style="font-size:13px;padding:4px 12px;background:var(--orgbg);color:var(--org);border-radius:var(--rs);font-weight:600">${catKeys.length+1}. 他部署案件</div>`:''}
+    </div>
+  </div>`;
+
+  catKeys.forEach(cn=>{
+    const tasks=grp[cn];
+    const comp=D.tasks.filter(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;return(c?c.name:'その他')===cn&&t.status==='完了';}).slice(0,4);
+    h+=`<div class="card mb">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border)">■ ${cn}</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--grn);margin-bottom:7px;letter-spacing:.04em">■ 前回まで合意済み・確認済み事項</div>
+        ${comp.length?comp.map(t=>`<div style="font-size:12px;padding:3px 0;color:var(--ts);display:flex;align-items:center;gap:6px"><span style="color:var(--grn)">✓</span>${t.name}</div>`).join(''):'<div style="font-size:12px;color:var(--tm)">（なし）</div>'}
+      </div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--yel);margin-bottom:8px;letter-spacing:.04em">■ 相談事項</div>
+        ${tasks.map(t=>`<div class="ag-item" style="margin-bottom:6px">
+          <div style="flex:1">
+            <div class="ag-t">【${t.name}】</div>
+            <div class="ag-m">
+              ${mn(t.assignee_id)!=='未設定'?`担当：${mn(t.assignee_id)}&nbsp;&nbsp;`:''}
+              ${t.deadline?`期限：${fd(t.deadline)}&nbsp;&nbsp;`:''}
+              ${t.status}
+            </div>
+            ${t.bottleneck?`<div style="font-size:11px;color:var(--red);margin-top:3px">🚧 ${t.bottleneck}</div>`:''}
+            ${t.next_action?`<div style="font-size:11px;color:var(--accent);margin-top:3px">→ ${t.next_action}</div>`:''}
+          </div>
+          ${badge(t.status)}
+        </div>`).join('')}
+      </div>
+      <div style="background:var(--grnbg);border:1px solid #A7F3D0;border-radius:var(--rs);padding:10px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--grn);margin-bottom:7px">✅ 確認・決定事項</div>
+        ${tasks.map(t=>`<div style="font-size:12px;padding:2px 0;display:flex;align-items:flex-start;gap:6px"><span>☐</span><span>${t.next_action||t.name+'の対応確認'}</span></div>`).join('')}
+      </div>
+    </div>`;
+  });
+
+  if(affR.length){
+    h+=`<div class="card mb" style="border-left:3px solid var(--org)">
+      <div style="font-size:16px;font-weight:800;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border)">■ チーム稼働・他部署案件</div>
+      <div style="margin-bottom:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--yel);margin-bottom:8px">■ 相談事項</div>
+        ${affR.map(r=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
+          <span><strong>${r.name}</strong>（${r.requester}）</span>
+          <span style="color:var(--tm)">納品：${fd(r.delivery_deadline)} 作業量：${r.work_volume}</span>
+        </div>`).join('')}
+      </div>
+      <div style="background:var(--grnbg);border:1px solid #A7F3D0;border-radius:var(--rs);padding:10px 14px">
+        <div style="font-size:11px;font-weight:700;color:var(--grn);margin-bottom:7px">✅ 確認・決定事項</div>
+        <div style="font-size:12px;padding:2px 0">☐  担当者ごとの作業量・進捗確認</div>
+        <div style="font-size:12px;padding:2px 0">☐  うさぽよ側スケジュールへの影響確認</div>
+      </div>
+    </div>`;
+  }
+
+  h+=`<div class="card">
+    <div class="ct">📅 会議履歴</div>
     ${D.meetings.length===0?'<div style="font-size:12px;color:var(--tm)">会議記録なし</div>':
-      D.meetings.map(m=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:13px;font-weight:600">${m.title}</div>
-        <div style="font-size:11px;color:var(--tm)">${fdl(m.scheduled_date)}${m.scheduled_time?' '+m.scheduled_time.slice(0,5):''}</div></div>`).join('')}
+      D.meetings.map(m=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+        <div style="font-size:13px;font-weight:600">${m.title}</div>
+        <div style="font-size:11px;color:var(--tm)">${fdl(m.scheduled_date)}${m.scheduled_time?' '+m.scheduled_time.slice(0,5):''}</div>
+      </div>`).join('')}
   </div>`;
   document.getElementById('mtg-body').innerHTML=h;
 }
 
 async function copyAgenda(){
   const today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  const mems=D.members.filter(m=>['長田','小森','西村','中野','緑川','関根'].includes(m.name)).map(m=>m.name).join('、');
+  const mems=D.members.filter(m=>['長田','小森','西村','中野','緑川','関根'].includes(m.name)).map(m=>m.name).join('　');
   const ags=D.tasks.filter(t=>t.status!=='完了'&&(t.meeting_check||t.status==='要対応'||(t.deadline&&isOv(t.deadline))||t.bottleneck));
   const grp={};
   ags.forEach(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;const cn=c?c.name:'その他';if(!grp[cn])grp[cn]=[];grp[cn].push(t);});
-  let txt=`【定例】うさぽよプロジェクト会議\n開催日：${today}\n参加者：${mems}\n\n━━━━━━━━━━━━━━━━━━━━━━\n■ 今日の最重要事項\n━━━━━━━━━━━━━━━━━━━━━━\n（会議前に記入）\n\n`;
-  Object.entries(grp).forEach(([cn,tasks])=>{
-    txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ ${cn}\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-    tasks.forEach(t=>{txt+=`\n【${t.name}】\nステータス：${t.status}\n`;if(t.bottleneck)txt+=`ボトルネック：${t.bottleneck}\n`;if(t.waiting_for)txt+=`確認待ち：${t.waiting_for}\n`;if(t.next_action)txt+=`次のアクション：${t.next_action}\n`;if(mn(t.assignee_id)!=='未設定')txt+=`担当：${mn(t.assignee_id)}\n`;if(t.deadline)txt+=`期限：${fd(t.deadline)}\n`;txt+=`確認事項：\n決定事項：\n\n`;});
+  const catKeys=Object.keys(grp);
+  const affR=D.requests.filter(r=>r.affects_usapoyo&&r.status!=='完了');
+
+  let txt=`うさぽよ定例会議\n${today}\n${mems}\n\nアジェンダ\n`;
+  catKeys.forEach((cn,i)=>txt+=`${cn}\t${i+1}\n`);
+  if(affR.length)txt+=`チーム稼働・他部署案件\t${catKeys.length+1}\n`;
+  txt+='\n';
+
+  catKeys.forEach(cn=>{
+    const tasks=grp[cn];
+    const comp=D.tasks.filter(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;return(c?c.name:'その他')===cn&&t.status==='完了';}).slice(0,4);
+
+    txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ ${cn}\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    txt+=`■ 前回まで合意済み・確認済み事項\n`;
+    if(comp.length)comp.forEach(t=>txt+=`・${t.name}\n`);
+    else txt+=`（なし）\n`;
+    txt+='\n';
+    txt+=`■ 相談事項\n`;
+    tasks.forEach(t=>{
+      txt+=`\n【${t.name}】\n`;
+      if(t.status)txt+=`ステータス：${t.status}\n`;
+      if(t.bottleneck)txt+=`ボトルネック：${t.bottleneck}\n`;
+      if(t.waiting_for)txt+=`確認待ち：${t.waiting_for}\n`;
+      if(t.next_action)txt+=`次のアクション：${t.next_action}\n`;
+      if(mn(t.assignee_id)!=='未設定')txt+=`担当：${mn(t.assignee_id)}\n`;
+      if(t.deadline)txt+=`期限：${fd(t.deadline)}\n`;
+      txt+=`\n`;
+    });
+    txt+=`✅ 確認・決定事項\n`;
+    tasks.forEach(t=>txt+=`☐  ${t.next_action||t.name+'の対応確認'}\n`);
+    txt+='\n\n';
   });
+
+  if(affR.length){
+    txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ チーム稼働・他部署案件\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+    txt+=`■ 前回まで合意済み・確認済み事項\n（なし）\n\n■ 相談事項\n`;
+    affR.forEach(r=>{txt+=`\n【${r.name}】（${r.requester}）\nステータス：${r.status}\n`;if(r.delivery_deadline)txt+=`納品期限：${fd(r.delivery_deadline)}\n`;txt+=`作業量：${r.work_volume}\n`;if(r.notes)txt+=`備考：${r.notes}\n`;});
+    txt+=`\n✅ 確認・決定事項\n☐  担当者ごとの作業量・進捗確認\n☐  うさぽよ側スケジュールへの影響確認\n\n`;
+  }
+
   txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ マイルストーン確認\n━━━━━━━━━━━━━━━━━━━━━━\n`;
   D.milestones.forEach(m=>txt+=`${fd(m.date)} ${m.name}${m.is_tentative?'（未確定）':''}\n`);
-  txt+=`\n━━━━━━━━━━━━━━━━━━━━━━\n■ 本日の決定事項\n━━━━━━━━━━━━━━━━━━━━━━\n\n━━━━━━━━━━━━━━━━━━━━━━\n■ 次回までのアクション\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+  txt+=`\n━━━━━━━━━━━━━━━━━━━━━━\n■ 本日の決定事項\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
+  txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ 次回までのアクション\n━━━━━━━━━━━━━━━━━━━━━━\n`;
+
   try{await navigator.clipboard.writeText(txt);}catch{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
-  alert('アジェンダをコピーしました！Google Docs等に貼り付けてご使用ください。');
+  alert('アジェンダをコピーしました！\nGoogle Docs等に貼り付けてください。');
 }
 
 function renderReq(){
