@@ -468,7 +468,7 @@ a{color:var(--accent)}
     <div class="fg"><label class="fl">カテゴリ</label>
       <select class="fsel" id="lm-cat">
           <option>ツール</option><option>公式アカウント</option><option>LINEスタンプ</option>
-          <option>ドキュメント</option><option>音源・動画</option><option>グッズ</option><option>その他</option>
+          <option>ドキュメント</option><option>音源・動画</option><option>グッズ</option><option>通常コンテンツ</option><option>グッズPR</option><option>その他</option>
       </select>
     </div>
     <div class="fg"><label class="fl">名前 *</label><input class="fi" id="lm-name" placeholder="例：うさぽよじゃんけん 音源"></div>
@@ -504,6 +504,7 @@ let sb=null;
 const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[]};
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='project';
+const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23']);
 const CAT_COLORS={'イベント系':'#F97316','LINEスタンプ関連':'#10B981','楽曲/MV':'#8B5CF6','グッズ関連':'#F59E0B','質問コーナー':'#3B82F6','会話劇':'#EC4899','漫画':'#14B8A6','企業タイアップ関連':'#6366F1','日常イラスト':'#84CC16','ギャル間違い探し':'#EF4444','一言フィード':'#A78BFA','その他（書き込み）':'#9CA3AF'};
 const SC={'要対応':'su','確認待ち':'sw','承認待ち':'sw','進行中':'sp','完了':'sd','未着手':'sn','外部返答待ち':'se','素材待ち':'sm','要確認':'sw','回答待ち':'se','予約投稿済':'se','投稿完了':'sd','制作中':'sp'};
 
@@ -876,9 +877,10 @@ function renderSns(){
       ${cells.map(cell=>{
         if(!cell)return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#FAFAFA"></div>`;
         const dow2=new Date(cell.ds+'T00:00:00').getDay();
-        const it=isToday(cell.ds);
+        const it=isToday(cell.ds),isHol=JP_HOL.has(cell.ds);
+        const dcol=it?'#fff':(dow2===0||isHol)?'var(--red)':dow2===6?'var(--blu)':'var(--tp)';
         return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
-          <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${it?'#fff':dow2===0?'var(--red)':dow2===6?'var(--blu)':'var(--tp)'};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}">  ${cell.day}</span></div>
+          <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}">  ${cell.day}</span></div>
           ${cell.posts.slice(0,3).map(p=>`<div style="font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:${(CAT_COLORS[p.category]||'#9CA3AF')}22;color:${CAT_COLORS[p.category]||'#9CA3AF'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
           ${cell.posts.length>3?`<div style="font-size:10px;color:var(--tm)">+${cell.posts.length-3}件</div>`:''}
         </div>`;
@@ -1327,7 +1329,8 @@ function renderLinks(){
           <div style="flex:1;min-width:0">
             <a href="${l.url}" target="_blank" style="font-size:13px;font-weight:700;color:var(--accent);display:block;margin-bottom:3px;text-decoration:none">${l.name}</a>
             ${l.description?`<div style="font-size:11px;color:var(--ts);margin-bottom:5px">${l.description}</div>`:''}
-            <div style="font-size:10px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.url}</div>
+            <div style="font-size:10px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${l.url}</div>
+            <button onclick="copyLinkUrl('${l.url.replace(/'/g,"\\'")}',this)" style="font-size:10px;padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)">コピー</button>
           </div>
           <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
             <button class="btn bg" style="padding:2px 6px;font-size:11px" onclick="openLinkModal('${l.id}')">✏</button>
@@ -1340,6 +1343,13 @@ function renderLinks(){
   document.getElementById('links-body').innerHTML=h;
 }
 
+function copyLinkUrl(url,btn){
+  const orig=btn.textContent;
+  navigator.clipboard.writeText(url).then(()=>{btn.textContent='✓ コピー済み';btn.style.color='var(--grn)';setTimeout(()=>{btn.textContent=orig;btn.style.color='';},2000);}).catch(()=>{
+    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
+    btn.textContent='✓';setTimeout(()=>{btn.textContent=orig;},1500);
+  });
+}
 function openLinkModal(id){
   document.getElementById('lm-title').textContent=id?'リンクを編集':'リンクを追加';
   if(id){
