@@ -129,6 +129,8 @@ a{color:var(--accent)}
 .empty{text-align:center;padding:48px 24px;color:var(--tm)}
 .empty h3{font-size:14px;font-weight:600;color:var(--ts);margin-bottom:4px}
 .empty p{font-size:12px}
+.asgn-chip{padding:5px 13px;border:1.5px solid var(--border);border-radius:100px;cursor:pointer;font-size:13px;font-weight:500;user-select:none;background:#fff;color:var(--tp);transition:all .12s;display:inline-block}
+.asgn-chip.on{background:var(--purbg);border-color:var(--accent);color:var(--accent);font-weight:700}
 .cat-tag{padding:4px 10px;border-radius:100px;font-size:12px;font-weight:500;cursor:pointer;border:1.5px solid var(--cc,#9CA3AF);color:var(--cc,#9CA3AF);transition:all .12s;user-select:none;display:inline-block;margin:2px}
 .cat-tag.on{background:var(--cc,#9CA3AF);color:#fff}
 .btn-del{background:var(--redbg);color:var(--red);border:1px solid #FECACA;padding:4px 10px;font-size:12px;font-weight:600;cursor:pointer;border-radius:var(--rs);font-family:inherit}
@@ -279,7 +281,8 @@ a{color:var(--accent)}
     <div class="fg"><label class="fl">タスク名 *</label><input class="fi" id="tm-name" placeholder="例：音源確認"></div>
     <div class="fg"><label class="fl">説明・メモ</label><textarea class="fta" id="tm-desc" style="height:54px" placeholder="詳細・背景など"></textarea></div>
     <div class="fg"><label class="fl">担当者（複数選択可）</label>
-      <div id="tm-asgn-checks" style="display:flex;gap:8px;flex-wrap:wrap;padding:8px 0"></div>
+      <div id="tm-asgn-checks" style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0 8px"></div>
+      <input class="fi" id="tm-asgn-other" placeholder="その他（名前を直接入力）" style="margin-top:4px">
     </div>
     <div class="fg"><label class="fl">確認者</label><select class="fsel" id="tm-rev"></select></div>
     <input type="hidden" id="tm-parent">
@@ -626,7 +629,7 @@ async function loadAll(){
   D.events=(typeof j!=='undefined'?j.data:null)||[];
 }
 const mn=id=>{if(!id)return'未設定';const m=D.members.find(x=>x.id===id);return m?m.name:'未設定';};
-const mnMulti=t=>{if(t.co_assignees){try{const ids=JSON.parse(t.co_assignees);if(ids.length>1)return ids.map(id=>D.members.find(x=>x.id===id)?.name||'?').join('・');}catch(e){}}return mn(t.assignee_id);};
+const mnMulti=t=>{if(t.co_assignees){try{const ids=JSON.parse(t.co_assignees);if(ids.length>0){const names=ids.map(id=>id.startsWith('other:')?id.slice(6):(D.members.find(x=>x.id===id)?.name||'?'));return names.join('・');}}catch(e){}}return mn(t.assignee_id);};
 const pn=id=>{if(!id)return'—';const p=D.projects.find(x=>x.id===id);return p?p.name:'—';};
 function badge(s){const c=SC[s]||'sn';return`<span class="badge ${c}"><span class="bd"></span>${s||'未設定'}</span>`;}
 function fd(d){if(!d)return'—';return new Date(d+'T00:00:00').toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});}
@@ -768,7 +771,7 @@ function renderProject(){
         <span>📌</span><div class="pblk-nm">${proj.name}</div>
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
-          <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>${badge(pSt)}
+          <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>
           <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts);margin-left:4px" onclick="event.stopPropagation();openProjModal('${cat.id}','${proj.id}')" title="プロジェクトを編集">✏</button>
         </div>
       </div>
@@ -807,6 +810,7 @@ function setProjF(id){projF=id;renderProject();}
 function togglePB(id){const el=document.getElementById('pb-'+id);if(el)el.style.display=el.style.display==='none'?'':'none';}
 
 function renderTeamTask(){renderTaskboard();renderProject();}
+function toggleAsgn(el){el.classList.toggle('on');el.dataset.checked=el.classList.contains('on')?'1':'0';}
 function setTbF(el,name){document.querySelectorAll('#tb-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');tbFilter=name;renderTaskboard();}
 function renderTaskboard(){
   const allM=D.members.filter(m=>['長田','小森','西村'].includes(m.name));
@@ -935,7 +939,7 @@ function renderSns(){
         const maxPosts=cell.evts.length>0?2:3;
         return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
           <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}"> ${cell.day}</span></div>
-          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}22;color:${e.color};font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid ${e.color}" onclick="event.stopPropagation();openEvtModal('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
+          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}33;color:#1A1A2E;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid ${e.color}" onclick="event.stopPropagation();openEvtModal('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
           ${cell.posts.slice(0,maxPosts).map(p=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${(CAT_COLORS[p.category]||'#9CA3AF')}22;color:${CAT_COLORS[p.category]||'#9CA3AF'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
           ${cell.posts.length>maxPosts?`<div style="font-size:9px;color:var(--tm)">+${cell.posts.length-maxPosts}</div>`:''}
         </div>`;
@@ -1138,7 +1142,7 @@ function openTaskModal(id,preProj,parentId){
   const pl=document.getElementById('tm-parent-label');
   if(pl)pl.style.display=parentId?'block':'none';
   document.getElementById('tm-cat').innerHTML='<option value="">カテゴリ</option>'+D.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('tm-asgn-checks').innerHTML=D.members.filter(m=>['長田','小森','西村'].includes(m.name)).map(m=>`<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:#fff" onclick="this.classList.toggle('on');this.style.background=this.classList.contains('on')?'var(--purbg)':'#fff';this.style.borderColor=this.classList.contains('on')?'var(--accent)':'var(--border)'"><input type="checkbox" name="tm-asgn-cb" value="${m.id}" style="display:none">${m.name}</label>`).join('');
+  document.getElementById('tm-asgn-checks').innerHTML=D.members.filter(m=>['長田','小森','西村'].includes(m.name)).map(m=>`<div class="asgn-chip" data-id="${m.id}" data-checked="0" onclick="toggleAsgn(this)">${m.name}</div>`).join('');
   document.getElementById('tm-rev').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
   if(id){
     const t=D.tasks.find(x=>x.id===id);if(!t)return;
@@ -1146,7 +1150,11 @@ function openTaskModal(id,preProj,parentId){
     const p=D.projects.find(x=>x.id===t.project_id);
     document.getElementById('tm-cat').value=p?.category_id||'';updateProjByCat();
     document.getElementById('tm-proj').value=t.project_id||'';document.getElementById('tm-name').value=t.name||'';document.getElementById('tm-desc').value=t.description||'';
-    document.getElementById('tm-asgn').value=t.assignee_id||'';document.getElementById('tm-rev').value=t.reviewer_id||'';
+    const savedIds2=(t.co_assignees?JSON.parse(t.co_assignees):[t.assignee_id]).filter(Boolean);
+    document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=savedIds2.includes(chip.dataset.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
+    const otherVals2=savedIds2.filter(x=>x&&x.startsWith('other:')).map(x=>x.slice(6));
+    if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value=otherVals2.join('・');
+    document.getElementById('tm-rev').value=t.reviewer_id||'';
     document.getElementById('tm-status').value=t.status||'未着手';
     document.getElementById('tm-dl').value=t.deadline||'';document.getElementById('tm-est').value=t.estimated_completion||'';
 
@@ -1155,8 +1163,10 @@ function openTaskModal(id,preProj,parentId){
   }else{
     document.getElementById('tm-id').value='';
     ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
+    if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value='';
     document.getElementById('tm-status').value='未着手';
-    document.querySelectorAll('[name="tm-asgn-cb"]').forEach(cb=>{const lbl=cb.parentElement;const sel=curMember?.id&&cb.value===curMember.id;cb.checked=sel;lbl.classList.toggle('on',sel);lbl.style.background=sel?'var(--purbg)':'#fff';lbl.style.borderColor=sel?'var(--accent)':'var(--border)';});
+    document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=!!(curMember?.id&&chip.dataset.id===curMember.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
+    document.getElementById('tm-asgn-other').value='';
     document.getElementById('tm-rev').value='';
     document.getElementById('tm-mtg').checked=false;document.getElementById('tm-today').checked=false;
     if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
@@ -1169,9 +1179,13 @@ function closeTaskModal(){document.getElementById('task-modal').style.display='n
 async function saveTask(){
   const name=document.getElementById('tm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
   const id=document.getElementById('tm-id').value,url=document.getElementById('tm-url').value.trim(),status=document.getElementById('tm-status').value;
-  const selIds=Array.from(document.querySelectorAll('[name="tm-asgn-cb"]:checked')).map(cb=>cb.value);
-  const data={project_id:document.getElementById('tm-proj').value||null,name,description:document.getElementById('tm-desc').value.trim()||null,
-    assignee_id:selIds[0]||null,co_assignees:selIds.length?JSON.stringify(selIds):null,
+    const selIds=Array.from(document.querySelectorAll('.asgn-chip.on')).map(el=>el.dataset.id);
+  const otherName=document.getElementById('tm-asgn-other')?.value.trim();
+  if(otherName)selIds.push('other:'+otherName);
+  const data={project_id:document.getElementById('tm-proj').value||null,
+    parent_task_id:parentVal,
+    name,description:document.getElementById('tm-desc').value.trim()||null,
+    assignee_id:selIds.find(x=>!x.startsWith('other:'))||null,co_assignees:selIds.length?JSON.stringify(selIds):null,
     reviewer_id:document.getElementById('tm-rev').value||null,
     status,deadline:document.getElementById('tm-dl').value||null,
     estimated_completion:document.getElementById('tm-est').value||null,
