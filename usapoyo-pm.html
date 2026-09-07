@@ -198,8 +198,7 @@ a{color:var(--accent)}
     </nav>
     <nav class="nav-sec">
       <div class="nav-sec-l">スケジュール</div>
-      <div class="nav-item" data-page="calendar" onclick="nav('calendar')"><span class="ni">📅</span><span>カレンダー</span></div>
-      <div class="nav-item" data-page="sns" onclick="nav('sns')"><span class="ni">📱</span><span>SNS カレンダー</span></div>
+      <div class="nav-item" data-page="sns" onclick="nav('sns')"><span class="ni">📅</span><span>カレンダー</span></div>
     </nav>
     <nav class="nav-sec">
       <div class="nav-sec-l">運用</div>
@@ -233,21 +232,18 @@ a{color:var(--accent)}
     </div>
 
 
-    <div class="page" id="page-calendar">
-      <div class="ph"><div><div class="pt">カレンダー</div><div class="ps">スケジュール・期限 一覧</div></div></div>
-      <div class="chips" id="cal-chips">
-        <div class="chip on" onclick="calFilter(this,'all')">すべて</div>
-        <div class="chip" onclick="calFilter(this,'task')">タスク期限</div>
-        <div class="chip" onclick="calFilter(this,'ms')">マイルストーン</div>
-        <div class="chip" onclick="calFilter(this,'mtg')">会議</div>
-        <div class="chip" onclick="calFilter(this,'req')">他部署依頼</div>
-      </div>
-      <div id="cal-body"><div class="ld">読み込み中...</div></div>
-    </div>
+
     <div class="page" id="page-sns">
-      <div class="ph"><div><div class="pt">SNS カレンダー</div><div class="ps">投稿予定の管理</div></div><button class="btn bp" onclick="openSnsModal()">＋ 投稿追加</button></div>
+      <div class="ph"><div><div class="pt">📅 カレンダー</div><div class="ps">SNS投稿・イベント・スケジュールの統合管理</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn bs bsm" onclick="openEvtModal()">＋ イベント追加</button>
+          <button class="btn bp bsm" onclick="openSnsModal()">＋ SNS投稿追加</button>
+        </div>
+      </div>
       <div class="chips" id="sns-chips">
         <div class="chip on" onclick="snsFilter(this,'all')">すべて</div>
+        <div class="chip" onclick="snsFilter(this,'event')">📌 イベント</div>
+        <div class="chip" onclick="snsFilter(this,'sns')">📱 SNS投稿</div>
         <div class="chip" onclick="snsFilter(this,'Instagram')">Instagram</div>
         <div class="chip" onclick="snsFilter(this,'TikTok')">TikTok</div>
         <div class="chip" onclick="snsFilter(this,'YouTube')">YouTube</div>
@@ -282,10 +278,10 @@ a{color:var(--accent)}
     </div>
     <div class="fg"><label class="fl">タスク名 *</label><input class="fi" id="tm-name" placeholder="例：音源確認"></div>
     <div class="fg"><label class="fl">説明・メモ</label><textarea class="fta" id="tm-desc" style="height:54px" placeholder="詳細・背景など"></textarea></div>
-    <div class="frow">
-      <div class="fg"><label class="fl">担当者</label><select class="fsel" id="tm-asgn"></select></div>
-      <div class="fg"><label class="fl">確認者</label><select class="fsel" id="tm-rev"></select></div>
+    <div class="fg"><label class="fl">担当者（複数選択可）</label>
+      <div id="tm-asgn-checks" style="display:flex;gap:8px;flex-wrap:wrap;padding:8px 0"></div>
     </div>
+    <div class="fg"><label class="fl">確認者</label><select class="fsel" id="tm-rev"></select></div>
     <input type="hidden" id="tm-parent">
     <div id="tm-parent-label" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--purbg);border-radius:var(--rs);font-size:12px;color:var(--pur)">📎 サブタスクとして追加</div>
     <div class="fg"><label class="fl">ステータス</label>
@@ -477,6 +473,50 @@ a{color:var(--accent)}
     </div>
   </div></div>
 </div>
+
+<!-- Event Modal -->
+<div id="evt-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeEvtModal()">
+  <div class="mbox" style="max-width:480px"><div class="mhead"><div class="mtitle" id="em-title">イベントを追加</div><button class="mclose" onclick="closeEvtModal()">✕</button></div>
+  <div class="mbody">
+    <input type="hidden" id="em-id">
+    <div class="fg"><label class="fl">イベント名 *</label><input class="fi" id="em-name" placeholder="例：グッズ発売日・ツアー物販（東京公演）"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">日付 *</label><input class="fi" type="date" id="em-date"></div>
+      <div class="fg"><label class="fl">終了日（複数日の場合）</label><input class="fi" type="date" id="em-date-end"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">カテゴリ</label>
+        <select class="fsel" id="em-cat">
+          <option value="グッズ・販売">グッズ・販売</option>
+          <option value="MV・音楽">MV・音楽</option>
+          <option value="ツアー・物販">ツアー・物販</option>
+          <option value="撮影">撮影</option>
+          <option value="会議">会議</option>
+          <option value="メディア">メディア</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">色</label>
+        <select class="fsel" id="em-color">
+          <option value="#F97316">🟠 オレンジ（グッズ）</option>
+          <option value="#8B5CF6">🟣 パープル（MV）</option>
+          <option value="#3B82F6">🔵 ブルー（ツアー）</option>
+          <option value="#10B981">🟢 グリーン（撮影）</option>
+          <option value="#9CA3AF">⚪ グレー（会議）</option>
+          <option value="#EC4899">🩷 ピンク（メディア）</option>
+          <option value="#EF4444">🔴 レッド（重要）</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">説明・メモ</label><textarea class="fta" id="em-desc" style="height:54px" placeholder="例：KOGYARUツアー東京公演。会場物販実施。"></textarea></div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-del bsm" id="em-del-btn" style="display:none;margin-right:auto" onclick="deleteEvt()">削除</button>
+      <button class="btn bs" onclick="closeEvtModal()">キャンセル</button>
+      <button class="btn bp" onclick="saveEvt()">保存する</button>
+    </div>
+  </div></div>
+</div>
 <!-- Meeting Modal -->
 <div id="mtg-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeMtgModal()">
   <div class="mbox" style="max-width:480px"><div class="mhead"><div class="mtitle">会議を作成</div><button class="mclose" onclick="closeMtgModal()">✕</button></div>
@@ -497,7 +537,7 @@ a{color:var(--accent)}
 <script>
 // STATE
 let sb=null;
-const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[]};
+const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[]};
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
 const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2025-12-30','2025-12-31','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-30','2026-12-31','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23','2027-12-30','2027-12-31']);
@@ -568,7 +608,7 @@ async function showApp(){
   renderTeamTask();
 }
 async function loadAll(){
-  const[a,b,c,d,e,f,g,h,i]=await Promise.all([
+  const[a,b,c,d,e,f,g,h,i,j]=await Promise.all([
     sb.from('pm_members').select('*').order('sort_order'),
     sb.from('pm_categories').select('*').order('sort_order'),
     sb.from('pm_projects').select('*').order('created_at'),
@@ -577,13 +617,16 @@ async function loadAll(){
     sb.from('pm_sns_posts').select('*').order('scheduled_date'),
     sb.from('pm_meetings').select('*').order('scheduled_date',{ascending:false}),
     sb.from('pm_other_requests').select('*').order('delivery_deadline'),
-    sb.from('pm_links').select('*').order('sort_order')
+    sb.from('pm_links').select('*').order('sort_order'),
+    sb.from('pm_calendar_events').select('*').order('event_date')
   ]);
   D.members=a.data||[];D.categories=b.data||[];D.projects=c.data||[];D.tasks=d.data||[];
   D.milestones=e.data||[];D.sns=f.data||[];D.meetings=g.data||[];D.requests=h.data||[];
   D.links=(typeof i!=='undefined'?i.data:null)||[];
+  D.events=(typeof j!=='undefined'?j.data:null)||[];
 }
 const mn=id=>{if(!id)return'未設定';const m=D.members.find(x=>x.id===id);return m?m.name:'未設定';};
+const mnMulti=t=>{if(t.co_assignees){try{const ids=JSON.parse(t.co_assignees);if(ids.length>1)return ids.map(id=>D.members.find(x=>x.id===id)?.name||'?').join('・');}catch(e){}}return mn(t.assignee_id);};
 const pn=id=>{if(!id)return'—';const p=D.projects.find(x=>x.id===id);return p?p.name:'—';};
 function badge(s){const c=SC[s]||'sn';return`<span class="badge ${c}"><span class="bd"></span>${s||'未設定'}</span>`;}
 function fd(d){if(!d)return'—';return new Date(d+'T00:00:00').toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});}
@@ -657,7 +700,7 @@ function renderDash(){
       ${todayT.length===0?'<div style="font-size:12px;color:var(--tm)">今日のタスクなし</div>':
         todayT.slice(0,6).map(t=>`<div class="trow"><div class="tchk ${t.status==='完了'?'ck':''}" onclick="toggleTask('${t.id}')">${t.status==='完了'?'✓':''}</div>
           <div class="tn ${t.status==='完了'?'done':''}" onclick="showDetail('${t.id}')">${t.name}</div>
-          <div class="tm2"><span class="tass">${mn(t.assignee_id)}</span>${badge(t.status)}</div></div>`).join('')}
+          <div class="tm2"><span class="tass">${mnMulti(t)}</span>${badge(t.status)}</div></div>`).join('')}
     </div>
     <div class="card"><div class="ct">🔴 要対応・期限超過</div>
       ${urgDedup.length===0?'<div style="font-size:12px;color:var(--tm)">問題なし 🎉</div>':
@@ -845,22 +888,35 @@ function renderCal(){
 }
 
 function snsFilter(el,p){document.querySelectorAll('#sns-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');snsF=p;renderSns();}
+
 function snsMonthNav(dir){snsMonth+=dir;if(snsMonth>11){snsMonth=0;snsYear++;}if(snsMonth<0){snsMonth=11;snsYear--;}renderSns();}
 function renderSns(){
   const year=snsYear,month=snsMonth;
   const firstDay=new Date(year,month,1),lastDay=new Date(year,month+1,0);
   const startDow=firstDay.getDay(),daysInMonth=lastDay.getDate();
-  let posts=[...D.sns];
-  if(snsF!=='all')posts=posts.filter(p=>p.platforms&&p.platforms.includes(snsF));
   const monthName=new Date(year,month,1).toLocaleDateString('ja-JP',{year:'numeric',month:'long'});
+
+  // Filter posts
+  let posts=[...D.sns];
+  const showPosts=snsF==='all'||snsF==='sns'||['Instagram','TikTok','YouTube','X'].includes(snsF);
+  const showEvents=snsF==='all'||snsF==='event';
+  if(snsF==='Instagram'||snsF==='TikTok'||snsF==='YouTube'||snsF==='X')
+    posts=posts.filter(p=>p.platforms&&p.platforms.includes(snsF));
+  else if(snsF==='sns') posts=posts;
+  else if(snsF==='event') posts=[];
+
   let cells=[];
   for(let i=0;i<startDow;i++)cells.push(null);
   for(let d=1;d<=daysInMonth;d++){
     const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dp=posts.filter(p=>p.scheduled_date===ds);
-    cells.push({day:d,ds,posts:dp});
+    const dp=showPosts?posts.filter(p=>p.scheduled_date===ds):[];
+    const de=showEvents?D.events.filter(e=>e.event_date<=ds&&(!e.event_date_end||e.event_date_end>=ds)||e.event_date===ds):[];
+    cells.push({day:d,ds,posts:dp,evts:de});
   }
+
   const dow=['日','月','火','水','木','金','土'];
+  const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
+
   let h=`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)">
       <button class="btn bs bsm" onclick="snsMonthNav(-1)">← 前月</button>
@@ -876,19 +932,23 @@ function renderSns(){
         const dow2=new Date(cell.ds+'T00:00:00').getDay();
         const it=isToday(cell.ds),isHol=JP_HOL.has(cell.ds);
         const dcol=it?'#fff':(dow2===0||isHol)?'var(--red)':dow2===6?'var(--blu)':'var(--tp)';
-        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:6px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
-          <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}">  ${cell.day}</span></div>
-          ${cell.posts.slice(0,3).map(p=>`<div style="font-size:10px;padding:2px 5px;border-radius:3px;margin-bottom:2px;background:${(CAT_COLORS[p.category]||'#9CA3AF')}22;color:${CAT_COLORS[p.category]||'#9CA3AF'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
-          ${cell.posts.length>3?`<div style="font-size:10px;color:var(--tm)">+${cell.posts.length-3}件</div>`:''}
+        const maxPosts=cell.evts.length>0?2:3;
+        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
+          <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}"> ${cell.day}</span></div>
+          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}22;color:${e.color};font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid ${e.color}" onclick="event.stopPropagation();openEvtModal('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
+          ${cell.posts.slice(0,maxPosts).map(p=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${(CAT_COLORS[p.category]||'#9CA3AF')}22;color:${CAT_COLORS[p.category]||'#9CA3AF'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
+          ${cell.posts.length>maxPosts?`<div style="font-size:9px;color:var(--tm)">+${cell.posts.length-maxPosts}</div>`:''}
         </div>`;
       }).join('')}
     </div>
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
     ${Object.entries(CAT_COLORS).map(([cat,col])=>`<div style="display:flex;align-items:center;gap:4px;font-size:11px"><div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>${cat}</div>`).join('')}
+    <div style="display:flex;align-items:center;gap:4px;font-size:11px"><div style="width:8px;height:8px;border-radius:2px;background:#8B5CF6;flex-shrink:0"></div>📌 イベント</div>
   </div>`;
   document.getElementById('sns-body').innerHTML=h;
 }
+
 function openSnsDetail(id){
   const p=D.sns.find(x=>x.id===id);if(!p)return;
   const col=CAT_COLORS[p.category]||'#9CA3AF';
@@ -1061,7 +1121,7 @@ function renderReq(){
       ${r.fee?`<div style="font-size:12px"><span style="color:var(--tm)">依頼金額：</span><strong>${Number(r.fee).toLocaleString()}円</strong></div>`:''}
       ${r.response_deadline?`<div style="font-size:12px"><span style="color:var(--tm)">初稿あげる期限：</span><strong style="color:${isOv(r.response_deadline)?'var(--red)':isSn(r.response_deadline)?'var(--yel)':'inherit'}">${fd(r.response_deadline)}</strong></div>`:''}
       ${r.delivery_deadline?`<div style="font-size:12px"><span style="color:var(--tm)">納品：</span><strong style="color:${isOv(r.delivery_deadline)?'var(--red)':isSn(r.delivery_deadline)?'var(--yel)':'inherit'}">${fd(r.delivery_deadline)}</strong></div>`:''}
-      <div style="font-size:12px"><span style="color:var(--tm)">作業量：</span><strong style="color:${vc[r.work_volume]||'inherit'}">${r.work_volume||'—'}</strong></div>
+      <div style="font-size:12px">
     </div>
     ${r.affects_usapoyo?'<div class="bn bn-yel" style="margin-top:8px;font-size:11px">⚠ うさぽよ業務スケジュールへの影響あり</div>':''}
     ${r.notes?`<div style="margin-top:8px;font-size:12px;color:var(--tm)">📝 ${r.notes}</div>`:''}
@@ -1078,7 +1138,8 @@ function openTaskModal(id,preProj,parentId){
   const pl=document.getElementById('tm-parent-label');
   if(pl)pl.style.display=parentId?'block':'none';
   document.getElementById('tm-cat').innerHTML='<option value="">カテゴリ</option>'+D.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  ['tm-asgn','tm-rev'].forEach(s=>{document.getElementById(s).innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');});
+  document.getElementById('tm-asgn-checks').innerHTML=D.members.filter(m=>['長田','小森','西村'].includes(m.name)).map(m=>`<label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;padding:4px 10px;border:1px solid var(--border);border-radius:4px;background:#fff" onclick="this.classList.toggle('on');this.style.background=this.classList.contains('on')?'var(--purbg)':'#fff';this.style.borderColor=this.classList.contains('on')?'var(--accent)':'var(--border)'"><input type="checkbox" name="tm-asgn-cb" value="${m.id}" style="display:none">${m.name}</label>`).join('');
+  document.getElementById('tm-rev').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
   if(id){
     const t=D.tasks.find(x=>x.id===id);if(!t)return;
     document.getElementById('tm-id').value=t.id;
@@ -1095,7 +1156,8 @@ function openTaskModal(id,preProj,parentId){
     document.getElementById('tm-id').value='';
     ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('tm-status').value='未着手';
-    document.getElementById('tm-asgn').value=curMember?.id||'';document.getElementById('tm-rev').value='';
+    document.querySelectorAll('[name="tm-asgn-cb"]').forEach(cb=>{const lbl=cb.parentElement;const sel=curMember?.id&&cb.value===curMember.id;cb.checked=sel;lbl.classList.toggle('on',sel);lbl.style.background=sel?'var(--purbg)':'#fff';lbl.style.borderColor=sel?'var(--accent)':'var(--border)';});
+    document.getElementById('tm-rev').value='';
     document.getElementById('tm-mtg').checked=false;document.getElementById('tm-today').checked=false;
     if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
   }
@@ -1107,9 +1169,11 @@ function closeTaskModal(){document.getElementById('task-modal').style.display='n
 async function saveTask(){
   const name=document.getElementById('tm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
   const id=document.getElementById('tm-id').value,url=document.getElementById('tm-url').value.trim(),status=document.getElementById('tm-status').value;
+  const selIds=Array.from(document.querySelectorAll('[name="tm-asgn-cb"]:checked')).map(cb=>cb.value);
   const data={project_id:document.getElementById('tm-proj').value||null,name,description:document.getElementById('tm-desc').value.trim()||null,
-    assignee_id:document.getElementById('tm-asgn').value||null,reviewer_id:document.getElementById('tm-rev').value||null,
-    status,priority:document.getElementById('tm-pri').value,deadline:document.getElementById('tm-dl').value||null,
+    assignee_id:selIds[0]||null,co_assignees:selIds.length?JSON.stringify(selIds):null,
+    reviewer_id:document.getElementById('tm-rev').value||null,
+    status,deadline:document.getElementById('tm-dl').value||null,
     estimated_completion:document.getElementById('tm-est').value||null,
     next_action:document.getElementById('tm-na').value.trim()||null,
     related_urls:url?[url]:[],meeting_check:document.getElementById('tm-mtg').checked,today_flag:document.getElementById('tm-today').checked,updated_at:new Date().toISOString()};
@@ -1347,6 +1411,50 @@ function copyLinkUrl(url,btn){
     const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
     btn.textContent='✓';setTimeout(()=>{btn.textContent=orig;},1500);
   });
+}
+
+// ── CALENDAR EVENTS ──
+const EVT_COLORS={'グッズ・販売':'#F97316','MV・音楽':'#8B5CF6','ツアー・物販':'#3B82F6','撮影':'#10B981','会議':'#9CA3AF','メディア':'#EC4899','その他':'#6B7280'};
+
+function openEvtModal(id){
+  document.getElementById('em-title').textContent=id?'イベントを編集':'イベントを追加';
+  const delBtn=document.getElementById('em-del-btn');
+  if(id){
+    const e=D.events.find(x=>x.id===id);if(!e)return;
+    document.getElementById('em-id').value=e.id;
+    document.getElementById('em-name').value=e.name||'';
+    document.getElementById('em-date').value=e.event_date||'';
+    document.getElementById('em-date-end').value=e.event_date_end||'';
+    document.getElementById('em-cat').value=e.category||'その他';
+    document.getElementById('em-color').value=e.color||'#7C6FCD';
+    document.getElementById('em-desc').value=e.description||'';
+    delBtn.style.display='inline-flex';
+  }else{
+    ['em-id','em-name','em-date','em-date-end','em-desc'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('em-cat').value='その他';
+    document.getElementById('em-color').value='#F97316';
+    delBtn.style.display='none';
+  }
+  document.getElementById('evt-modal').style.display='flex';
+}
+function closeEvtModal(){document.getElementById('evt-modal').style.display='none';}
+
+async function saveEvt(){
+  const name=document.getElementById('em-name').value.trim(),date=document.getElementById('em-date').value;
+  if(!name||!date){alert('イベント名と日付は必須です');return;}
+  const id=document.getElementById('em-id').value;
+  const data={name,event_date:date,event_date_end:document.getElementById('em-date-end').value||null,
+    category:document.getElementById('em-cat').value,color:document.getElementById('em-color').value,
+    description:document.getElementById('em-desc').value.trim()||null};
+  const{error}=id?await sb.from('pm_calendar_events').update(data).eq('id',id):await sb.from('pm_calendar_events').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeEvtModal();await loadAll();renderSns();
+}
+async function deleteEvt(){
+  if(!confirm('このイベントを削除しますか？'))return;
+  const id=document.getElementById('em-id').value;
+  await sb.from('pm_calendar_events').delete().eq('id',id);
+  closeEvtModal();await loadAll();renderSns();
 }
 function openLinkModal(id){
   document.getElementById('lm-title').textContent=id?'リンクを編集':'リンクを追加';
