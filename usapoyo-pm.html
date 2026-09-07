@@ -194,8 +194,7 @@ a{color:var(--accent)}
     </div>
     <nav class="nav-sec">
       <div class="nav-sec-l">メイン</div>
-      <div class="nav-item active" data-page="project" onclick="nav('project')"><span class="ni">📋</span><span>プロジェクト</span></div>
-      <div class="nav-item" data-page="taskboard" onclick="nav('taskboard')"><span class="ni">📌</span><span>タスクボード</span></div>
+      <div class="nav-item active" data-page="teamtask" onclick="nav('teamtask')"><span class="ni">📋</span><span>うさぽよチームタスク</span></div>
     </nav>
     <nav class="nav-sec">
       <div class="nav-sec-l">スケジュール</div>
@@ -211,27 +210,29 @@ a{color:var(--accent)}
   </div>
 
   <div id="main">
-    <div class="page active" id="page-project">
-      <div class="ph"><div><div class="pt">プロジェクト</div><div class="ps">カテゴリ → プロジェクト → タスク</div></div><button class="btn bp" onclick="openTaskModal()">＋ タスク追加</button></div>
-      <div class="chips" id="proj-chips"></div>
+    <div class="page active" id="page-teamtask">
+      <div class="ph">
+        <div><div class="pt">うさぽよチームタスク</div></div>
+        <button class="btn bp" onclick="openQuickModal()">＋ タスク追加</button>
+      </div>
+      <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:13px;font-weight:700;color:var(--tp)">👥 メンバー別タスク</div>
+        <div class="chips" id="tb-chips" style="margin-bottom:0">
+          <div class="chip on" onclick="setTbF(this,'all')">全員</div>
+          <div class="chip" onclick="setTbF(this,'長田')">長田</div>
+          <div class="chip" onclick="setTbF(this,'小森')">小森</div>
+          <div class="chip" onclick="setTbF(this,'西村')">西村</div>
+        </div>
+      </div>
+      <div id="tb-body" style="margin-bottom:24px"><div class="ld">読み込み中...</div></div>
+      <div style="border-top:2px solid var(--border);padding-top:16px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+        <div style="font-size:13px;font-weight:700;color:var(--tp)">📋 プロジェクト一覧</div>
+        <div class="chips" id="proj-chips" style="margin-bottom:0"></div>
+      </div>
       <div id="proj-body"><div class="ld">読み込み中...</div></div>
     </div>
 
-    <div class="page" id="page-taskboard">
-      <div class="ph" style="align-items:flex-start">
-        <div><div class="pt">タスクボード</div><div class="ps" id="tb-date"></div></div>
-        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px">
-          <button class="btn bp" onclick="openQuickModal()">＋ タスク追加</button>
-          <div class="chips" id="tb-chips" style="margin-bottom:0">
-            <div class="chip on" onclick="setTbF(this,'all')">全員</div>
-            <div class="chip" onclick="setTbF(this,'長田')">長田</div>
-            <div class="chip" onclick="setTbF(this,'小森')">小森</div>
-            <div class="chip" onclick="setTbF(this,'西村')">西村</div>
-          </div>
-        </div>
-      </div>
-      <div id="tb-body"><div class="ld">読み込み中...</div></div>
-    </div>
+
     <div class="page" id="page-calendar">
       <div class="ph"><div><div class="pt">カレンダー</div><div class="ps">スケジュール・期限 一覧</div></div></div>
       <div class="chips" id="cal-chips">
@@ -446,12 +447,7 @@ a{color:var(--accent)}
     <input type="hidden" id="pm-cat-id">
     <div class="fg"><label class="fl">プロジェクト名 *</label><input class="fi" id="pm-name" placeholder="例：Tシャツ"></div>
     <div class="fg"><label class="fl">説明</label><textarea class="fta" id="pm-desc" style="height:54px" placeholder="プロジェクトの概要など"></textarea></div>
-    <div class="fg"><label class="fl">ステータス</label>
-      <select class="fsel" id="pm-status">
-        <option value="進行中">進行中</option><option value="確認待ち">確認待ち</option>
-        <option value="未着手">未着手</option><option value="完了">完了</option>
-      </select>
-    </div>
+    <input type="hidden" id="pm-proj-id">
     <div class="sep"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn bs" onclick="closeProjModal()">キャンセル</button>
@@ -503,8 +499,8 @@ a{color:var(--accent)}
 let sb=null;
 const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[]};
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
-let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='project';
-const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23']);
+let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
+const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2025-12-30','2025-12-31','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-30','2026-12-31','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23','2027-12-30','2027-12-31']);
 const CAT_COLORS={'イベント系':'#F97316','LINEスタンプ関連':'#10B981','楽曲/MV':'#8B5CF6','グッズ関連':'#F59E0B','質問コーナー':'#3B82F6','会話劇':'#EC4899','漫画':'#14B8A6','企業タイアップ関連':'#6366F1','日常イラスト':'#84CC16','ギャル間違い探し':'#EF4444','一言フィード':'#A78BFA','その他（書き込み）':'#9CA3AF'};
 const SC={'要対応':'su','確認待ち':'sw','承認待ち':'sw','進行中':'sp','完了':'sd','未着手':'sn','外部返答待ち':'se','素材待ち':'sm','要確認':'sw','回答待ち':'se','予約投稿済':'se','投稿完了':'sd','制作中':'sp'};
 
@@ -569,7 +565,7 @@ async function showApp(){
   if(document.getElementById('tb-date'))document.getElementById('tb-date').textContent=ds;
   await loadAll();
   if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
-  renderProject();
+  renderTeamTask();
 }
 async function loadAll(){
   const[a,b,c,d,e,f,g,h,i]=await Promise.all([
@@ -605,8 +601,7 @@ function nav(page){
   document.querySelector('.nav-item[data-page="'+page+'"]')?.classList.add('active');
   curPage=page;
   loadAll().then(()=>{
-    if(page==='project')renderProject();
-    else if(page==='taskboard')renderTaskboard();
+    if(page==='teamtask')renderTeamTask();
     else if(page==='calendar')renderCal();
     else if(page==='sns')renderSns();
     else if(page==='meeting')renderMeeting();
@@ -731,6 +726,7 @@ function renderProject(){
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
           <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>${badge(pSt)}
+          <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts);margin-left:4px" onclick="event.stopPropagation();openProjModal('${cat.id}','${proj.id}')" title="プロジェクトを編集">✏</button>
         </div>
       </div>
       <div class="ptasks" id="pb-${proj.id}">
@@ -767,6 +763,7 @@ function tRow(t,depth){
 function setProjF(id){projF=id;renderProject();}
 function togglePB(id){const el=document.getElementById('pb-'+id);if(el)el.style.display=el.style.display==='none'?'':'none';}
 
+function renderTeamTask(){renderTaskboard();renderProject();}
 function setTbF(el,name){document.querySelectorAll('#tb-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');tbFilter=name;renderTaskboard();}
 function renderTaskboard(){
   const allM=D.members.filter(m=>['長田','小森','西村'].includes(m.name));
@@ -1098,7 +1095,7 @@ function openTaskModal(id,preProj,parentId){
     document.getElementById('tm-id').value='';
     ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('tm-status').value='未着手';
-    document.getElementById('tm-asgn').value='';document.getElementById('tm-rev').value='';
+    document.getElementById('tm-asgn').value=curMember?.id||'';document.getElementById('tm-rev').value='';
     document.getElementById('tm-mtg').checked=false;document.getElementById('tm-today').checked=false;
     if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
   }
@@ -1119,14 +1116,15 @@ async function saveTask(){
   if(status==='完了')data.completed_at=new Date().toISOString();
   const{error}=id?await sb.from('pm_tasks').update(data).eq('id',id):await sb.from('pm_tasks').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
-  closeTaskModal();await loadAll();if(curPage==='dashboard')renderDash();else if(curPage==='project')renderProject();else if(curPage==='taskboard')renderTaskboard();
+    closeTaskModal();await loadAll();if(curPage==='teamtask')renderTeamTask();
 }
 async function toggleTask(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
   const ns=t.status==='完了'?'未着手':'完了',upd={status:ns,updated_at:new Date().toISOString()};
   if(ns==='完了')upd.completed_at=new Date().toISOString();
-  await sb.from('pm_tasks').update(upd).eq('id',id);
-  await loadAll();if(curPage==='dashboard')renderDash();else if(curPage==='project')renderProject();else if(curPage==='taskboard')renderTaskboard();
+    await sb.from('pm_tasks').update(upd).eq('id',id);
+  await loadAll();if(curPage==='teamtask')renderTeamTask();
+  else if(curPage==='meeting')renderMeeting();
 }
 function showDetail(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
@@ -1199,6 +1197,7 @@ function openSnsModal(id,preDate){
   }else{
     ['sm-id','sm-time','sm-name','sm-desc','sm-thumb'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('sm-date').value=preDate||'';initCatTags('');
+    document.getElementById('sm-asgn').value=curMember?.id||'';
     document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=false);
   }
   document.getElementById('sns-modal').style.display='flex';
@@ -1295,8 +1294,7 @@ async function deleteTask(id){
   if(error){alert('削除エラー: '+error.message);return;}
   closeDetail();await loadAll();
   if(curPage==='dashboard')renderDash();
-  else if(curPage==='project')renderProject();
-  else if(curPage==='taskboard')renderTaskboard();
+  else if(curPage==='teamtask')renderTeamTask();
   else if(curPage==='meeting')renderMeeting();
 }
 
@@ -1406,19 +1404,27 @@ async function seedLinks(){
   await sb.from('pm_links').insert(seeds);
 }
 
-function openProjModal(catId){
+function openProjModal(catId,projId){
   document.getElementById('pm-cat-id').value=catId||'';
-  ['pm-name','pm-desc'].forEach(x=>document.getElementById(x).value='');
-  document.getElementById('pm-status').value='進行中';
+  document.getElementById('pm-proj-id').value=projId||'';
+  if(projId){
+    const p=D.projects.find(x=>x.id===projId);if(!p)return;
+    document.getElementById('pm-name').value=p.name||'';
+    document.getElementById('pm-desc').value=p.description||'';
+    document.querySelector('#proj-modal .mtitle').textContent='プロジェクトを編集';
+  }else{
+    ['pm-name','pm-desc'].forEach(x=>document.getElementById(x).value='');
+    document.querySelector('#proj-modal .mtitle').textContent='プロジェクトを追加';
+  }
   document.getElementById('proj-modal').style.display='flex';
 }
 function closeProjModal(){document.getElementById('proj-modal').style.display='none';}
 async function saveProj(){
   const name=document.getElementById('pm-name').value.trim();if(!name){alert('プロジェクト名を入力してください');return;}
+  const projId=document.getElementById('pm-proj-id').value;
   const data={category_id:document.getElementById('pm-cat-id').value||null,name,
-    description:document.getElementById('pm-desc').value.trim()||null,
-    status:document.getElementById('pm-status').value};
-  const{error}=await sb.from('pm_projects').insert(data);
+    description:document.getElementById('pm-desc').value.trim()||null};
+  const{error}=projId?await sb.from('pm_projects').update(data).eq('id',projId):await sb.from('pm_projects').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
   closeProjModal();await loadAll();renderProject();
 }
