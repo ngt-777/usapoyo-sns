@@ -1302,10 +1302,12 @@ function updatePresetButtons(){
   });
 }
 
+let currentThumbFile = null;
 function handleThumbUpload(e){
   const file=e.target.files[0];
   if(!file)return;
   if(file.size>5*1024*1024){showToast('5MB以下の画像を選択してください','error');return}
+  currentThumbFile = file; // fileオブジェクトも保持
   const reader=new FileReader();
   reader.onload=ev=>{
     currentThumbData=ev.target.result;
@@ -1333,6 +1335,7 @@ function renderThumbPreview(){
 
 function removeThumb(){
   currentThumbData=null;
+  currentThumbFile=null;
   renderThumbPreview();
 }
 
@@ -1342,12 +1345,11 @@ async function submitPost(e){
   if(!title){showToast('タイトルを入力してください','error');return;}
   // サムネイルをSupabaseにアップロード
   let thumbUrl = null;
-  const thumbInput = document.getElementById('f-thumb');
-  if(thumbInput && thumbInput.files[0]) {
+  if(currentThumbFile) {
     showToast('画像をアップロード中...','info');
-    thumbUrl = await uploadThumbToSupabase(thumbInput.files[0]);
-  } else if(currentThumbData) {
-    thumbUrl = currentThumbData; // 既存のbase64データ
+    thumbUrl = await uploadThumbToSupabase(currentThumbFile);
+  } else if(currentThumbData && currentThumbData.startsWith('http')) {
+    thumbUrl = currentThumbData; // 既存のURL
   }
   const post={
     id:genId(),
