@@ -324,7 +324,18 @@ a{color:var(--accent)}
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">期限</label><input class="fi" type="date" id="tm-dl"></div>
-      <div class="fg"><label class="fl">終了見込み</label><input class="fi" type="date" id="tm-est"></div>
+      <div class="fg"><label class="fl">作業予定日</label><input class="fi" type="date" id="tm-work-date"></div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">作業時間（h）</label><input class="fi" type="number" id="tm-work-hours" min="0.5" max="200" step="0.5" placeholder="例：3"></div>
+      <div class="fg"><label class="fl">定期タスク</label>
+        <div style="display:flex;gap:8px;align-items:center;padding:8px 0">
+          <label class="fchk"><input type="checkbox" id="tm-recurring" onchange="document.getElementById('tm-freq').style.display=this.checked?'block':'none'"> 定期タスク</label>
+          <select class="fsel" id="tm-freq" style="display:none;width:auto">
+            <option value="毎週">毎週</option><option value="隔週">隔週</option><option value="毎月">毎月</option>
+          </select>
+        </div>
+      </div>
     </div>
     <div class="fg"><label class="fl">次のアクション</label><input class="fi" id="tm-na" placeholder="例：回答確認後にSTORES登録へ"></div>
     <div class="fg"><label class="fl">関連URL</label><input class="fi" id="tm-url" placeholder="https://..."></div>
@@ -384,6 +395,34 @@ a{color:var(--accent)}
   </div></div>
 </div>
 
+
+<!-- Member Hours Modal -->
+<div id="mhm-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeMHM()">
+  <div class="mbox" style="max-width:400px"><div class="mhead"><div class="mtitle" id="mhm-title">リソース設定</div><button class="mclose" onclick="closeMHM()">✕</button></div>
+  <div class="mbody">
+    <input type="hidden" id="mhm-mid">
+    <div class="fg"><label class="fl">年月</label>
+      <div style="display:flex;gap:8px">
+        <select class="fsel" id="mhm-year" style="flex:1"></select>
+        <select class="fsel" id="mhm-month" style="flex:1">
+          <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+          <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+          <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">稼働可能時間（h）</label>
+      <input class="fi" type="number" id="mhm-hours" min="0" max="400" step="1" placeholder="例：120">
+    </div>
+    <div style="font-size:11px;color:var(--tm);margin-bottom:12px">月が変わるごとに設定してください。未設定の場合はデフォルト値を使用します。</div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeMHM()">キャンセル</button>
+      <button class="btn bp" onclick="saveMHM()">保存する</button>
+    </div>
+  </div></div>
+</div>
 <!-- Quick Task Modal -->
 <div id="quick-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeQuickModal()">
   <div class="mbox"><div class="mhead"><div class="mtitle">タスクを追加</div><button class="mclose" onclick="closeQuickModal()">✕</button></div>
@@ -629,7 +668,7 @@ a{color:var(--accent)}
 <script>
 // STATE
 let sb=null;
-const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[]};
+const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[],monthlyHours:[]};
 let ccFilter='all',ccStatusFilter='all',ccMonthView=null;
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
@@ -702,7 +741,7 @@ async function showApp(){
   renderTeamTask();
 }
 async function loadAll(){
-  const[a,b,c,d,e,f,g,h,i,j,k]=await Promise.all([
+  const[a,b,c,d,e,f,g,h,i,j,k,l]=await Promise.all([
     sb.from('pm_members').select('*').order('sort_order'),
     sb.from('pm_categories').select('*').order('sort_order'),
     sb.from('pm_projects').select('*').order('created_at'),
@@ -713,13 +752,15 @@ async function loadAll(){
     sb.from('pm_other_requests').select('*').order('delivery_deadline'),
     sb.from('pm_links').select('*').order('sort_order'),
     sb.from('pm_calendar_events').select('*').order('event_date'),
-    sb.from('pm_content_events').select('*').order('month,sort_order')
+    sb.from('pm_content_events').select('*').order('month,sort_order'),
+    sb.from('pm_member_monthly_hours').select('*')
   ]);
   D.members=a.data||[];D.categories=b.data||[];D.projects=c.data||[];D.tasks=d.data||[];
   D.milestones=e.data||[];D.sns=f.data||[];D.meetings=g.data||[];D.requests=h.data||[];
   D.links=(typeof i!=='undefined'?i.data:null)||[];
   D.events=(typeof j!=='undefined'?j.data:null)||[];
   D.contentEvents=(typeof k!=='undefined'?k.data:null)||[];
+  D.monthlyHours=(typeof l!=='undefined'?l.data:null)||[];
 }
 const mn=id=>{if(!id)return'未設定';const m=D.members.find(x=>x.id===id);return m?m.name:'未設定';};
 const mnMulti=t=>{if(t.co_assignees){try{const ids=JSON.parse(t.co_assignees);if(ids.length>0){const names=ids.map(id=>id.startsWith('other:')?id.slice(6):(D.members.find(x=>x.id===id)?.name||'?'));return names.join('・');}}catch(e){}}return mn(t.assignee_id);};
@@ -943,6 +984,33 @@ function toggleSubs(id,btn){
 function setProjF(id){projF=id;renderProject();}
 function togglePB(id){const el=document.getElementById('pb-'+id);if(el)el.style.display=el.style.display==='none'?'':'none';}
 
+
+// ── MEMBER RESOURCE (月間稼働) ──
+function openMHM(mid,name){
+  const now=new Date(),y=now.getFullYear(),m=now.getMonth()+1;
+  document.getElementById('mhm-mid').value=mid;
+  document.getElementById('mhm-title').textContent=name+' のリソース設定';
+  const ySel=document.getElementById('mhm-year');
+  ySel.innerHTML=[y-1,y,y+1].map(yr=>`<option value="${yr}">${yr}年</option>`).join('');
+  ySel.value=y;
+  document.getElementById('mhm-month').value=m;
+  const ex=D.monthlyHours.find(h=>h.member_id===mid&&h.year===y&&h.month===m);
+  const mem=D.members.find(x=>x.id===mid);
+  document.getElementById('mhm-hours').value=ex?ex.available_hours:(mem?.monthly_hours||80);
+  document.getElementById('mhm-modal').style.display='flex';
+}
+function closeMHM(){document.getElementById('mhm-modal').style.display='none';}
+async function saveMHM(){
+  const mid=document.getElementById('mhm-mid').value;
+  const y=parseInt(document.getElementById('mhm-year').value);
+  const m=parseInt(document.getElementById('mhm-month').value);
+  const h=parseFloat(document.getElementById('mhm-hours').value);
+  if(!h||h<=0){alert('時間を入力してください');return;}
+  const{error}=await sb.from('pm_member_monthly_hours').upsert({member_id:mid,year:y,month:m,available_hours:h},{onConflict:'member_id,year,month'});
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeMHM();await loadAll();renderTaskboard();
+}
+
 function renderTeamTask(){renderTaskboard();renderProject();}
 function toggleAsgn(el){el.classList.toggle('on');el.dataset.checked=el.classList.contains('on')?'1':'0';}
 function setTbF(el,name){document.querySelectorAll('#tb-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');tbFilter=name;renderTaskboard();}
@@ -951,7 +1019,8 @@ function renderTaskboard(){
   const showM=tbFilter==='all'?allM:allM.filter(m=>m.name===tbFilter);
   const vmap={小:1,中:2,大:3};
   const sOrd={'要対応':0,'外部返答待ち':1,'素材待ち':1,'確認待ち':2,'進行中':3,'未着手':4,'完了':9};
-  const grid=showM.length===1?'max-width:600px':'display:grid;grid-template-columns:repeat('+showM.length+',1fr);gap:16px';
+  const now=new Date(),curY=now.getFullYear(),curM=now.getMonth()+1;
+  const grid=showM.length===1?'max-width:640px':'display:grid;grid-template-columns:repeat('+showM.length+',1fr);gap:16px';
   let h=`<div style="${grid}">`;
   showM.forEach(m=>{
     const all=D.tasks.filter(t=>{if(t.assignee_id===m.id)return true;if(t.co_assignees){try{return JSON.parse(t.co_assignees).includes(m.id);}catch(e){}}return false;});
@@ -962,23 +1031,52 @@ function renderTaskboard(){
     const other=active.filter(t=>!todayT.includes(t));
     const load=mr.reduce((s,r)=>s+(vmap[r.work_volume]||2),0);
     const lv=load>5?'高':load>2?'中':'低',lc=lv==='高'?'var(--red)':lv==='中'?'var(--yel)':'var(--grn)';
+
+    // リソース計算
+    const mhRec=D.monthlyHours.find(h=>h.member_id===m.id&&h.year===curY&&h.month===curM);
+    const availH=mhRec?parseFloat(mhRec.available_hours):(m.monthly_hours||80);
+    const usedH=all.filter(t=>t.work_date&&new Date(t.work_date+'T00:00:00').getFullYear()===curY&&(new Date(t.work_date+'T00:00:00').getMonth()+1)===curM)
+      .reduce((s,t)=>s+(parseFloat(t.work_hours)||0),0);
+    const recurH=all.filter(t=>t.is_recurring&&t.work_hours).reduce((s,t)=>{
+      const f=t.recurring_freq||'毎月';
+      return s+(f==='毎週'?parseFloat(t.work_hours)*4:f==='隔週'?parseFloat(t.work_hours)*2:parseFloat(t.work_hours));
+    },0);
+    const totalUsed=usedH+recurH;
+    const pct=availH>0?Math.min(totalUsed/availH*100,100):0;
+    const barCol=pct<70?'var(--grn)':pct<90?'var(--yel)':'var(--red)';
+    const remH=Math.max(availH-totalUsed,0).toFixed(1);
+
     const mtr=t=>`<div class="trow">
       <div class="tchk ${t.status==='完了'?'ck':''}" onclick="toggleTask('${t.id}')">${t.status==='完了'?'✓':''}</div>
       <div class="tn ${t.status==='完了'?'done':''}" onclick="showDetail('${t.id}')">${t.name}</div>
       <div class="tm2">
         ${t.today_flag?'<span style="font-size:11px">☀️</span>':''}
-        ${t.meeting_check?'<span style="font-size:11px">📋</span>':''}
+        ${t.work_hours?`<span style="font-size:10px;color:var(--ts);background:var(--bg);padding:1px 5px;border-radius:3px">${t.work_hours}h</span>`:''}
         ${badge(t.status)}
         ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
       </div></div>`;
+
     h+=`<div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <div style="font-size:15px;font-weight:700">${m.name}</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <div style="font-size:15px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px" onclick="openMHM('${m.id}','${m.name}')">
+            ${m.name} <span style="font-size:10px;color:var(--accent)">⚙</span>
+          </div>
           <button class="btn bp bsm" onclick="openQuickModal('${m.id}')">＋ 追加</button>
         </div>
+        <!-- リソースバー -->
+        <div style="margin-bottom:8px">
+          <div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px">
+            <span style="color:var(--ts)">${curM}月リソース</span>
+            <span style="font-weight:700;color:${barCol}">${totalUsed.toFixed(1)}h / ${availH}h 使用</span>
+          </div>
+          <div class="pbar" style="height:6px"><div class="pf" style="width:${pct}%;background:${barCol}"></div></div>
+          <div style="font-size:10px;color:${parseFloat(remH)<=0?'var(--red)':'var(--tm)'};margin-top:2px">
+            残り <strong>${remH}h</strong>${recurH>0?` （定期 ${recurH.toFixed(1)}h込み）`:''}
+          </div>
+        </div>
         <div style="display:flex;gap:14px;flex-wrap:wrap">
-          <div style="font-size:12px"><span style="color:var(--ts)">うさぽよ</span> <strong>${active.length}件</strong></div>
+          <div style="font-size:12px"><span style="color:var(--ts)">タスク</span> <strong>${active.length}件</strong></div>
           ${mr.length?`<div style="font-size:12px"><span style="color:var(--org)">他部署</span> <strong>${mr.length}件</strong></div>`:''}
           ${mr.length?`<div style="font-size:12px"><span style="color:var(--ts)">負荷</span> <strong style="color:${lc}">${lv}</strong></div>`:''}
         </div>
@@ -1000,943 +1098,3 @@ function renderTaskboard(){
   document.getElementById('tb-body').innerHTML=h;
 }
 
-function calFilter(el,f){document.querySelectorAll('#cal-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');calF=f;renderCal();}
-function renderCal(){
-  const tcol={task:'var(--accent)',ms:'var(--pur)',mtg:'var(--grn)',req:'var(--org)'};
-  const tlbl={task:'タスク期限',ms:'マイルストーン',mtg:'会議',req:'他部署依頼'};
-  const tico={task:'📋',ms:'🎯',mtg:'📝',req:'📩'};
-  let items=[];
-  if(calF==='all'||calF==='task') D.tasks.filter(x=>x.deadline).forEach(x=>items.push({date:x.deadline,name:x.name,type:'task',status:x.status,extra:mn(x.assignee_id),ov:isOv(x.deadline)&&x.status!=='完了'}));
-  if(calF==='all'||calF==='ms') D.milestones.forEach(x=>items.push({date:x.date,name:x.name,type:'ms',extra:x.notes||'',status:x.is_tentative?'未確定':'確定'}));
-  if(calF==='all'||calF==='mtg') D.meetings.forEach(x=>items.push({date:x.scheduled_date,name:x.title,type:'mtg',extra:x.scheduled_time?x.scheduled_time.slice(0,5):''}));
-  if(calF==='all'||calF==='req'){D.requests.forEach(r=>{
-    if(r.delivery_deadline)items.push({date:r.delivery_deadline,name:r.name+'（納品）',type:'req',extra:r.requester,status:r.status});
-    if(r.response_deadline)items.push({date:r.response_deadline,name:r.name+'（回答期限）',type:'req',extra:r.requester,status:r.status});
-  });}
-  items.sort((a,b)=>{if(!a.date)return 1;if(!b.date)return -1;return new Date(a.date)-new Date(b.date);});
-  const upcoming=items.filter(i=>!i.date||new Date(i.date+'T00:00:00')>=t0());
-  const ri=i=>`<div class="tl-item"><div class="tl-date">${fd(i.date)}</div>
-    <div class="tl-bar" style="background:${tcol[i.type]}"></div>
-    <div class="tl-content"><div class="tl-nm">${tico[i.type]} ${i.name} ${i.ov?'<span style="font-size:10px;color:var(--red)">OVERDUE</span>':''}</div>
-      <div class="tl-meta"><span class="tag" style="background:${tcol[i.type]}20;color:${tcol[i.type]}">${tlbl[i.type]}</span>
-        ${i.extra?`<span>${i.extra}</span>`:''}${i.status&&i.type!=='task'?`<span>${i.status}</span>`:''}
-      </div></div></div>`;
-  document.getElementById('cal-body').innerHTML=`<div class="card"><div class="ct">直近・今後の予定</div>
-    ${upcoming.length===0?'<div style="font-size:12px;color:var(--tm)">予定なし</div>':upcoming.map(ri).join('')}</div>`;
-}
-
-function snsFilter(el,p){document.querySelectorAll('#sns-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');snsF=p;renderSns();}
-
-function snsMonthNav(dir){snsMonth+=dir;if(snsMonth>11){snsMonth=0;snsYear++;}if(snsMonth<0){snsMonth=11;snsYear--;}renderSns();}
-function renderSns(){
-  const year=snsYear,month=snsMonth;
-  const firstDay=new Date(year,month,1),lastDay=new Date(year,month+1,0);
-  const startDow=firstDay.getDay(),daysInMonth=lastDay.getDate();
-  const monthName=new Date(year,month,1).toLocaleDateString('ja-JP',{year:'numeric',month:'long'});
-
-  // Filter posts
-  let posts=[...D.sns];
-  const showPosts=snsF==='all'||snsF==='sns'||['Instagram','TikTok','YouTube','X'].includes(snsF);
-  const showEvents=snsF==='all'||snsF==='event';
-  if(snsF==='Instagram'||snsF==='TikTok'||snsF==='YouTube'||snsF==='X')
-    posts=posts.filter(p=>p.platforms&&p.platforms.includes(snsF));
-  else if(snsF==='sns') posts=posts;
-  else if(snsF==='event') posts=[];
-
-  let cells=[];
-  for(let i=0;i<startDow;i++)cells.push(null);
-  for(let d=1;d<=daysInMonth;d++){
-    const ds=`${year}-${String(month+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dp=showPosts?posts.filter(p=>p.scheduled_date===ds):[];
-    const de=showEvents?D.events.filter(e=>e.event_date<=ds&&(!e.event_date_end||e.event_date_end>=ds)||e.event_date===ds):[];
-    cells.push({day:d,ds,posts:dp,evts:de});
-  }
-
-  const dow=['日','月','火','水','木','金','土'];
-  const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
-
-  let h=`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;margin-bottom:16px">
-    <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 20px;border-bottom:1px solid var(--border)">
-      <button class="btn bs bsm" onclick="snsMonthNav(-1)">← 前月</button>
-      <div style="font-size:16px;font-weight:700">${monthName}</div>
-      <button class="btn bs bsm" onclick="snsMonthNav(1)">次月 →</button>
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)">
-      ${dow.map((d,i)=>`<div style="text-align:center;padding:7px 0;font-size:11px;font-weight:700;color:${i===0?'var(--red)':i===6?'var(--blu)':'var(--ts)'}">${d}</div>`).join('')}
-    </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr)">
-      ${cells.map(cell=>{
-        if(!cell)return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#FAFAFA"></div>`;
-        const dow2=new Date(cell.ds+'T00:00:00').getDay();
-        const it=isToday(cell.ds),isHol=JP_HOL.has(cell.ds);
-        const dcol=it?'#fff':(dow2===0||isHol)?'var(--red)':dow2===6?'var(--blu)':'var(--tp)';
-        const maxPosts=cell.evts.length>0?2:3;
-        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
-          <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}"> ${cell.day}</span></div>
-          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}33;color:#1A1A2E;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid ${e.color}" onclick="event.stopPropagation();openEvtModal('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
-          ${cell.posts.slice(0,maxPosts).map(p=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${(CAT_COLORS[p.category]||'#9CA3AF')}22;color:${CAT_COLORS[p.category]||'#9CA3AF'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
-          ${cell.posts.length>maxPosts?`<div style="font-size:9px;color:var(--tm)">+${cell.posts.length-maxPosts}</div>`:''}
-        </div>`;
-      }).join('')}
-    </div>
-  </div>
-  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-    ${Object.entries(CAT_COLORS).map(([cat,col])=>`<div style="display:flex;align-items:center;gap:4px;font-size:11px"><div style="width:8px;height:8px;border-radius:50%;background:${col};flex-shrink:0"></div>${cat}</div>`).join('')}
-    <div style="display:flex;align-items:center;gap:4px;font-size:11px"><div style="width:8px;height:8px;border-radius:2px;background:#8B5CF6;flex-shrink:0"></div>📌 イベント</div>
-  </div>`;
-  document.getElementById('sns-body').innerHTML=h;
-}
-
-function openSnsDetail(id){
-  const p=D.sns.find(x=>x.id===id);if(!p)return;
-  const col=CAT_COLORS[p.category]||'#9CA3AF';
-  const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
-  const sc={'企画中':'sn','制作中':'sp','素材待ち':'sm','確認待ち':'sw','投稿準備完了':'se','投稿済み':'sd'};
-  document.getElementById('det-title').textContent=p.content_name;
-  document.getElementById('det-del').onclick=()=>deleteSnsPost(id);
-  document.getElementById('det-edit').onclick=()=>{closeDetail();openSnsModal(p.id);};
-  document.getElementById('det-body').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">投稿日</span><div style="margin-top:4px;font-weight:600">${fd(p.scheduled_date)}${p.scheduled_time?' '+p.scheduled_time.slice(0,5):''}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">担当</span><div style="margin-top:4px;font-weight:600">${mn(p.assignee_id)}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">カテゴリ</span><div style="margin-top:4px"><span style="font-size:12px;font-weight:600;color:${col};background:${col}22;padding:2px 8px;border-radius:100px">${p.category||'—'}</span></div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">ステータス</span><div style="margin-top:4px"><span class="badge ${sc[p.post_status]||'sn'}"><span class="bd"></span>${p.post_status||'企画中'}</span></div></div>
-    </div>
-    <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">${(p.platforms||[]).map(pl=>`<span class="tag ${pc[pl]||''}">${pl}</span>`).join('')}</div>
-    ${p.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">投稿概要</span><div style="margin-top:4px;font-size:13px">${p.description}</div></div>`:''}
-    ${p.thumbnail_url?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">サムネイルURL</span><div style="margin-top:4px"><a href="${p.thumbnail_url}" target="_blank" style="font-size:12px;word-break:break-all">${p.thumbnail_url}</a></div></div>`:''}
-    <div style="font-size:12px;color:var(--tm)">素材：${p.material_status||'—'}</div>`;
-  document.getElementById('detail-modal').style.display='flex';
-}
-
-function renderMeeting(){
-  const ags=D.tasks.filter(t=>t.status!=='完了'&&(t.meeting_check||t.status==='要対応'||(t.deadline&&isOv(t.deadline))||t.bottleneck));
-  const grp={};
-  ags.forEach(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;const cn=c?c.name:'その他';if(!grp[cn])grp[cn]=[];grp[cn].push(t);});
-  const catKeys=Object.keys(grp);
-  const affR=D.requests.filter(r=>r.affects_usapoyo&&r.status!=='完了'&&((r.delivery_deadline&&isSn(r.delivery_deadline))||r.work_volume==='大'));
-
-  let h=`<div class="card mb" style="border-left:4px solid var(--accent)">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-      <div class="ct" style="margin-bottom:0">📋 アジェンダ一覧</div>
-      <button class="btn bp bsm" onclick="copyAgenda()">📋 コピー</button>
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap">
-      ${catKeys.map((cn,i)=>`<div style="font-size:13px;padding:4px 12px;background:var(--purbg);color:var(--pur);border-radius:var(--rs);font-weight:600">${i+1}. ${cn}</div>`).join('')}
-      ${affR.length?`<div style="font-size:13px;padding:4px 12px;background:var(--orgbg);color:var(--org);border-radius:var(--rs);font-weight:600">${catKeys.length+1}. 他部署案件</div>`:''}
-    </div>
-  </div>`;
-
-  catKeys.forEach(cn=>{
-    const tasks=grp[cn];
-    const comp=D.tasks.filter(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;return(c?c.name:'その他')===cn&&t.status==='完了';}).slice(0,4);
-    h+=`<div class="card mb">
-      <div style="font-size:16px;font-weight:800;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border)">■ ${cn}</div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--grn);margin-bottom:7px;letter-spacing:.04em">■ 前回まで合意済み・確認済み事項</div>
-        ${comp.length?comp.map(t=>`<div style="font-size:12px;padding:3px 0;color:var(--ts);display:flex;align-items:center;gap:6px"><span style="color:var(--grn)">✓</span>${t.name}</div>`).join(''):'<div style="font-size:12px;color:var(--tm)">（なし）</div>'}
-      </div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--yel);margin-bottom:8px;letter-spacing:.04em">■ 相談事項</div>
-        ${tasks.map(t=>`<div class="ag-item" style="margin-bottom:6px">
-          <div style="flex:1">
-            <div class="ag-t">【${t.name}】</div>
-            <div class="ag-m">
-              ${mn(t.assignee_id)!=='未設定'?`担当：${mn(t.assignee_id)}&nbsp;&nbsp;`:''}
-              ${t.deadline?`期限：${fd(t.deadline)}&nbsp;&nbsp;`:''}
-              ${t.status}
-            </div>
-            ${t.bottleneck?`<div style="font-size:11px;color:var(--red);margin-top:3px">🚧 ${t.bottleneck}</div>`:''}
-            ${t.next_action?`<div style="font-size:11px;color:var(--accent);margin-top:3px">→ ${t.next_action}</div>`:''}
-          </div>
-          ${badge(t.status)}
-        </div>`).join('')}
-      </div>
-      <div style="background:var(--grnbg);border:1px solid #A7F3D0;border-radius:var(--rs);padding:10px 14px">
-        <div style="font-size:11px;font-weight:700;color:var(--grn);margin-bottom:7px">✅ 確認・決定事項</div>
-        ${tasks.map(t=>`<div style="font-size:12px;padding:2px 0;display:flex;align-items:flex-start;gap:6px"><span>☐</span><span>${t.next_action||t.name+'の対応確認'}</span></div>`).join('')}
-      </div>
-    </div>`;
-  });
-
-  if(affR.length){
-    h+=`<div class="card mb" style="border-left:3px solid var(--org)">
-      <div style="font-size:16px;font-weight:800;margin-bottom:14px;padding-bottom:10px;border-bottom:2px solid var(--border)">■ チーム稼働・他部署案件</div>
-      <div style="margin-bottom:14px">
-        <div style="font-size:11px;font-weight:700;color:var(--yel);margin-bottom:8px">■ 相談事項</div>
-        ${affR.map(r=>`<div style="font-size:12px;padding:5px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between">
-          <span><strong>${r.name}</strong>（${r.requester}）</span>
-          <span style="color:var(--tm)">納品：${fd(r.delivery_deadline)} 作業量：${r.work_volume}</span>
-        </div>`).join('')}
-      </div>
-      <div style="background:var(--grnbg);border:1px solid #A7F3D0;border-radius:var(--rs);padding:10px 14px">
-        <div style="font-size:11px;font-weight:700;color:var(--grn);margin-bottom:7px">✅ 確認・決定事項</div>
-        <div style="font-size:12px;padding:2px 0">☐  担当者ごとの作業量・進捗確認</div>
-        <div style="font-size:12px;padding:2px 0">☐  うさぽよ側スケジュールへの影響確認</div>
-      </div>
-    </div>`;
-  }
-
-  h+=`<div class="card">
-    <div class="ct">📅 会議履歴</div>
-    ${D.meetings.length===0?'<div style="font-size:12px;color:var(--tm)">会議記録なし</div>':
-      D.meetings.map(m=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
-        <div style="font-size:13px;font-weight:600">${m.title}</div>
-        <div style="font-size:11px;color:var(--tm)">${fdl(m.scheduled_date)}${m.scheduled_time?' '+m.scheduled_time.slice(0,5):''}</div>
-      </div>`).join('')}
-  </div>`;
-  document.getElementById('mtg-body').innerHTML=h;
-}
-
-async function copyAgenda(){
-  const today=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  const mems=D.members.filter(m=>['長田','小森','西村','中野','緑川','関根'].includes(m.name)).map(m=>m.name).join('　');
-  const ags=D.tasks.filter(t=>t.status!=='完了'&&(t.meeting_check||t.status==='要対応'||(t.deadline&&isOv(t.deadline))||t.bottleneck));
-  const grp={};
-  ags.forEach(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;const cn=c?c.name:'その他';if(!grp[cn])grp[cn]=[];grp[cn].push(t);});
-  const catKeys=Object.keys(grp);
-  const affR=D.requests.filter(r=>r.affects_usapoyo&&r.status!=='完了');
-
-  let txt=`うさぽよ定例会議\n${today}\n${mems}\n\nアジェンダ\n`;
-  catKeys.forEach((cn,i)=>txt+=`${cn}\t${i+1}\n`);
-  if(affR.length)txt+=`チーム稼働・他部署案件\t${catKeys.length+1}\n`;
-  txt+='\n';
-
-  catKeys.forEach(cn=>{
-    const tasks=grp[cn];
-    const comp=D.tasks.filter(t=>{const p=D.projects.find(x=>x.id===t.project_id),c=p?D.categories.find(x=>x.id===p.category_id):null;return(c?c.name:'その他')===cn&&t.status==='完了';}).slice(0,4);
-
-    txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ ${cn}\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    txt+=`■ 前回まで合意済み・確認済み事項\n`;
-    if(comp.length)comp.forEach(t=>txt+=`・${t.name}\n`);
-    else txt+=`（なし）\n`;
-    txt+='\n';
-    txt+=`■ 相談事項\n`;
-    tasks.forEach(t=>{
-      txt+=`\n【${t.name}】\n`;
-      if(t.status)txt+=`ステータス：${t.status}\n`;
-      if(t.bottleneck)txt+=`ボトルネック：${t.bottleneck}\n`;
-      if(t.waiting_for)txt+=`確認待ち：${t.waiting_for}\n`;
-      if(t.next_action)txt+=`次のアクション：${t.next_action}\n`;
-      if(mn(t.assignee_id)!=='未設定')txt+=`担当：${mn(t.assignee_id)}\n`;
-      if(t.deadline)txt+=`期限：${fd(t.deadline)}\n`;
-      txt+=`\n`;
-    });
-    txt+=`✅ 確認・決定事項\n`;
-    tasks.forEach(t=>txt+=`☐  ${t.next_action||t.name+'の対応確認'}\n`);
-    txt+='\n\n';
-  });
-
-  if(affR.length){
-    txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ チーム稼働・他部署案件\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-    txt+=`■ 前回まで合意済み・確認済み事項\n（なし）\n\n■ 相談事項\n`;
-    affR.forEach(r=>{txt+=`\n【${r.name}】（${r.requester}）\nステータス：${r.status}\n`;if(r.delivery_deadline)txt+=`納品期限：${fd(r.delivery_deadline)}\n`;txt+=`作業量：${r.work_volume}\n`;if(r.notes)txt+=`備考：${r.notes}\n`;});
-    txt+=`\n✅ 確認・決定事項\n☐  担当者ごとの作業量・進捗確認\n☐  うさぽよ側スケジュールへの影響確認\n\n`;
-  }
-
-  txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ マイルストーン確認\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-  D.milestones.forEach(m=>txt+=`${fd(m.date)} ${m.name}${m.is_tentative?'（未確定）':''}\n`);
-  txt+=`\n━━━━━━━━━━━━━━━━━━━━━━\n■ 本日の決定事項\n━━━━━━━━━━━━━━━━━━━━━━\n\n`;
-  txt+=`━━━━━━━━━━━━━━━━━━━━━━\n■ 次回までのアクション\n━━━━━━━━━━━━━━━━━━━━━━\n`;
-
-  try{await navigator.clipboard.writeText(txt);}catch{const ta=document.createElement('textarea');ta.value=txt;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);}
-  alert('アジェンダをコピーしました！\nGoogle Docs等に貼り付けてください。');
-}
-
-function renderReq(){
-  const act=D.requests.filter(r=>r.status!=='完了'),done=D.requests.filter(r=>r.status==='完了');
-  
-  let h='';
-  if(!act.length)h='<div class="empty"><h3>進行中の依頼なし</h3><p>「＋ 依頼追加」から登録してください</p></div>';
-  else act.forEach(r=>{h+=`<div class="card mb" style="border-left:3px solid var(--org)">
-    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px">
-      <div><div style="font-size:15px;font-weight:700">${r.name}</div><div style="font-size:12px;color:var(--tm)">依頼元：${r.requester}</div></div>
-      <div style="display:flex;gap:7px;align-items:center">${badge(r.status)}<button class="btn bg bsm" onclick="openReqModal('${r.id}')">✏</button></div>
-    </div>
-    ${r.content?`<div style="font-size:13px;color:var(--ts);margin-bottom:10px;white-space:pre-wrap">${r.content}</div>`:''}
-    <div style="display:flex;gap:18px;flex-wrap:wrap">
-      <div style="font-size:12px"><span style="color:var(--tm)">担当：</span><strong>${mn(r.assignee_id)}</strong></div>
-      ${r.fee?`<div style="font-size:12px"><span style="color:var(--tm)">依頼金額：</span><strong>${Number(r.fee).toLocaleString()}円</strong></div>`:''}
-      ${r.response_deadline?`<div style="font-size:12px"><span style="color:var(--tm)">初稿あげる期限：</span><strong style="color:${isOv(r.response_deadline)?'var(--red)':isSn(r.response_deadline)?'var(--yel)':'inherit'}">${fd(r.response_deadline)}</strong></div>`:''}
-      ${r.delivery_deadline?`<div style="font-size:12px"><span style="color:var(--tm)">納品：</span><strong style="color:${isOv(r.delivery_deadline)?'var(--red)':isSn(r.delivery_deadline)?'var(--yel)':'inherit'}">${fd(r.delivery_deadline)}</strong></div>`:''}
-      <div style="font-size:12px">
-    </div>
-    ${r.affects_usapoyo?'<div class="bn bn-yel" style="margin-top:8px;font-size:11px">⚠ うさぽよ業務スケジュールへの影響あり</div>':''}
-    ${r.notes?`<div style="margin-top:8px;font-size:12px;color:var(--tm)">📝 ${r.notes}</div>`:''}
-  </div>`;});
-  if(done.length)h+=`<details><summary style="font-size:13px;font-weight:600;color:var(--ts);cursor:pointer;padding:8px 0">完了した依頼（${done.length}件）</summary>
-    <div style="margin-top:8px">${done.map(r=>`<div class="card mb" style="opacity:.55"><div style="display:flex;justify-content:space-between"><span style="font-weight:600">${r.name}</span><span style="font-size:12px;color:var(--tm)">${r.requester}</span></div></div>`).join('')}</div></details>`;
-  document.getElementById('req-body').innerHTML=h;
-}
-
-function openTaskModal(id,preProj,parentId,requestId){
-  const par=parentId?D.tasks.find(t=>t.id===parentId):null;
-  if(parentId&&!preProj&&par)preProj=par.project_id;
-  document.getElementById('tm-title').textContent=id?'タスクを編集':par?`「${par.name.slice(0,15)}」のサブタスクを追加`:'タスクを追加';
-  const pl=document.getElementById('tm-parent-label');
-  if(pl)pl.style.display=parentId?'block':'none';
-  document.getElementById('tm-cat').innerHTML='<option value="">カテゴリ</option>'+D.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
-  document.getElementById('tm-asgn-checks').innerHTML=D.members.filter(m=>['長田','小森','西村'].includes(m.name)).map(m=>`<div class="asgn-chip" data-id="${m.id}" data-checked="0" onclick="toggleAsgn(this)">${m.name}</div>`).join('');
-
-  if(id){
-    const t=D.tasks.find(x=>x.id===id);if(!t)return;
-    document.getElementById('tm-id').value=t.id;
-    const p=D.projects.find(x=>x.id===t.project_id);
-    document.getElementById('tm-cat').value=p?.category_id||'';updateProjByCat();
-    document.getElementById('tm-proj').value=t.project_id||'';document.getElementById('tm-name').value=t.name||'';document.getElementById('tm-desc').value=t.description||'';
-    const savedIds2=(t.co_assignees?JSON.parse(t.co_assignees):[t.assignee_id]).filter(Boolean);
-    document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=savedIds2.includes(chip.dataset.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
-    const otherVals2=savedIds2.filter(x=>x&&x.startsWith('other:')).map(x=>x.slice(6));
-    if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value=otherVals2.join('・');
-    document.getElementById('tm-status').value=t.status||'未着手';
-    document.getElementById('tm-dl').value=t.deadline||'';document.getElementById('tm-est').value=t.estimated_completion||'';
-
-    document.getElementById('tm-na').value=t.next_action||'';document.getElementById('tm-url').value=(t.related_urls&&t.related_urls[0])||'';
-  }else{
-    document.getElementById('tm-id').value='';
-    ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
-    if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value='';
-    document.getElementById('tm-status').value='未着手';
-    document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=!!(curMember?.id&&chip.dataset.id===curMember.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
-    document.getElementById('tm-asgn-other').value='';
-    if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
-  }
-  document.getElementById('tm-parent').value=parentId||'';
-  document.getElementById('tm-request-id').value=requestId||'';
-  document.getElementById('task-modal').style.display='flex';
-}
-function updateProjByCat(){const cid=document.getElementById('tm-cat').value;const fp=cid?D.projects.filter(p=>p.category_id===cid):D.projects;document.getElementById('tm-proj').innerHTML='<option value="">プロジェクト</option>'+fp.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');}
-function closeTaskModal(){document.getElementById('task-modal').style.display='none';}
-async function saveTask(){
-  const name=document.getElementById('tm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
-  const id=document.getElementById('tm-id').value,url=document.getElementById('tm-url').value.trim(),status=document.getElementById('tm-status').value;
-    const parentVal=document.getElementById('tm-parent').value||null;
-  const selIds=Array.from(document.querySelectorAll('.asgn-chip.on')).map(el=>el.dataset.id);
-  const otherName=document.getElementById('tm-asgn-other')?.value.trim();
-  if(otherName)selIds.push('other:'+otherName);
-  const data={project_id:document.getElementById('tm-proj').value||null,
-    parent_task_id:parentVal,
-    name,description:document.getElementById('tm-desc').value.trim()||null,
-    assignee_id:selIds.find(x=>!x.startsWith('other:'))||null,co_assignees:selIds.length?JSON.stringify(selIds):null,
-    status,deadline:document.getElementById('tm-dl').value||null,
-    estimated_completion:document.getElementById('tm-est').value||null,
-    next_action:document.getElementById('tm-na').value.trim()||null,
-    related_urls:url?[url]:[],    request_id:document.getElementById('tm-request-id').value||null,
-    updated_at:new Date().toISOString()};
-  if(status==='完了')data.completed_at=new Date().toISOString();
-  const{error}=id?await sb.from('pm_tasks').update(data).eq('id',id):await sb.from('pm_tasks').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-    closeTaskModal();await loadAll();if(curPage==='teamtask')renderTeamTask();
-}
-async function toggleTask(id){
-  const t=D.tasks.find(x=>x.id===id);if(!t)return;
-  const ns=t.status==='完了'?'未着手':'完了',upd={status:ns,updated_at:new Date().toISOString()};
-  if(ns==='完了')upd.completed_at=new Date().toISOString();
-    await sb.from('pm_tasks').update(upd).eq('id',id);
-  await loadAll();if(curPage==='teamtask')renderTeamTask();
-  else if(curPage==='meeting')renderMeeting();
-}
-function showDetail(id){
-  const t=D.tasks.find(x=>x.id===id);if(!t)return;
-  document.getElementById('det-title').textContent=t.name;
-  document.getElementById('det-del').onclick=()=>deleteTask(id);
-  document.getElementById('det-edit').onclick=()=>{closeDetail();openTaskModal(id);};
-  document.getElementById('det-body').innerHTML=`
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">ステータス</span><div style="margin-top:4px">${badge(t.status)}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">担当者</span><div style="margin-top:4px;font-weight:600">${mnMulti(t)}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">期限</span><div style="margin-top:4px;font-weight:600;color:${isOv(t.deadline)?'var(--red)':isSn(t.deadline)?'var(--yel)':'inherit'}">${fd(t.deadline)}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">プロジェクト</span><div style="margin-top:4px;font-size:13px">${pn(t.project_id)}</div></div>
-    </div>
-    ${t.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">説明</span><div style="margin-top:4px;font-size:13px">${t.description}</div></div>`:''}
-    ${t.bottleneck?`<div class="bn bn-red" style="margin-bottom:12px">🚧 ${t.bottleneck}</div>`:''}
-    ${t.waiting_for?`<div class="bn bn-yel" style="margin-bottom:12px"><span>⏳</span><div><strong>確認待ち：</strong>${t.waiting_for}</div></div>`:''}
-    ${t.next_action?`<div class="bn bn-blu" style="margin-bottom:12px"><span>→</span><div><strong>次のアクション：</strong>${t.next_action}</div></div>`:''}
-    ${t.related_urls&&t.related_urls.length?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">関連URL</span><div style="margin-top:4px">${t.related_urls.map(u=>`<a href="${u}" target="_blank" style="font-size:12px;display:block;word-break:break-all">${u}</a>`).join('')}</div></div>`:''}
-    ${t.notes?`<div style="margin-bottom:12px;font-size:12px;color:var(--tm)">📝 ${t.notes}</div>`:''}
-`;
-  document.getElementById('detail-modal').style.display='flex';
-}
-function closeDetail(){document.getElementById('detail-modal').style.display='none';}
-
-function setReqPreset(text){document.getElementById('rm-content').value=text;document.getElementById('rm-content').focus();}
-function openReqModal(id){
-  document.getElementById('rm-title').textContent=id?'他部署依頼を編集':'他部署依頼を追加';
-  document.getElementById('rm-asgn').innerHTML='<option value="">要確認</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
-  if(id){const r=D.requests.find(x=>x.id===id);if(!r)return;
-    document.getElementById('rm-id').value=r.id;document.getElementById('rm-name').value=r.name||'';
-    document.getElementById('rm-req').value=r.requester||'';document.getElementById('rm-content').value=r.content||'';
-    document.getElementById('rm-asgn').value=r.assignee_id||'';
-    document.getElementById('rm-resdl').value=r.response_deadline||'';document.getElementById('rm-deldl').value=r.delivery_deadline||'';
-    document.getElementById('rm-fee').value=r.fee||30000;
-    document.getElementById('rm-status').value=r.status||'未着手';
-    document.getElementById('rm-notes').value=r.notes||'';document.getElementById('rm-aff').checked=!!r.affects_usapoyo;
-  }else{['rm-id','rm-name','rm-req','rm-content','rm-notes','rm-resdl','rm-deldl'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('rm-asgn').value='';document.getElementById('rm-fee').value=30000;document.getElementById('rm-status').value='未着手';document.getElementById('rm-aff').checked=false;}
-  document.getElementById('req-modal').style.display='flex';
-}
-function closeReqModal(){document.getElementById('req-modal').style.display='none';}
-async function saveReq(){
-  const name=document.getElementById('rm-name').value.trim();if(!name){alert('依頼名を入力してください');return;}
-  const id=document.getElementById('rm-id').value;
-  const data={name,requester:document.getElementById('rm-req').value.trim(),content:document.getElementById('rm-content').value.trim()||null,
-    assignee_id:document.getElementById('rm-asgn').value||null,
-    response_deadline:document.getElementById('rm-resdl').value||null,delivery_deadline:document.getElementById('rm-deldl').value||null,
-    fee:parseInt(document.getElementById('rm-fee').value)||30000,
-    status:document.getElementById('rm-status').value,
-    notes:document.getElementById('rm-notes').value.trim()||null,affects_usapoyo:document.getElementById('rm-aff').checked};
-  const{error}=id?await sb.from('pm_other_requests').update(data).eq('id',id):await sb.from('pm_other_requests').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeReqModal();await loadAll();renderReq();
-}
-
-function openSnsModal(id,preDate){
-  document.getElementById('sm-asgn').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
-  if(id){const p=D.sns.find(x=>x.id===id);if(!p)return;
-    document.getElementById('sm-id').value=p.id;document.getElementById('sm-date').value=p.scheduled_date||'';document.getElementById('sm-time').value=p.scheduled_time||'';
-    document.getElementById('sm-name').value=p.content_name||'';initCatTags(p.category||'イベント系');
-    document.getElementById('sm-asgn').value=p.assignee_id||'';document.getElementById('sm-desc').value=p.description||'';
-    document.getElementById('sm-mat').value=p.material_status||'未着手';document.getElementById('sm-status').value=p.post_status||'制作中';
-    document.getElementById('sm-thumb').value=p.thumbnail_url||'';
-    document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=p.platforms&&p.platforms.includes(cb.value));
-  }else{
-    ['sm-id','sm-time','sm-name','sm-desc','sm-thumb'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('sm-date').value=preDate||'';initCatTags('');
-    document.getElementById('sm-asgn').value=curMember?.id||'';
-    document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=false);
-  }
-  document.getElementById('sns-modal').style.display='flex';
-}
-function closeSnsModal(){document.getElementById('sns-modal').style.display='none';}
-async function saveSns(){
-  const name=document.getElementById('sm-name').value.trim();if(!name){alert('コンテンツ名を入力してください');return;}
-  const id=document.getElementById('sm-id').value,platforms=Array.from(document.querySelectorAll('[name="sm-plat"]:checked')).map(c=>c.value);
-  const data={scheduled_date:document.getElementById('sm-date').value||null,scheduled_time:document.getElementById('sm-time').value||null,platforms,content_name:name,
-    category:document.getElementById('sm-cat').value,assignee_id:document.getElementById('sm-asgn').value||null,
-    description:document.getElementById('sm-desc').value.trim()||null,material_status:document.getElementById('sm-mat').value,post_status:document.getElementById('sm-status').value,
-    thumbnail_url:document.getElementById('sm-thumb').value.trim()||null};
-  const{error}=id?await sb.from('pm_sns_posts').update(data).eq('id',id):await sb.from('pm_sns_posts').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeSnsModal();await loadAll();renderSns();
-}
-
-function openMeetingModal(){document.getElementById('mtg-modal').style.display='flex';}
-function closeMtgModal(){document.getElementById('mtg-modal').style.display='none';}
-async function saveMtg(){
-  const title=document.getElementById('mm-title').value.trim();if(!title){alert('タイトルを入力してください');return;}
-  const data={title,scheduled_date:document.getElementById('mm-date').value||null,scheduled_time:document.getElementById('mm-time').value||null};
-  const{error}=await sb.from('pm_meetings').insert(data);if(error){alert('保存エラー: '+error.message);return;}
-  closeMtgModal();await loadAll();renderMeeting();
-}
-
-function initCatTags(selected){
-  const cats=['イベント系','LINEスタンプ関連','楽曲/MV','グッズ関連','質問コーナー','会話劇','漫画','企業タイアップ関連','日常イラスト','ギャル間違い探し','一言フィード','その他（書き込み）'];
-  const isCustom=selected&&!cats.includes(selected);
-  const dispSel=isCustom?'その他（書き込み）':selected;
-  const el=document.getElementById('sm-cat-tags');if(!el)return;
-  el.innerHTML=cats.map(c=>`<div class="cat-tag${c===dispSel?' on':''}" style="--cc:${CAT_COLORS[c]||'#9CA3AF'}" onclick="selectCatTag(this,'${c}')">${c}</div>`).join('');
-  document.getElementById('sm-cat').value=selected||'';
-  const cust=document.getElementById('sm-cat-custom');
-  if(cust){
-    cust.style.display=isCustom?'block':'none';
-    if(isCustom&&document.getElementById('sm-cat-input'))document.getElementById('sm-cat-input').value=selected;
-  }
-}
-function selectCatTag(el,cat){
-  document.querySelectorAll('#sm-cat-tags .cat-tag').forEach(t=>t.classList.remove('on'));
-  el.classList.add('on');
-  const cust=document.getElementById('sm-cat-custom');
-  if(cat==='その他（書き込み）'){
-    cust.style.display='block';
-    const v=document.getElementById('sm-cat-input').value.trim();
-    document.getElementById('sm-cat').value=v||'その他（書き込み）';
-    setTimeout(()=>document.getElementById('sm-cat-input').focus(),50);
-  }else{
-    cust.style.display='none';
-    document.getElementById('sm-cat').value=cat;
-  }
-}
-
-function openQuickModal(memberId){
-  const mSel='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
-  document.getElementById('qm-asgn').innerHTML=mSel;
-  document.getElementById('qm-mid').value=memberId||'';
-  if(memberId)document.getElementById('qm-asgn').value=memberId;
-  else if(curMember&&curMember.id)document.getElementById('qm-asgn').value=curMember.id;
-  ['qm-name','qm-desc','qm-dl','qm-est','qm-na','qm-url'].forEach(x=>document.getElementById(x).value='');
-  document.getElementById('qm-status').value='未着手';
-  document.getElementById('quick-modal').style.display='flex';
-}
-function closeQuickModal(){document.getElementById('quick-modal').style.display='none';}
-async function saveQuickTask(){
-  const name=document.getElementById('qm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
-  const status=document.getElementById('qm-status').value;
-  const qurl=document.getElementById('qm-url').value.trim();
-  const data={name,
-    description:document.getElementById('qm-desc').value.trim()||null,
-    assignee_id:document.getElementById('qm-asgn').value||null,
-    status,
-    deadline:document.getElementById('qm-dl').value||null,
-    estimated_completion:document.getElementById('qm-est').value||null,
-    next_action:document.getElementById('qm-na').value.trim()||null,
-    related_urls:qurl?[qurl]:[],
-    updated_at:new Date().toISOString()};
-  if(status==='完了')data.completed_at=new Date().toISOString();
-  const{error}=await sb.from('pm_tasks').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeQuickModal();await loadAll();renderTaskboard();
-}
-
-async function deleteTask(id){
-  if(!confirm('このタスクを削除しますか？\nこの操作は取り消せません。'))return;
-  const{error}=await sb.from('pm_tasks').delete().eq('id',id);
-  if(error){alert('削除エラー: '+error.message);return;}
-  closeDetail();await loadAll();
-  if(curPage==='dashboard')renderDash();
-  else if(curPage==='teamtask')renderTeamTask();
-  else if(curPage==='meeting')renderMeeting();
-}
-
-async function deleteSnsPost(id){
-  if(!confirm('この投稿予定を削除しますか？\nこの操作は取り消せません。'))return;
-  const{error}=await sb.from('pm_sns_posts').delete().eq('id',id);
-  if(error){alert('削除エラー: '+error.message);return;}
-  closeDetail();await loadAll();renderSns();
-}
-
-
-// ── LINKS ──
-function renderLinks(){
-  const catOrd=['ツール','公式アカウント','LINEスタンプ','ドキュメント','音源・動画','グッズ','その他'];
-  const cats=[...new Set(D.links.map(l=>l.category))].sort((a,b)=>{
-    const ia=catOrd.indexOf(a),ib=catOrd.indexOf(b);
-    return(ia===-1?99:ia)-(ib===-1?99:ib);
-  });
-  if(!D.links.length){
-    document.getElementById('links-body').innerHTML='<div class="empty"><h3>リンクがありません</h3><p>「＋ リンクを追加」から登録してください</p></div>';
-    return;
-  }
-  let h='';
-  cats.forEach(cat=>{
-    const items=D.links.filter(l=>l.category===cat).sort((a,b)=>a.sort_order-b.sort_order);
-    h+=`<div style="margin-bottom:24px">
-      <div style="font-size:11px;font-weight:700;color:var(--ts);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border)">${cat}</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
-        ${items.map(l=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;gap:10px;align-items:flex-start">
-          <div style="flex:1;min-width:0">
-            <a href="${l.url}" target="_blank" style="font-size:13px;font-weight:700;color:var(--accent);display:block;margin-bottom:3px;text-decoration:none">${l.name}</a>
-            ${l.description?`<div style="font-size:11px;color:var(--ts);margin-bottom:5px">${l.description}</div>`:''}
-            <div style="font-size:10px;color:var(--tm);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:5px">${l.url}</div>
-            <button onclick="copyLinkUrl('${l.url.replace(/'/g,"\\'")}',this)" style="font-size:10px;padding:2px 8px;background:var(--bg);border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)">コピー</button>
-          </div>
-          <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0">
-            <button class="btn bg" style="padding:2px 6px;font-size:11px" onclick="openLinkModal('${l.id}')">✏</button>
-            <button class="btn-del" style="padding:2px 6px;font-size:11px" onclick="deleteLinkItem('${l.id}')">×</button>
-          </div>
-        </div>`).join('')}
-      </div>
-    </div>`;
-  });
-  document.getElementById('links-body').innerHTML=h;
-}
-
-function copyLinkUrl(url,btn){
-  const orig=btn.textContent;
-  navigator.clipboard.writeText(url).then(()=>{btn.textContent='✓ コピー済み';btn.style.color='var(--grn)';setTimeout(()=>{btn.textContent=orig;btn.style.color='';},2000);}).catch(()=>{
-    const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);
-    btn.textContent='✓';setTimeout(()=>{btn.textContent=orig;},1500);
-  });
-}
-
-// ── CALENDAR EVENTS ──
-const EVT_COLORS={'グッズ・販売':'#F97316','MV・音楽':'#8B5CF6','ツアー・物販':'#3B82F6','撮影':'#10B981','会議':'#9CA3AF','メディア':'#EC4899','その他':'#6B7280'};
-
-async function forceReseedContent(){if(!confirm('コンテンツカレンダーのデータを最新版に更新しますか？'))return;try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){alert('エラー: '+e.message);return;}await loadAll();renderContent();alert('更新完了しました！');};
-function openEvtModal(id){
-  document.getElementById('em-title').textContent=id?'イベントを編集':'イベントを追加';
-  const delBtn=document.getElementById('em-del-btn');
-  if(id){
-    const e=D.events.find(x=>x.id===id);if(!e)return;
-    document.getElementById('em-id').value=e.id;
-    document.getElementById('em-name').value=e.name||'';
-    document.getElementById('em-date').value=e.event_date||'';
-    document.getElementById('em-date-end').value=e.event_date_end||'';
-    document.getElementById('em-cat').value=e.category||'その他';
-    document.getElementById('em-color').value=e.color||'#7C6FCD';
-    document.getElementById('em-desc').value=e.description||'';
-    delBtn.style.display='inline-flex';
-  }else{
-    ['em-id','em-name','em-date','em-date-end','em-desc'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('em-cat').value='その他';
-    document.getElementById('em-color').value='#F97316';
-    delBtn.style.display='none';
-  }
-  document.getElementById('evt-modal').style.display='flex';
-}
-function closeEvtModal(){document.getElementById('evt-modal').style.display='none';}
-
-async function saveEvt(){
-  const name=document.getElementById('em-name').value.trim(),date=document.getElementById('em-date').value;
-  if(!name||!date){alert('イベント名と日付は必須です');return;}
-  const id=document.getElementById('em-id').value;
-  const data={name,event_date:date,event_date_end:document.getElementById('em-date-end').value||null,
-    category:document.getElementById('em-cat').value,color:document.getElementById('em-color').value,
-    description:document.getElementById('em-desc').value.trim()||null};
-  const{error}=id?await sb.from('pm_calendar_events').update(data).eq('id',id):await sb.from('pm_calendar_events').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeEvtModal();await loadAll();renderSns();
-}
-async function deleteEvt(){
-  if(!confirm('このイベントを削除しますか？'))return;
-  const id=document.getElementById('em-id').value;
-  await sb.from('pm_calendar_events').delete().eq('id',id);
-  closeEvtModal();await loadAll();renderSns();
-}
-function openLinkModal(id){
-  document.getElementById('lm-title').textContent=id?'リンクを編集':'リンクを追加';
-  if(id){
-    const l=D.links.find(x=>x.id===id);if(!l)return;
-    document.getElementById('lm-id').value=l.id;
-    document.getElementById('lm-cat').value=l.category||'その他';document.getElementById('lm-name').value=l.name||'';
-    document.getElementById('lm-url').value=l.url||'';document.getElementById('lm-desc').value=l.description||'';
-  }else{
-    ['lm-id','lm-name','lm-url','lm-desc'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('lm-cat').value='その他';
-  }
-  document.getElementById('link-modal').style.display='flex';
-}
-function closeLinkModal(){document.getElementById('link-modal').style.display='none';}
-
-async function saveLinkItem(){
-  const name=document.getElementById('lm-name').value.trim(),url=document.getElementById('lm-url').value.trim();
-  if(!name||!url){alert('名前とURLは必須です');return;}
-  const id=document.getElementById('lm-id').value;
-  const data={name,url,
-    category:document.getElementById('lm-cat').value,description:document.getElementById('lm-desc').value.trim()||null};
-  const{error}=id?await sb.from('pm_links').update(data).eq('id',id):await sb.from('pm_links').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeLinkModal();await loadAll();renderLinks();
-}
-
-async function deleteLinkItem(id){
-  if(!confirm('このリンクを削除しますか？'))return;
-  const{error}=await sb.from('pm_links').delete().eq('id',id);
-  if(error){alert('削除エラー: '+error.message);return;}
-  await loadAll();renderLinks();
-}
-
-async function seedLinks(){
-  const seeds=[
-    {name:'QRコード・クリック数計測',url:'https://00m.in/user',category:'ツール',description:'QRコード生成＆クリック数確認',icon:'📊',sort_order:1},
-    {name:'AI音声生成ツール',url:'https://fish.audio/ja/app/',category:'ツール',description:'AI音声生成',icon:'🎤',sort_order:2},
-    {name:'TuneCore',url:'https://www.tunecore.co.jp/dashboard/reports/estimate?_acid=NDgyNDUx',category:'ツール',description:'楽曲配信・レポート確認',icon:'🎧',sort_order:3},
-    {name:'LINE Creator Market',url:'https://creator.line.me/ja/',category:'ツール',description:'LINEスタンプ売上確認',icon:'💚',sort_order:4},
-    {name:'STORES',url:'https://dashboard.stores.app/',category:'ツール',description:'グッズ販売管理',icon:'🛍️',sort_order:5},
-    {name:'Instagram',url:'https://www.instagram.com/usapoyo_gal/reels/?hl=ja',category:'公式アカウント',description:'@usapoyo_gal',icon:'📸',sort_order:10},
-    {name:'TikTok',url:'https://www.tiktok.com/ja-JP/',category:'公式アカウント',description:'TikTok公式',icon:'🎵',sort_order:11},
-    {name:'YouTube Studio',url:'https://studio.youtube.com/channel/UCne0zg3-54OW12wJlAnsM2w',category:'公式アカウント',description:'YouTubeチャンネル管理',icon:'▶️',sort_order:12},
-    {name:'X (Twitter)',url:'https://x.com/usapoyo_gal',category:'公式アカウント',description:'@usapoyo_gal',icon:'🐦',sort_order:13},
-    {name:'lit.link（リンク集約）',url:'https://lit.link/usapoyo428',category:'公式アカウント',description:'公式アカウントリンク集約',icon:'🔗',sort_order:14},
-    {name:'LINEスタンプ vol.1',url:'https://line.me/S/sticker/31807297/?lang=ja&utm_source=gnsh_stickerDetail',category:'LINEスタンプ',description:'うさぽよ vol.1',icon:'💚',sort_order:20},
-    {name:'LINEスタンプ vol.2',url:'https://line.me/S/sticker/33010610/?lang=ja&utm_source=gnsh_stickerDetail',category:'LINEスタンプ',description:'うさぽよ vol.2',icon:'💚',sort_order:21},
-    {name:'定例会議まとめ',url:'https://docs.google.com/document/d/1CdmnXCdIhvMgWylPqFSqy9As46QDuRXqURS7TUs7CGA/edit?usp=sharing',category:'ドキュメント',description:'定例会議議事録まとめ',icon:'📄',sort_order:30},
-    {name:'グッズ詳細スケジュール',url:'https://docs.google.com/presentation/d/1ekgmhFyDzXcfyTbZt6dsiuH3RqFAU8sNUfjI0jMJvQs/edit?usp=sharing',category:'ドキュメント',description:'うさぽよグッズ詳細スケジュール',icon:'📊',sort_order:31},
-    {name:'うさぽよじゃんけん 音源',url:'https://drive.google.com/file/d/1NUCDJQXhHbUU0ma4z7i7f6JuAmltnqus/view?usp=sharing',category:'音源・動画',description:'最新音源データ',icon:'🎵',sort_order:40},
-    {name:'MV ティザー・事前告知',url:'https://drive.google.com/drive/folders/1UiZ4vFqlTHMFisVuKqaRLqvoUrm8zgcu?usp=drive_link',category:'音源・動画',description:'カウントダウンイラスト等',icon:'📂',sort_order:41},
-    {name:'踊ってみた データ格納先',url:'https://drive.google.com/drive/folders/11UNYGkSV8KKgSXWoDkc8bBLKOZFVMrCT?usp=drive_link',category:'音源・動画',description:'踊ってみたデータ',icon:'📂',sort_order:42},
-  ];
-  await sb.from('pm_links').insert(seeds);
-}
-
-function openProjModal(catId,projId){
-  document.getElementById('pm-cat-id').value=catId||'';
-  document.getElementById('pm-proj-id').value=projId||'';
-  if(projId){
-    const p=D.projects.find(x=>x.id===projId);if(!p)return;
-    document.getElementById('pm-name').value=p.name||'';
-    document.getElementById('pm-desc').value=p.description||'';
-    document.querySelector('#proj-modal .mtitle').textContent='プロジェクトを編集';
-  }else{
-    ['pm-name','pm-desc'].forEach(x=>document.getElementById(x).value='');
-    document.querySelector('#proj-modal .mtitle').textContent='プロジェクトを追加';
-  }
-  document.getElementById('proj-modal').style.display='flex';
-}
-function closeProjModal(){document.getElementById('proj-modal').style.display='none';}
-async function saveProj(){
-  const name=document.getElementById('pm-name').value.trim();if(!name){alert('プロジェクト名を入力してください');return;}
-  const projId=document.getElementById('pm-proj-id').value;
-  const data={category_id:document.getElementById('pm-cat-id').value||null,name,
-    description:document.getElementById('pm-desc').value.trim()||null};
-  const{error}=projId?await sb.from('pm_projects').update(data).eq('id',projId):await sb.from('pm_projects').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeProjModal();await loadAll();renderProject();
-}
-
-
-// ── CATEGORY CRUD ──
-function openCatModal(){['cm-icon','cm-name'].forEach(x=>document.getElementById(x).value='');document.getElementById('cm-color').value='#7C6FCD';document.getElementById('cat-modal').style.display='flex';}
-function closeCatModal(){document.getElementById('cat-modal').style.display='none';}
-async function saveCat(){
-  const name=document.getElementById('cm-name').value.trim();if(!name){alert('カテゴリ名を入力してください');return;}
-  const data={name,icon:document.getElementById('cm-icon').value.trim()||'📁',color:document.getElementById('cm-color').value,sort_order:D.categories.length+1};
-  const{error}=await sb.from('pm_categories').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeCatModal();await loadAll();renderTeamTask();
-}
-
-// ── CONTENT CALENDAR ──
-const CC_COLS={'祝日':'#EF4444','ギャル':'#EC4899','文化行事':'#8B5CF6','季節':'#10B981','ビジネス':'#3B82F6','キャラ':'#F97316','日別テーマ':'#F59E0B'};
-const CC_STATUS={'採用':{col:'#10B981',bg:'#ECFDF5'},'未設定':{col:'#9CA3AF',bg:'#F9FAFB'},'不採用':{col:'#EF4444',bg:'#FEF2F2'}};
-
-function setCCat(el,cat){document.querySelectorAll('#cc-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');ccFilter=cat;ccMonthView=null;renderContent();}
-function setCCStat(el,s){document.querySelectorAll('#cc-status-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');ccStatusFilter=s;renderContent();}
-function selectCCStatus(el){document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');}
-
-function renderContent(){
-  const months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
-
-  if(ccMonthView!==null){
-    // 月詳細ビュー
-    let evts=D.contentEvents.filter(e=>e.month===ccMonthView);
-    if(ccFilter!=='all')evts=evts.filter(e=>{try{return JSON.parse(e.categories||'[]').includes(ccFilter);}catch(er){return false;}});
-    if(ccStatusFilter!=='all')evts=evts.filter(e=>(e.status||'未設定')===ccStatusFilter);
-    evts.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-    let h=`<div style="margin-bottom:16px;display:flex;align-items:center;gap:12px">
-      <button class="btn bs bsm" onclick="ccMonthView=null;renderContent()">← 年間表示に戻る</button>
-      <div style="font-size:18px;font-weight:800">${ccMonthView}月 のコンテンツ一覧</div>
-    </div>
-    <div class="card">
-      ${evts.length===0?'<div class="empty"><p>イベントなし</p></div>':evts.map(e=>{
-        const cats=JSON.parse(e.categories||'[]');
-        const st=e.status||'未設定';
-        const stSt=CC_STATUS[st]||CC_STATUS['未設定'];
-        return`<div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
-          <div style="flex:1">
-            <div style="font-size:13px;font-weight:700;margin-bottom:5px">${e.name}</div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:4px">
-              ${cats.map(c=>`<span style="font-size:10px;padding:1px 7px;border-radius:100px;background:${CC_COLS[c]||'#9CA3AF'}18;color:${CC_COLS[c]||'#9CA3AF'};font-weight:600;border:1px solid ${CC_COLS[c]||'#9CA3AF'}40">${c}</span>`).join('')}
-              <span style="font-size:10px;padding:1px 7px;border-radius:100px;background:${stSt.bg};color:${stSt.col};font-weight:600">${st}</span>
-            </div>
-            ${e.description?`<div style="font-size:11px;color:var(--ts)">${e.description}</div>`:''}
-          </div>
-          <button class="btn bg" style="padding:2px 7px;font-size:11px;flex-shrink:0" onclick="openContentModal('${e.id}')">✏</button>
-        </div>`;
-      }).join('')}
-      <div style="padding-top:10px"><button class="btn bg bsm" onclick="openContentModal(null,${ccMonthView})">＋ イベント追加</button></div>
-    </div>`;
-    document.getElementById('content-body').innerHTML=h;
-    return;
-  }
-
-  // 年間ビュー（春夏秋冬順）
-  const seasons=[
-    {name:'🌸 春',months:[3,4,5],color:'#EC4899'},
-    {name:'☀️ 夏',months:[6,7,8],color:'#F97316'},
-    {name:'🍂 秋',months:[9,10,11],color:'#8B5CF6'},
-    {name:'❄️ 冬',months:[12,1,2],color:'#3B82F6'},
-  ];
-  const mName={1:'1月',2:'2月',3:'3月',4:'4月',5:'5月',6:'6月',7:'7月',8:'8月',9:'9月',10:'10月',11:'11月',12:'12月'};
-  let h='';
-  seasons.forEach(season=>{
-    h+=`<div style="margin-bottom:6px;padding:6px 12px;background:${season.color}18;border-left:3px solid ${season.color};border-radius:4px;font-size:13px;font-weight:700;color:${season.color}">${season.name}</div>`;
-    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">';
-    season.months.forEach(mNum=>{
-    let evts=D.contentEvents.filter(e=>e.month===mNum);
-    if(ccFilter!=='all')evts=evts.filter(e=>{try{return JSON.parse(e.categories||'[]').includes(ccFilter);}catch(er){return false;}});
-    if(ccStatusFilter!=='all')evts=evts.filter(e=>(e.status||'未設定')===ccStatusFilter);
-    evts.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-    h+=`<div class="card" style="cursor:pointer" onclick="ccMonthView=${mNum};renderContent()">
-      <div style="font-size:15px;font-weight:800;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span>${mNameMap[mNum]}</span><span style="font-size:11px;color:var(--tm);font-weight:400">${evts.length}件 →</span>
-      </div>
-      <div style="display:flex;flex-wrap:wrap;gap:4px">
-        ${evts.map(e=>{
-          const cats=JSON.parse(e.categories||'[]');
-          const col=CC_COLS[cats[0]]||'#9CA3AF';
-          const st=e.status||'未設定';
-          const stCol=CC_STATUS[st]?.col||'#9CA3AF';
-          return`<div style="display:inline-flex;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;background:${col}18;color:${col};border:1px solid ${col}44;position:relative" title="${cats.join('・')} | ${st}">${e.name}${st==='採用'?'<span style="position:absolute;top:-3px;right:-3px;width:7px;height:7px;border-radius:50%;background:'+stCol+'"></span>':''}</div>`;
-        }).join('')}
-        ${evts.length===0?'<div style="font-size:11px;color:var(--tm)">—</div>':''}
-      </div>
-    </div>`;
-    });
-    h+='</div>';
-  });
-  document.getElementById('content-body').innerHTML=h;
-}
-
-function toggleCCat(el){el.classList.toggle('on');}
-
-function openContentModal(id,preMonth){
-  document.getElementById('ccm-title').textContent=id?'イベントを編集':'イベントを追加';
-  document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>c.classList.remove('on'));
-  document.getElementById('ccm-del').style.display=id?'inline-flex':'none';
-  if(id){
-    const e=D.contentEvents.find(x=>x.id===id);if(!e)return;
-    document.getElementById('ccm-id').value=e.id;document.getElementById('ccm-name').value=e.name||'';
-    document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';
-    document.getElementById('ccm-desc').value=e.description||'';
-    try{const cats=JSON.parse(e.categories||'[]');document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>{if(cats.includes(c.dataset.val))c.classList.add('on');});}catch(er){}
-    const st=e.status||'未設定';
-    document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===st));
-  }else{
-    ['ccm-id','ccm-name','ccm-day','ccm-desc'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('ccm-month').value=preMonth||new Date().getMonth()+1;
-    document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val==='未設定'));
-  }
-  document.getElementById('content-modal').style.display='flex';
-}
-function closeContentModal(){document.getElementById('content-modal').style.display='none';}
-
-async function saveContent(){
-  const name=document.getElementById('ccm-name').value.trim();if(!name){alert('イベント名を入力してください');return;}
-  const id=document.getElementById('ccm-id').value;
-  const cats=Array.from(document.querySelectorAll('#ccm-cats .asgn-chip.on')).map(c=>c.dataset.val);
-  const stEl=document.querySelector('#ccm-status-chips .asgn-chip.on');
-  const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,
-    categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null,
-    status:stEl?stEl.dataset.val:'未設定'};
-  const{error}=id?await sb.from('pm_content_events').update(data).eq('id',id):await sb.from('pm_content_events').insert(data);
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeContentModal();await loadAll();renderContent();
-}
-async function deleteContent(){
-  if(!confirm('このイベントを削除しますか？'))return;
-  const id=document.getElementById('ccm-id').value;
-  await sb.from('pm_content_events').delete().eq('id',id);
-  closeContentModal();await loadAll();renderContent();
-}
-
-async function seedContentEvents(){
-  // 既存データをリセット
-  await sb.from('pm_content_events').delete().neq('id','00000000-0000-0000-0000-000000000000');
-  const seeds=[
-    {name:'元旦・正月',month:1,categories:'["祝日","文化行事"]',sort_order:1,status:'未設定'},
-    {name:'成人の日',month:1,categories:'["祝日"]',sort_order:2,status:'未設定'},
-    {name:'福袋争奪',month:1,categories:'["ギャル","ビジネス"]',sort_order:3,status:'未設定'},
-    {name:'初詣コーデ',month:1,categories:'["ギャル","文化行事"]',sort_order:4,status:'未設定'},
-    {name:'干支',month:1,categories:'["文化行事","キャラ"]',sort_order:5,status:'未設定'},
-    {name:'箱根駅伝',month:1,categories:'["文化行事"]',sort_order:6,status:'未設定'},
-    {name:'節分',month:2,categories:'["文化行事","季節"]',sort_order:1,status:'未設定'},
-    {name:'バレンタインデー',month:2,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
-    {name:'バレンタインネイル',month:2,categories:'["ギャル"]',sort_order:3,status:'未設定'},
-    {name:'猫の日',month:2,categories:'["キャラ","日別テーマ"]',sort_order:4,status:'未設定'},
-    {name:'ひな祭り',month:3,categories:'["文化行事"]',sort_order:1,status:'未設定'},
-    {name:'卒業式',month:3,categories:'["文化行事"]',sort_order:2,status:'未設定'},
-    {name:'花見',month:3,categories:'["文化行事","季節"]',sort_order:3,status:'未設定'},
-    {name:'春ネイル',month:3,categories:'["ギャル","季節"]',sort_order:4,status:'未設定'},
-    {name:'ブタの日',month:3,categories:'["キャラ","日別テーマ"]',sort_order:5,status:'未設定'},
-    {name:'耳の日',month:3,categories:'["キャラ","日別テーマ"]',sort_order:6,status:'未設定'},
-    {name:'春分の日',month:3,categories:'["祝日","季節"]',sort_order:7,status:'未設定'},
-    {name:'桜',month:4,categories:'["季節"]',sort_order:1,status:'未設定'},
-    {name:'エイプリルフール',month:4,categories:'["文化行事"]',sort_order:2,status:'未設定'},
-    {name:'入学式・入社式',month:4,categories:'["文化行事"]',sort_order:3,status:'未設定'},
-    {name:'イースター',month:4,categories:'["文化行事"]',sort_order:4,status:'未設定'},
-    {name:'SSコレクション',month:4,categories:'["ギャル","ビジネス"]',sort_order:5,status:'未設定'},
-    {name:'ゴールデンウィーク',month:5,categories:'["祝日"]',sort_order:1,status:'未設定'},
-    {name:'こどもの日',month:5,categories:'["祝日"]',sort_order:2,status:'未設定'},
-    {name:'母の日',month:5,categories:'["文化行事"]',sort_order:3,status:'未設定'},
-    {name:'体育祭',month:5,categories:'["文化行事"]',sort_order:4,status:'未設定'},
-    {name:'梅雨入り',month:6,categories:'["季節"]',sort_order:1,status:'未設定'},
-    {name:'衣替え',month:6,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
-    {name:'夏休み',month:6,categories:'["文化行事","季節"]',sort_order:3,status:'未設定'},
-    {name:'プール',month:6,categories:'["文化行事","季節","ギャル"]',sort_order:4,status:'未設定'},
-    {name:'梅雨映えヘア',month:6,categories:'["ギャル","季節"]',sort_order:5,status:'未設定'},
-    {name:'七夕',month:7,categories:'["文化行事"]',sort_order:1,status:'未設定'},
-    {name:'花火大会',month:7,categories:'["季節","文化行事"]',sort_order:2,status:'未設定'},
-    {name:'海の日・海開き',month:7,categories:'["祝日","季節"]',sort_order:3,status:'未設定'},
-    {name:'海ギャル',month:7,categories:'["ギャル","季節"]',sort_order:4,status:'未設定'},
-    {name:'祭り',month:7,categories:'["文化行事","季節"]',sort_order:5,status:'未設定'},
-    {name:'夏フェス',month:7,categories:'["ギャル","文化行事"]',sort_order:6,status:'未設定'},
-    {name:'お盆',month:8,categories:'["文化行事"]',sort_order:1,status:'未設定'},
-    {name:'祭り',month:8,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
-    {name:'ひまわり',month:8,categories:'["季節"]',sort_order:3,status:'未設定'},
-    {name:'フットネイル&ボディグリッター',month:8,categories:'["ギャル"]',sort_order:4,status:'未設定'},
-    {name:'お月見',month:9,categories:'["文化行事","季節"]',sort_order:1,status:'未設定'},
-    {name:'秋分の日',month:9,categories:'["祝日","季節"]',sort_order:2,status:'未設定'},
-    {name:'秋コスメ',month:9,categories:'["ギャル","季節"]',sort_order:3,status:'未設定'},
-    {name:'AW展示会',month:9,categories:'["ギャル","ビジネス"]',sort_order:4,status:'未設定'},
-    {name:'ハロウィン',month:10,categories:'["文化行事"]',sort_order:1,status:'未設定'},
-    {name:'食欲の秋',month:10,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
-    {name:'スポーツの日',month:10,categories:'["祝日"]',sort_order:3,status:'未設定'},
-    {name:'紅葉シーズン',month:10,categories:'["季節"]',sort_order:4,status:'未設定'},
-    {name:'ハロウィンネイル&メイク',month:10,categories:'["ギャル","文化行事"]',sort_order:5,status:'未設定'},
-    {name:'推しの秋',month:10,categories:'["ギャル","文化行事"]',sort_order:6,status:'未設定'},
-    {name:'七五三',month:11,categories:'["文化行事"]',sort_order:1,status:'未設定'},
-    {name:'文化の日',month:11,categories:'["祝日"]',sort_order:2,status:'未設定'},
-    {name:'ブラックフライデー',month:11,categories:'["ギャル","ビジネス"]',sort_order:3,status:'未設定'},
-    {name:'年末ライブチケット',month:11,categories:'["ギャル","ビジネス"]',sort_order:4,status:'未設定'},
-    {name:'ポッキーの日',month:11,categories:'["日別テーマ"]',sort_order:5,status:'未設定'},
-    {name:'クリスマス',month:12,categories:'["文化行事","祝日"]',sort_order:1,status:'未設定'},
-    {name:'忘年会シーズン',month:12,categories:'["ビジネス","文化行事"]',sort_order:2,status:'未設定'},
-    {name:'年末カウントダウン',month:12,categories:'["ギャル","文化行事"]',sort_order:3,status:'未設定'},
-    {name:'年末セール',month:12,categories:'["ギャル","ビジネス"]',sort_order:4,status:'未設定'},
-    {name:'年越しそば',month:12,categories:'["文化行事","季節"]',sort_order:5,status:'未設定'},
-  ];
-  await sb.from('pm_content_events').insert(seeds);
-}
-
-
-async function seedAll(){
-  console.log('Seeding...');
-  await sb.from('pm_members').insert([{name:'長田',role:'プロデューサー / PM',sort_order:1},{name:'小森',role:'イラスト / デザイン',sort_order:2},{name:'西村',role:'SNS / コンテンツ',sort_order:3},{name:'中野',role:'プロデューサー',sort_order:4},{name:'緑川',role:'',sort_order:5},{name:'関根',role:'',sort_order:6}]);
-  const{data:members}=await sb.from('pm_members').select('*');const M={};members.forEach(m=>M[m.name]=m.id);
-  await sb.from('pm_categories').insert([{name:'MV / 楽曲',icon:'🎵',color:'#8B5CF6',sort_order:1},{name:'グッズ',icon:'📦',color:'#F97316',sort_order:2},{name:'SNS',icon:'📱',color:'#3B82F6',sort_order:3},{name:'インサイト管理',icon:'📊',color:'#10B981',sort_order:4},{name:'PR',icon:'📣',color:'#EC4899',sort_order:5}]);
-  const{data:cats}=await sb.from('pm_categories').select('*');const C={};cats.forEach(c=>C[c.name]=c.id);
-  await sb.from('pm_projects').insert([
-    {category_id:C['MV / 楽曲'],name:'うさぽよじゃんけん',status:'進行中',description:'MV制作・公開プロジェクト',bottleneck:'グッズサンプル到着時期の確認待ち（MV公開スケジュールの起点）'},
-    {category_id:C['グッズ'],name:'シール',status:'確認待ち',description:'シール制作・販売プロジェクト',bottleneck:'原さんからのサンプル納期回答待ち'},
-    {category_id:C['グッズ'],name:'スクイーズ',status:'確認待ち',description:'スクイーズ制作・販売プロジェクト',bottleneck:'原さんからのサンプル納期回答待ち'},
-    {category_id:C['SNS'],name:'コンテンツ運用',status:'進行中',description:'週4〜5本投稿を目標としたSNS運用'},
-    {category_id:C['インサイト管理'],name:'SNSインサイトダッシュボード',status:'進行中',assignee_id:M['長田'],description:'ClaudeでWebアプリ試作中'},
-  ]);
-  const{data:projs}=await sb.from('pm_projects').select('*');const P={};projs.forEach(p=>P[p.name]=p.id);
-  await sb.from('pm_tasks').insert([
-    {project_id:P['うさぽよじゃんけん'],name:'音源確認（教授）',status:'完了',priority:'高',next_action:'TuneCore登録へ進む',notes:'教授確認OK済み',completed_at:new Date().toISOString()},
-    {project_id:P['うさぽよじゃんけん'],name:'MV公開プラン決定',status:'素材待ち',priority:'高',meeting_check:true,bottleneck:'グッズサンプル到着時期の確認待ち（原さん）',waiting_for:'原さんからのサンプル納期回答',next_action:'サンプル到着時期確認後にスケジュール確定',related_urls:['https://drive.google.com/file/d/1wVHmcA0TnMQnMt3vVSdL8CFAtpZdvFAg/view?usp=sharing']},
-    {project_id:P['うさぽよじゃんけん'],name:'カウントダウンイラスト準備',status:'完了',priority:'中',notes:'4枚制作済み',related_urls:['https://drive.google.com/drive/folders/1UiZ4vFqlTHMFisVuKqaRLqvoUrm8zgcu'],completed_at:new Date().toISOString()},
-    {project_id:P['うさぽよじゃんけん'],name:'TuneCore登録',status:'未着手',priority:'高',next_action:'MV公開スケジュール決定後に着手'},
-    {project_id:P['うさぽよじゃんけん'],name:'各媒体への連絡（担当・日程決定）',status:'未着手',priority:'高',meeting_check:true},
-    {project_id:P['うさぽよじゃんけん'],name:'MV公開',status:'未着手',priority:'高',meeting_check:true,notes:'公開プラン決定後にスケジュール確定'},
-    {project_id:P['シール'],name:'サンプル完成日確認（原さん）',status:'外部返答待ち',priority:'高',meeting_check:true,bottleneck:'原さんから回答待ち',waiting_for:'原さんからのサンプル完成日回答',next_action:'回答確認後にSTORES登録着手タイミングを決定'},
-    {project_id:P['シール'],name:'現物確認',status:'未着手',priority:'高',notes:'サンプル到着後'},
-    {project_id:P['シール'],name:'物撮り',status:'未着手',priority:'中'},{project_id:P['シール'],name:'PR撮影',status:'未着手',priority:'中'},
-    {project_id:P['シール'],name:'STORES商品登録',status:'未着手',priority:'高',meeting_check:true,next_action:'着手タイミングは会議で確認'},
-    {project_id:P['シール'],name:'第1弾販売開始',status:'未着手',priority:'高',meeting_check:true,notes:'9月末目標（未確定）。りりぴ（KOGYARU）告知連動',related_urls:['https://docs.google.com/presentation/d/1ekgmhFyDzXcfyTbZt6dsiuH3RqFAU8sNUfjI0jMJvQs/edit?usp=sharing']},
-    {project_id:P['スクイーズ'],name:'サンプル完成日確認（原さん）',status:'外部返答待ち',priority:'高',meeting_check:true,bottleneck:'原さんから回答待ち',waiting_for:'原さんからのサンプル完成日回答'},
-    {project_id:P['スクイーズ'],name:'現物確認',status:'未着手',priority:'高',notes:'サンプル到着後（シールより2〜3週間遅れる想定）'},
-    {project_id:P['スクイーズ'],name:'物撮り',status:'未着手',priority:'中'},{project_id:P['スクイーズ'],name:'商品登録',status:'未着手',priority:'中'},
-    {project_id:P['スクイーズ'],name:'販売開始（シール+スクイーズセット展開）',status:'未着手',priority:'高',notes:'シール+スクイーズのセット展開候補'},
-    {project_id:P['コンテンツ運用'],name:'質問コーナーフォーマット制作',status:'進行中',priority:'高',assignee_id:M['西村'],meeting_check:true,next_action:'フォーマット完成→フィードストック制作へ'},
-    {project_id:P['コンテンツ運用'],name:'フィード投稿ストック制作',status:'未着手',priority:'高',next_action:'質問コーナーフォーマット完成後'},
-    {project_id:P['コンテンツ運用'],name:'リールフォーマット検討・担当決定',status:'未着手',priority:'中',meeting_check:true},
-    {project_id:P['コンテンツ運用'],name:'LINEスタンプ画質確認',status:'要対応',priority:'中',meeting_check:true},
-    {project_id:P['コンテンツ運用'],name:'他社・バズアカウント手法調査',status:'進行中',priority:'中',meeting_check:true,next_action:'関根さんへ他アカウントの企画承認フローを確認'},
-    {project_id:P['コンテンツ運用'],name:'てるさんへの企画チェック要否確認',status:'確認待ち',priority:'中',meeting_check:true},
-    {project_id:P['SNSインサイトダッシュボード'],name:'Webアプリ開発',status:'進行中',priority:'中',assignee_id:M['長田'],related_urls:['https://ngt-777.github.io/usapoyo-sns/'],notes:'コンテンツ投稿開始までに完成が目標'},
-  ]);
-  await sb.from('pm_milestones').insert([
-    {name:'うさぽよじゃんけん MV公開',date:'2026-09-03',date_end:'2026-09-05',is_tentative:true,notes:'グッズ連動スケジュール確定後に決定',category_id:C['MV / 楽曲']},
-    {name:'SNSストック投稿 本格化',date:'2026-09-15',is_tentative:true,category_id:C['SNS']},
-    {name:'グッズ第1弾 シール販売開始',date:'2026-09-30',is_tentative:true,notes:'りりぴ（KOGYARU）告知連動',category_id:C['グッズ']},
-    {name:'グッズ第2弾 別KOGYARU起用',date:'2026-10-01',is_tentative:true,category_id:C['グッズ']},
-    {name:'KOGYARUツアー 会場物販・PR展開',date:'2026-11-01',date_end:'2027-03-31',is_tentative:true,category_id:C['PR']},
-  ]);
-  await sb.from('pm_meetings').insert([
-    {title:'グッズ販売戦略会議',scheduled_date:'2026-09-04',scheduled_time:'11:00:00',participants:JSON.stringify(['長田','小森','西村'])},
-    {title:'【定例】うさぽよプロジェクト会議（8/31）',scheduled_date:'2026-08-31',participants:JSON.stringify(['中野','緑川','長田','小森','関根'])},
-  ]);
-  await sb.from('pm_other_requests').insert([
-    {name:'わがままバースデー ロゴ制作',requester:'ひめらぶ',content:'楽曲タイトルロゴ制作・ジャケット用デザイン対応・ジャケット写真へのロゴ入れ。\n要望：若干手書き風・丸みフォント・ハートモチーフ・ショートケーキ・白基調・クリーム・ロウソク・いちご・ティアラ',delivery_deadline:'2026-09-20',priority:'高',status:'要確認',work_volume:'大',affects_usapoyo:true,notes:'担当：小森/西村のどちらか要確認。依頼料：30,000円（社内取引）'},
-    {name:'韓国プリシートデザイン',requester:'シブジョ',content:'シブジョ文化祭2026向け 韓国プリシートデザイン',response_deadline:'2026-09-04',priority:'高',status:'要確認',work_volume:'中',affects_usapoyo:true,notes:'担当：小森/西村 要確認。回答期限9/4（金）'},
-    {name:'egg秋号 2P入稿データ制作',requester:'egg',content:'2026年10月29日発売 秋号 2P入稿データ制作。グッズ広告を入れる予定。',delivery_deadline:'2026-09-30',priority:'中',status:'進行中',work_volume:'中',affects_usapoyo:true,notes:'担当：小森/西村 要確認。グッズ広告素材が必要'},
-  ]);
-  console.log('Seed complete!');
-}
-
-window.addEventListener('DOMContentLoaded',async()=>{const ok=loadSetup();if(ok)await start();});
-</script>
-</body>
-</html>
