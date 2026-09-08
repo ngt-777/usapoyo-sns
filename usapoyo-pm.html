@@ -1179,7 +1179,8 @@ function closeTaskModal(){document.getElementById('task-modal').style.display='n
 async function saveTask(){
   const name=document.getElementById('tm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
   const id=document.getElementById('tm-id').value,url=document.getElementById('tm-url').value.trim(),status=document.getElementById('tm-status').value;
-    const selIds=Array.from(document.querySelectorAll('.asgn-chip.on')).map(el=>el.dataset.id);
+    const parentVal=document.getElementById('tm-parent').value||null;
+  const selIds=Array.from(document.querySelectorAll('.asgn-chip.on')).map(el=>el.dataset.id);
   const otherName=document.getElementById('tm-asgn-other')?.value.trim();
   if(otherName)selIds.push('other:'+otherName);
   const data={project_id:document.getElementById('tm-proj').value||null,
