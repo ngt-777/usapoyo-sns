@@ -856,13 +856,19 @@ async function uploadThumbToSupabase(file) {
   const res = await fetch(`${SB_URL}/storage/v1/object/thumbnails/${fileName}`, {
     method: 'POST',
     headers: {
+      'apikey': SB_KEY,
       'Authorization': `Bearer ${SB_KEY}`,
       'Content-Type': file.type || 'image/jpeg',
       'x-upsert': 'true'
     },
     body: file
   });
-  if(!res.ok) { showToast('画像アップロード失敗','error'); return null; }
+  if(!res.ok) {
+    const errText = await res.text();
+    console.error('Upload error:', res.status, errText);
+    showToast('画像アップロード失敗: '+res.status,'error');
+    return null;
+  }
   return `${SB_URL}/storage/v1/object/public/thumbnails/${fileName}`;
 }
 
