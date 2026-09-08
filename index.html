@@ -1342,7 +1342,7 @@ async function submitPost(e){
   if(!title){showToast('タイトルを入力してください','error');return;}
   // サムネイルをSupabaseにアップロード
   let thumbUrl = null;
-  const thumbInput = document.getElementById('post-thumb-input');
+  const thumbInput = document.getElementById('f-thumb');
   if(thumbInput && thumbInput.files[0]) {
     showToast('画像をアップロード中...','info');
     thumbUrl = await uploadThumbToSupabase(thumbInput.files[0]);
