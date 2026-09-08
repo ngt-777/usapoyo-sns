@@ -208,7 +208,15 @@ a{color:var(--accent)}
       <div class="nav-item" data-page="content" onclick="nav('content')"><span class="ni">🗓</span><span>コンテンツカレンダー</span></div>
       <div class="nav-item" data-page="links" onclick="nav('links')"><span class="ni">📦</span><span>素材・リンク</span></div>
     </nav>
-  </div>
+      <div style="margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.07)">
+        <a href="https://ngt-777.github.io/usapoyo-sns/" target="_blank"
+          style="display:flex;align-items:center;gap:8px;font-size:12px;color:rgba(255,255,255,.45);text-decoration:none;transition:color .12s"
+          onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.45)'">
+          <span style="font-size:14px">📊</span>
+          <span>インサイト集計アプリ ↗</span>
+        </a>
+      </div>
+    </div>
 
   <div id="main">
     <div class="page active" id="page-teamtask">
@@ -901,19 +909,32 @@ function tRow(t,depth){
   const pad=8+depth*20,fs=Math.max(11,13-depth);
   const bg=depth>0?`rgba(240,238,252,${Math.min(depth*0.5,0.8)})`:'transparent';
   const arrow=depth===1?'↳ ':depth===2?'  ↳ ':depth>2?'    ↳ ':'';
-  return`<div class="trow" style="padding-left:${pad}px;background:${bg}">
+  const rowHtml=`<div class="trow" style="padding-left:${pad}px;background:${bg}">
     <div class="tchk ${ck?'ck':''}" onclick="toggleTask('${t.id}')">${ck?'✓':''}</div>
     <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')" style="font-size:${fs}px">${arrow}${t.name}</div>
     <div class="tm2">
       ${t.meeting_check?'<span title="次回会議で確認" style="font-size:12px">📋</span>':''}
       ${t.bottleneck?`<span title="${t.bottleneck}" style="font-size:12px;cursor:help">🚧</span>`:''}
-      <span class="tass">${mn(t.assignee_id)}</span>
+      <span class="tass">${mnMulti(t)}</span>
       ${badge(t.status)}
       ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
       <button class="btn bg" style="padding:2px 5px;font-size:11px" onclick="openTaskModal('${t.id}')">✏</button>
       <button class="btn bg" style="padding:2px 5px;font-size:11px;color:var(--accent)" title="サブタスクを追加" onclick="openTaskModal(null,null,'${t.id}')">＋</button>
-    </div></div>
-  ${subs.map(s=>tRow(s,depth+1)).join('')}`;
+    </div></div>`;
+
+  let subsHtml='';
+  if(subs.length>0){
+    if(depth>=1){
+      const uid='sub-'+t.id;
+      subsHtml=`<details id="${uid}" style="margin-left:${pad+16}px">
+        <summary style="font-size:11px;color:var(--accent);cursor:pointer;padding:3px 0 3px 4px;list-style:none;user-select:none">▶ サブタスク ${subs.length}件</summary>
+        ${subs.map(s=>tRow(s,depth+1)).join('')}
+      </details>`;
+    }else{
+      subsHtml=subs.map(s=>tRow(s,depth+1)).join('');
+    }
+  }
+  return rowHtml+subsHtml;
 }
 
 function setProjF(id){projF=id;renderProject();}
@@ -1320,7 +1341,7 @@ function showDetail(id){
   document.getElementById('det-body').innerHTML=`
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">ステータス</span><div style="margin-top:4px">${badge(t.status)}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">担当者</span><div style="margin-top:4px;font-weight:600">${mn(t.assignee_id)}</div></div>
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">担当者</span><div style="margin-top:4px;font-weight:600">${mnMulti(t)}</div></div>
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">期限</span><div style="margin-top:4px;font-weight:600;color:${isOv(t.deadline)?'var(--red)':isSn(t.deadline)?'var(--yel)':'inherit'}">${fd(t.deadline)}</div></div>
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">プロジェクト</span><div style="margin-top:4px;font-size:13px">${pn(t.project_id)}</div></div>
     </div>
@@ -1705,17 +1726,26 @@ function renderContent(){
     return;
   }
 
-  // 年間ビュー
-  let h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
-  months.forEach((mon,i)=>{
-    const mNum=i+1;
+  // 年間ビュー（春夏秋冬順）
+  const seasons=[
+    {name:'🌸 春',months:[3,4,5],color:'#EC4899'},
+    {name:'☀️ 夏',months:[6,7,8],color:'#F97316'},
+    {name:'🍂 秋',months:[9,10,11],color:'#8B5CF6'},
+    {name:'❄️ 冬',months:[12,1,2],color:'#3B82F6'},
+  ];
+  const mName={1:'1月',2:'2月',3:'3月',4:'4月',5:'5月',6:'6月',7:'7月',8:'8月',9:'9月',10:'10月',11:'11月',12:'12月'};
+  let h='';
+  seasons.forEach(season=>{
+    h+=`<div style="margin-bottom:6px;padding:6px 12px;background:${season.color}18;border-left:3px solid ${season.color};border-radius:4px;font-size:13px;font-weight:700;color:${season.color}">${season.name}</div>`;
+    h+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">';
+    season.months.forEach(mNum=>{
     let evts=D.contentEvents.filter(e=>e.month===mNum);
     if(ccFilter!=='all')evts=evts.filter(e=>{try{return JSON.parse(e.categories||'[]').includes(ccFilter);}catch(er){return false;}});
     if(ccStatusFilter!=='all')evts=evts.filter(e=>(e.status||'未設定')===ccStatusFilter);
     evts.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
     h+=`<div class="card" style="cursor:pointer" onclick="ccMonthView=${mNum};renderContent()">
       <div style="font-size:15px;font-weight:800;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-        <span>${mon}</span><span style="font-size:11px;color:var(--tm);font-weight:400">${evts.length}件 →</span>
+        <span>${mNameMap[mNum]}</span><span style="font-size:11px;color:var(--tm);font-weight:400">${evts.length}件 →</span>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:4px">
         ${evts.map(e=>{
@@ -1728,8 +1758,9 @@ function renderContent(){
         ${evts.length===0?'<div style="font-size:11px;color:var(--tm)">—</div>':''}
       </div>
     </div>`;
+    });
+    h+='</div>';
   });
-  h+='</div>';
   document.getElementById('content-body').innerHTML=h;
 }
 
