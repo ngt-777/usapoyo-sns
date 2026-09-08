@@ -801,6 +801,13 @@ textarea{resize:vertical;min-height:72px}
         <label>キャプション</label>
         <textarea id="edit-caption" style="min-height:80px"></textarea>
       </div>
+      <div class="form-group full">
+        <label>ハッシュタグ</label>
+        <div id="edit-hashtag-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
+        <div style="display:flex;gap:8px">
+          <input type="text" id="edit-hashtag-input" placeholder="#タグを入力してEnter" style="flex:1" onkeydown="onEditHashtagKey(event)">
+        </div>
+      </div>
     </div>
     <div style="display:flex;gap:10px;margin-top:20px">
       <button class="btn btn-primary" onclick="saveEditPost()">保存する</button>
@@ -1624,6 +1631,24 @@ function renderDetail(post){
 let editThumbData=null;
 
 let editThumbFile = null;
+let editHashtags = [];
+
+function renderEditHashtagChips(){
+  const el=document.getElementById('edit-hashtag-chips');
+  if(!el)return;
+  el.innerHTML=editHashtags.map((t,i)=>`<span class="tag-chip">${t} <span onclick="editHashtags.splice(${i},1);renderEditHashtagChips()" style="cursor:pointer;margin-left:4px;opacity:.7">×</span></span>`).join('');
+}
+
+function onEditHashtagKey(e){
+  if(e.key!=='Enter'&&e.key!==' ')return;
+  e.preventDefault();
+  const val=e.target.value.trim().replace(/^#*/,'');
+  if(!val)return;
+  const tag='#'+val;
+  if(!editHashtags.includes(tag))editHashtags.push(tag);
+  e.target.value='';
+  renderEditHashtagChips();
+}
 async function onEditThumbChange(e){
   const file=e.target.files[0];
   if(!file)return;
@@ -1655,6 +1680,9 @@ function startEditPost(id){
   const editMusicType=document.getElementById('edit-music-type');if(editMusicType)editMusicType.value=post.musicType||'';
   document.getElementById('edit-memo').value=post.memo||'';
   document.getElementById('edit-caption').value=post.caption||'';
+  // ハッシュタグをセット
+  editHashtags=[...(post.hashtags||[])];
+  renderEditHashtagChips();
   const prev=document.getElementById('edit-thumb-preview');
   if(prev)prev.innerHTML=post.thumbnail?`<img src="${post.thumbnail}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`:''
   document.getElementById('edit-post-modal').style.display='flex';
@@ -1680,6 +1708,7 @@ async function saveEditPost(){
     url:document.getElementById('edit-url').value,
     memo:document.getElementById('edit-memo').value,
     caption:document.getElementById('edit-caption').value,
+    hashtags:[...editHashtags],
     musicTitle:document.getElementById('edit-music-title').value,
     musicArtist:document.getElementById('edit-music-artist').value,
     musicType:document.getElementById('edit-music-type').value,
