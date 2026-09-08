@@ -254,8 +254,8 @@ textarea{resize:vertical;min-height:72px}
 .tag-chip button{background:none;border:none;cursor:pointer;color:var(--pink-dark);font-size:14px;line-height:1;padding:0;opacity:.7}
 .tag-chip button:hover{opacity:1}
 .tag-input-field{border:none;outline:none;font-size:12px;color:var(--navy);min-width:100px;flex:1;background:transparent;font-family:inherit;padding:2px 0}
-.post-thumb{width:48px;height:48px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
-.post-thumb-placeholder{width:48px;height:48px;border-radius:8px;background:var(--bg);flex-shrink:0;border:1px solid var(--border)}
+.post-thumb{width:64px;height:64px;border-radius:8px;object-fit:cover;flex-shrink:0;border:1px solid var(--border)}
+.post-thumb-placeholder{width:64px;height:64px;border-radius:8px;background:var(--bg);flex-shrink:0;border:1px solid var(--border)}
 
 .preset-tag{background:var(--surface);border:1px solid var(--border2);border-radius:20px;padding:4px 10px;font-size:11px;font-weight:600;color:var(--navy2);cursor:pointer;transition:all .15s;font-family:inherit;white-space:nowrap}
 .preset-tag:hover{background:var(--pink-light);border-color:var(--pink);color:var(--pink-dark)}
@@ -446,6 +446,26 @@ textarea{resize:vertical;min-height:72px}
           <div class="form-group">
             <label>投稿URL</label>
             <input type="url" id="f-url" placeholder="https://...">
+          </div>
+          <div class="form-group">
+            <label>使用音源</label>
+            <input type="text" id="f-music-title" placeholder="曲名・楽曲タイトル">
+          </div>
+          <div class="form-group">
+            <label>音源アーティスト</label>
+            <input type="text" id="f-music-artist" placeholder="アーティスト名">
+          </div>
+          <div class="form-group full">
+            <label>音源の種類</label>
+            <select id="f-music-type">
+              <option value="">選択してください</option>
+              <option>オリジナル楽曲</option>
+              <option>既存楽曲（商業）</option>
+              <option>既存楽曲（フリー）</option>
+              <option>AI生成音源</option>
+              <option>効果音・SE</option>
+              <option>音源なし</option>
+            </select>
           </div>
           <div class="form-group full">
             <label>投稿メモ</label>
@@ -753,6 +773,26 @@ textarea{resize:vertical;min-height:72px}
         <label>投稿URL</label>
         <input type="url" id="edit-url" placeholder="https://...">
       </div>
+      <div class="form-group">
+        <label>使用音源</label>
+        <input type="text" id="edit-music-title" placeholder="曲名・楽曲タイトル">
+      </div>
+      <div class="form-group">
+        <label>音源アーティスト</label>
+        <input type="text" id="edit-music-artist" placeholder="アーティスト名">
+      </div>
+      <div class="form-group full">
+        <label>音源の種類</label>
+        <select id="edit-music-type">
+          <option value="">選択してください</option>
+          <option>オリジナル楽曲</option>
+          <option>既存楽曲（商業）</option>
+          <option>既存楽曲（フリー）</option>
+          <option>AI生成音源</option>
+          <option>効果音・SE</option>
+          <option>音源なし</option>
+        </select>
+      </div>
       <div class="form-group full">
         <label>投稿メモ</label>
         <textarea id="edit-memo" style="min-height:60px"></textarea>
@@ -780,6 +820,17 @@ textarea{resize:vertical;min-height:72px}
 // ═══════════════════════════════════════════
 //  GOOGLE APPS SCRIPT 連携
 // ═══════════════════════════════════════════
+// URLからサムネイルURLを自動生成
+function getAutoThumb(post) {
+  if(post.thumbnail) return post.thumbnail;
+  const url = post.url || '';
+  // YouTube
+  const ytMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+  if(ytMatch) return `https://img.youtube.com/vi/${ytMatch[1]}/mqdefault.jpg`;
+  // TikTok oEmbed（非同期なので別途処理）
+  return null;
+}
+
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWvcVxuNOZMvFaAylkbv1zjJopyxFsP87EY3R1lzyUESwfudLyEybE1h68_6sn9lMD/exec';
 
 async function gasGet(action) {
@@ -1256,6 +1307,9 @@ async function submitPost(e){
     title,
     category:document.getElementById('f-category').value,
     url:document.getElementById('f-url').value,
+    musicTitle:document.getElementById('f-music-title').value,
+    musicArtist:document.getElementById('f-music-artist').value,
+    musicType:document.getElementById('f-music-type').value,
     memo:document.getElementById('f-memo').value,
     caption:document.getElementById('f-caption').value,
     hashtags:[...currentHashtags],
@@ -1326,9 +1380,10 @@ function renderPostList(){
     // 最新のインサイト（7日後があれば7日後、なければ1日後）を表示
     const ins=post.insight7d||post.insight1d;
     const rates=calcInsightRates(ins);
-    const thumbEl=post.thumbnail
-      ?`<img class="post-thumb" src="${post.thumbnail}" alt="">`
-      :`<div class="post-thumb-placeholder"></div>`;
+    const autoThumb=getAutoThumb(post);
+    const thumbEl=autoThumb
+      ?`<img class="post-thumb" src="${autoThumb}" alt="" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`+`<div class="post-thumb-placeholder" style="display:none;align-items:center;justify-content:center"><span class="kpi-badge ${platClass(post.platform)}" style="font-size:10px">${platAbbr(post.platform)}</span></div>`
+      :`<div class="post-thumb-placeholder" style="display:flex;align-items:center;justify-content:center"><span class="kpi-badge ${platClass(post.platform)}" style="font-size:10px">${platAbbr(post.platform)}</span></div>`;
     return`<div class="post-item" onclick="openDetail('${post.id}')">
       ${thumbEl}
       <div class="post-plat ${platClass(post.platform)}">${platAbbr(post.platform)}</div>
@@ -1446,7 +1501,7 @@ function renderDetail(post){
     <button class="btn btn-ghost btn-sm" onclick="navigateTo('post-list')">← 一覧に戻る</button>
   </div>
   <div class="detail-header">
-    ${post.thumbnail?`<img src="${post.thumbnail}" alt="サムネイル" style="width:80px;height:80px;object-fit:cover;border-radius:12px;flex-shrink:0;border:1px solid var(--border)">`:`<div class="detail-icon ${platClass(post.platform)}">${platAbbr(post.platform)}</div>`}
+    ${(()=>{const t=getAutoThumb(post);return t?`<img src="${t}" alt="サムネイル" style="width:80px;height:80px;object-fit:cover;border-radius:12px;flex-shrink:0;border:1px solid var(--border)" onerror="this.style.display='none'">`:`<div class="detail-icon ${platClass(post.platform)}">${platAbbr(post.platform)}</div>`})()}
     <div style="flex:1;min-width:0">
       <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
         ${post.thumbnail?`<span class="kpi-badge ${platClass(post.platform)}">${platAbbr(post.platform)}</span>`:''}
@@ -1463,6 +1518,10 @@ function renderDetail(post){
         ${statusBadge(post)}
         ${post.url?`<a href="${post.url}" target="_blank" style="font-size:11px;color:var(--ig)">投稿を開く ↗</a>`:''}
       </div>
+      ${(post.musicTitle||post.musicType)?`<div style="margin-top:8px;background:var(--bg);border-radius:6px;padding:8px 12px;display:flex;align-items:center;gap:8px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gray)" stroke-width="2"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>
+        <span style="font-size:12px;color:var(--navy2)">${[post.musicTitle,post.musicArtist,post.musicType].filter(Boolean).join(' / ')}</span>
+      </div>`:''}
       ${post.memo?`<div style="margin-top:8px;font-size:12px;color:var(--gray2);background:var(--bg);border-radius:6px;padding:8px 12px">${post.memo}</div>`:''}
       ${post.caption?`<div style="margin-top:8px;background:var(--bg);border-radius:6px;padding:10px 12px"><div style="font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.6px;margin-bottom:4px">キャプション</div><div style="font-size:12px;color:var(--navy2);line-height:1.6;white-space:pre-wrap">${post.caption}</div></div>`:''}
       ${post.hashtags&&post.hashtags.length?`<div style="margin-top:8px;display:flex;flex-wrap:wrap;gap:5px">${post.hashtags.map(t=>`<span class="tag-chip">${t}</span>`).join('')}</div>`:''}
@@ -1555,6 +1614,9 @@ function startEditPost(id){
   document.getElementById('edit-format').value=post.format||'';
   document.getElementById('edit-category').value=post.category||'';
   document.getElementById('edit-url').value=post.url||'';
+  document.getElementById('edit-music-title').value=post.musicTitle||'';
+  document.getElementById('edit-music-artist').value=post.musicArtist||'';
+  const editMusicType=document.getElementById('edit-music-type');if(editMusicType)editMusicType.value=post.musicType||'';
   document.getElementById('edit-memo').value=post.memo||'';
   document.getElementById('edit-caption').value=post.caption||'';
   const prev=document.getElementById('edit-thumb-preview');
@@ -1582,6 +1644,9 @@ async function saveEditPost(){
     url:document.getElementById('edit-url').value,
     memo:document.getElementById('edit-memo').value,
     caption:document.getElementById('edit-caption').value,
+    musicTitle:document.getElementById('edit-music-title').value,
+    musicArtist:document.getElementById('edit-music-artist').value,
+    musicType:document.getElementById('edit-music-type').value,
     thumbnail:editThumbData||post.thumbnail||null,
   };
   await gasPost('updatePost', updated);
