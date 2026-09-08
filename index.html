@@ -12,10 +12,10 @@
   --bg:#F1F5F9;--surface:#FFFFFF;--border:#E2E8F0;--border2:#CBD5E1;
   --gray:#94A3B8;--gray2:#64748B;
   --pink:#F472B6;--pink-light:#FDF2F8;--pink-dark:#DB2777;
-  --ig:#3B82F6;--ig-bg:#EFF6FF;
-  --tt:#F43F5E;--tt-bg:#FFF1F2;
+  --ig:#F59E0B;--ig-bg:#FFFBEB;
+  --tt:#8B5CF6;--tt-bg:#F5F3FF;
   --yt:#EF4444;--yt-bg:#FEF2F2;
-  --xb:#1E293B;--xb-bg:#F8FAFC;
+  --xb:#1D9BF0;--xb-bg:#EFF8FF;
   --green:#10B981;--green-bg:#ECFDF5;
   --red:#EF4444;--red-bg:#FEF2F2;
   --amber:#F59E0B;--amber-bg:#FFFBEB;
@@ -67,13 +67,13 @@ nav{padding:12px 0;flex:1}
 .kpi-card.ig::before{background:var(--ig)}
 .kpi-card.tt::before{background:var(--tt)}
 .kpi-card.yt::before{background:var(--yt)}
-.kpi-card.xb::before{background:#8B5CF6}
+.kpi-card.xb::before{background:var(--xb)}
 .kpi-platform{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .kpi-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.3px}
 .kpi-badge.ig{background:var(--ig-bg);color:var(--ig)}
 .kpi-badge.tt{background:var(--tt-bg);color:var(--tt)}
 .kpi-badge.yt{background:var(--yt-bg);color:var(--yt)}
-.kpi-badge.xb{background:#F5F3FF;color:#7C3AED}
+.kpi-badge.xb{background:var(--xb-bg);color:var(--xb)}
 .kpi-num{font-size:26px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums;letter-spacing:-1px;line-height:1.1;margin-bottom:10px}
 .kpi-meta{display:flex;flex-direction:column;gap:4px}
 .kpi-row{display:flex;justify-content:space-between;align-items:center;font-size:11px}
@@ -146,7 +146,7 @@ textarea{resize:vertical;min-height:72px}
 .post-plat.ig{background:var(--ig-bg);color:var(--ig)}
 .post-plat.tt{background:var(--tt-bg);color:var(--tt)}
 .post-plat.yt{background:var(--yt-bg);color:var(--yt)}
-.post-plat.xb{background:#F5F3FF;color:#7C3AED}
+.post-plat.xb{background:var(--xb-bg);color:var(--xb)}
 .post-info{flex:1;min-width:0}
 .post-title{font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .post-meta{font-size:11px;color:var(--gray);margin-top:3px;display:flex;gap:10px;align-items:center}
@@ -937,7 +937,7 @@ function genId(){return Date.now().toString(36)+Math.random().toString(36).slice
 // ═══════════════════════════════════════════
 const platClass = p=>({Instagram:'ig',TikTok:'tt',YouTube:'yt',X:'xb'})[p]||'ig';
 const platAbbr = p=>({Instagram:'IG',TikTok:'TT',YouTube:'YT',X:'X'})[p]||p;
-const platColor = p=>({Instagram:'#3B82F6',TikTok:'#F43F5E',YouTube:'#EF4444',X:'#8B5CF6'})[p]||'#94A3B8';
+const platColor = p=>({Instagram:'#F59E0B',TikTok:'#8B5CF6',YouTube:'#EF4444',X:'#1D9BF0'})[p]||'#94A3B8';
 
 function fmt(n,dec=0){
   if(n===null||n===undefined||n==='')return '—';
