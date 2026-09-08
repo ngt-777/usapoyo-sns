@@ -831,6 +831,30 @@ function getAutoThumb(post) {
   return null;
 }
 
+// ═══════════════════════════════════════════
+//  SUPABASE STORAGE（画像アップロード用）
+// ═══════════════════════════════════════════
+const SB_URL = 'https://szujilotgyaomxkkdkgv.supabase.co';
+const SB_KEY = 'sb_publishable_TgE2Y9ar97DwAXMWMwTBww_LEHP5z3b';
+
+async function uploadThumbToSupabase(file) {
+  if(!file) return null;
+  if(file.size > 5*1024*1024) { showToast('5MB以下の画像を選択してください','error'); return null; }
+  const ext = file.name.split('.').pop() || 'jpg';
+  const fileName = 'thumb_' + Date.now() + '.' + ext;
+  const res = await fetch(`${SB_URL}/storage/v1/object/thumbnails/${fileName}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${SB_KEY}`,
+      'Content-Type': file.type || 'image/jpeg',
+      'x-upsert': 'true'
+    },
+    body: file
+  });
+  if(!res.ok) { showToast('画像アップロード失敗','error'); return null; }
+  return `${SB_URL}/storage/v1/object/public/thumbnails/${fileName}`;
+}
+
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWvcVxuNOZMvFaAylkbv1zjJopyxFsP87EY3R1lzyUESwfudLyEybE1h68_6sn9lMD/exec';
 
 async function gasGet(action) {
@@ -841,7 +865,8 @@ async function gasGet(action) {
 async function gasPost(action, data) {
   // thumbnail・caption・memoは除外（URL長さ制限のため）
   const sendData = {...data};
-  delete sendData.thumbnail;
+  // thumbnailはSupabase URLになったので送信OK（base64の場合のみ除外）
+  if(sendData.thumbnail && sendData.thumbnail.startsWith('data:')) delete sendData.thumbnail;
   if(sendData.caption && sendData.caption.length > 200) sendData.caption = sendData.caption.slice(0,200);
   if(sendData.memo && sendData.memo.length > 200) sendData.memo = sendData.memo.slice(0,200);
   const payload = encodeURIComponent(JSON.stringify(sendData));
@@ -1298,6 +1323,15 @@ async function submitPost(e){
   e.preventDefault();
   const title=document.getElementById('f-title').value.trim();
   if(!title){showToast('タイトルを入力してください','error');return;}
+  // サムネイルをSupabaseにアップロード
+  let thumbUrl = null;
+  const thumbInput = document.getElementById('post-thumb-input');
+  if(thumbInput && thumbInput.files[0]) {
+    showToast('画像をアップロード中...','info');
+    thumbUrl = await uploadThumbToSupabase(thumbInput.files[0]);
+  } else if(currentThumbData) {
+    thumbUrl = currentThumbData; // 既存のbase64データ
+  }
   const post={
     id:genId(),
     date:document.getElementById('f-date').value,
@@ -1313,7 +1347,7 @@ async function submitPost(e){
     memo:document.getElementById('f-memo').value,
     caption:document.getElementById('f-caption').value,
     hashtags:[...currentHashtags],
-    thumbnail:currentThumbData,
+    thumbnail:thumbUrl,
     insight1d:null,insight7d:null,
     status:'waiting',
     createdAt:new Date().toISOString(),
@@ -1589,15 +1623,17 @@ function renderDetail(post){
 
 let editThumbData=null;
 
-function onEditThumbChange(e){
+let editThumbFile = null;
+async function onEditThumbChange(e){
   const file=e.target.files[0];
   if(!file)return;
   if(file.size>5*1024*1024){showToast('5MB以下の画像を選択してください','error');return;}
+  editThumbFile = file;
+  // プレビュー表示
   const reader=new FileReader();
   reader.onload=ev=>{
-    editThumbData=ev.target.result;
     const prev=document.getElementById('edit-thumb-preview');
-    if(prev)prev.innerHTML=`<img src="${editThumbData}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`;
+    if(prev)prev.innerHTML=`<img src="${ev.target.result}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`;
   };
   reader.readAsDataURL(file);
 }
@@ -1647,7 +1683,10 @@ async function saveEditPost(){
     musicTitle:document.getElementById('edit-music-title').value,
     musicArtist:document.getElementById('edit-music-artist').value,
     musicType:document.getElementById('edit-music-type').value,
-    thumbnail:editThumbData||post.thumbnail||null,
+    thumbnail: await (async()=>{
+      if(editThumbFile) return await uploadThumbToSupabase(editThumbFile);
+      return editThumbData||post.thumbnail||null;
+    })(),
   };
   await gasPost('updatePost', updated);
   await DB.init();
