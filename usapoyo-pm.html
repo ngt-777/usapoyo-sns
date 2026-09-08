@@ -908,13 +908,17 @@ function tRow(t,depth){
   const ck=t.status==='完了',subs=D.tasks.filter(s=>s.parent_task_id===t.id);
   const pad=8+depth*20,fs=Math.max(11,13-depth);
   const bg=depth>0?`rgba(240,238,252,${Math.min(depth*0.5,0.8)})`:'transparent';
-  const arrow=depth===1?'↳ ':depth===2?'  ↳ ':depth>2?'    ↳ ':'';
+  const arrow=depth===1?'↳ ':depth>=2?'  ↳ ':'';
+  const subId='sub-'+t.id;
+
+  // depth>=1でサブタスクがある場合、折り畳みボタンを表示
+  const hasDeepSubs=depth>=1&&subs.length>0;
+
   const rowHtml=`<div class="trow" style="padding-left:${pad}px;background:${bg}">
     <div class="tchk ${ck?'ck':''}" onclick="toggleTask('${t.id}')">${ck?'✓':''}</div>
     <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')" style="font-size:${fs}px">${arrow}${t.name}</div>
     <div class="tm2">
-      ${t.meeting_check?'<span title="次回会議で確認" style="font-size:12px">📋</span>':''}
-      ${t.bottleneck?`<span title="${t.bottleneck}" style="font-size:12px;cursor:help">🚧</span>`:''}
+      ${hasDeepSubs?`<button class="btn bg" style="padding:1px 8px;font-size:10px;color:var(--accent);border:1px solid var(--accent);border-radius:100px" onclick="event.stopPropagation();toggleSubs('${subId}',this)" title="サブタスクを展開・折り畳み">▶ ${subs.length}件</button>`:''}
       <span class="tass">${mnMulti(t)}</span>
       ${badge(t.status)}
       ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
@@ -925,16 +929,21 @@ function tRow(t,depth){
   let subsHtml='';
   if(subs.length>0){
     if(depth>=1){
-      const uid='sub-'+t.id;
-      subsHtml=`<details id="${uid}" style="margin-left:${pad+16}px">
-        <summary style="font-size:11px;color:var(--accent);cursor:pointer;padding:3px 0 3px 4px;list-style:none;user-select:none">▶ サブタスク ${subs.length}件</summary>
-        ${subs.map(s=>tRow(s,depth+1)).join('')}
-      </details>`;
+      // 孫タスクは折り畳み（デフォルト非表示）
+      subsHtml=`<div id="${subId}" style="display:none">${subs.map(s=>tRow(s,depth+1)).join('')}</div>`;
     }else{
+      // 直下サブタスクは常に表示
       subsHtml=subs.map(s=>tRow(s,depth+1)).join('');
     }
   }
   return rowHtml+subsHtml;
+}
+function toggleSubs(id,btn){
+  const el=document.getElementById(id);if(!el)return;
+  const open=el.style.display!=='none';
+  el.style.display=open?'none':'block';
+  btn.textContent=open?`▶ ${el.children.length}件`:`▼ ${el.children.length}件`;
+  btn.style.color=open?'var(--accent)':'var(--grn)';
 }
 
 function setProjF(id){projF=id;renderProject();}
