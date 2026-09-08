@@ -261,6 +261,7 @@ a{color:var(--accent)}
 
     <div class="page" id="page-content">
       <div class="ph"><div><div class="pt">🗓 コンテンツ年間カレンダー</div><div class="ps">月別イベント・行事のコンテンツ企画リファレンス</div></div><button class="btn bp" onclick="openContentModal()">＋ イベント追加</button></div>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:6px"><button class="btn bs bsm" onclick="forceReseedContent()" style="font-size:11px;color:var(--tm)">🔄 データ更新</button></div>
       <div class="chips" id="cc-chips">
         <div class="chip on" onclick="setCCat(this,'all')">すべて</div>
         <div class="chip" onclick="setCCat(this,'祝日')">祝日</div>
@@ -302,7 +303,6 @@ a{color:var(--accent)}
       <div id="tm-asgn-checks" style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0 8px"></div>
       <input class="fi" id="tm-asgn-other" placeholder="その他（名前を直接入力）" style="margin-top:4px">
     </div>
-    <div class="fg"><label class="fl">確認者</label><select class="fsel" id="tm-rev"></select></div>
     <input type="hidden" id="tm-parent">
     <input type="hidden" id="tm-request-id">
     <div id="tm-parent-label" style="display:none;margin-bottom:12px;padding:8px 12px;background:var(--purbg);border-radius:var(--rs);font-size:12px;color:var(--pur)">📎 サブタスクとして追加</div>
@@ -320,10 +320,7 @@ a{color:var(--accent)}
     </div>
     <div class="fg"><label class="fl">次のアクション</label><input class="fi" id="tm-na" placeholder="例：回答確認後にSTORES登録へ"></div>
     <div class="fg"><label class="fl">関連URL</label><input class="fi" id="tm-url" placeholder="https://..."></div>
-    <div style="display:flex;gap:18px;margin-top:6px">
-      <label class="fchk"><input type="checkbox" id="tm-mtg"> 次回会議で確認</label>
-      <label class="fchk"><input type="checkbox" id="tm-today"> 今日やる</label>
-    </div>
+
     <div class="sep"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn bs" onclick="closeTaskModal()">キャンセル</button>
@@ -388,7 +385,6 @@ a{color:var(--accent)}
     <div class="fg"><label class="fl">説明・メモ</label><textarea class="fta" id="qm-desc" style="height:54px" placeholder="詳細・背景など"></textarea></div>
     <div class="frow">
       <div class="fg"><label class="fl">担当者</label><select class="fsel" id="qm-asgn"></select></div>
-      <div class="fg"><label class="fl">確認者</label><select class="fsel" id="qm-rev"></select></div>
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">ステータス</label>
@@ -404,10 +400,7 @@ a{color:var(--accent)}
     <div class="fg"><label class="fl">終了見込み</label><input class="fi" type="date" id="qm-est"></div>
     <div class="fg"><label class="fl">次のアクション</label><input class="fi" id="qm-na" placeholder="例：回答確認後にSTORES登録へ"></div>
     <div class="fg"><label class="fl">関連URL</label><input class="fi" id="qm-url" placeholder="https://..."></div>
-    <div style="display:flex;gap:18px;margin-top:6px">
-      <label class="fchk"><input type="checkbox" id="qm-today"> 今日やる</label>
-      <label class="fchk"><input type="checkbox" id="qm-mtg"> 次回会議で確認</label>
-    </div>
+
     <div class="sep"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn bs" onclick="closeQuickModal()">キャンセル</button>
@@ -697,7 +690,7 @@ async function showApp(){
   if(document.getElementById('tb-date'))document.getElementById('tb-date').textContent=ds;
   await loadAll();
   if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
-  if(!D.contentEvents.length||D.contentEvents.every(e=>!e.status)){try{await seedContentEvents();}catch(e){}await loadAll();}
+  if(!D.contentEvents.length||D.contentEvents.every(e=>!e.status)||localStorage.getItem('cc_ver')!=='v15'){try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){}await loadAll();}
   renderTeamTask();
 }
 async function loadAll(){
@@ -1260,7 +1253,7 @@ function openTaskModal(id,preProj,parentId,requestId){
   if(pl)pl.style.display=parentId?'block':'none';
   document.getElementById('tm-cat').innerHTML='<option value="">カテゴリ</option>'+D.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   document.getElementById('tm-asgn-checks').innerHTML=D.members.filter(m=>['長田','小森','西村'].includes(m.name)).map(m=>`<div class="asgn-chip" data-id="${m.id}" data-checked="0" onclick="toggleAsgn(this)">${m.name}</div>`).join('');
-  document.getElementById('tm-rev').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+
   if(id){
     const t=D.tasks.find(x=>x.id===id);if(!t)return;
     document.getElementById('tm-id').value=t.id;
@@ -1271,12 +1264,10 @@ function openTaskModal(id,preProj,parentId,requestId){
     document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=savedIds2.includes(chip.dataset.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
     const otherVals2=savedIds2.filter(x=>x&&x.startsWith('other:')).map(x=>x.slice(6));
     if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value=otherVals2.join('・');
-    document.getElementById('tm-rev').value=t.reviewer_id||'';
     document.getElementById('tm-status').value=t.status||'未着手';
     document.getElementById('tm-dl').value=t.deadline||'';document.getElementById('tm-est').value=t.estimated_completion||'';
 
     document.getElementById('tm-na').value=t.next_action||'';document.getElementById('tm-url').value=(t.related_urls&&t.related_urls[0])||'';
-    document.getElementById('tm-mtg').checked=!!t.meeting_check;document.getElementById('tm-today').checked=!!t.today_flag;
   }else{
     document.getElementById('tm-id').value='';
     ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-est'].forEach(x=>document.getElementById(x).value='');
@@ -1284,8 +1275,6 @@ function openTaskModal(id,preProj,parentId,requestId){
     document.getElementById('tm-status').value='未着手';
     document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=!!(curMember?.id&&chip.dataset.id===curMember.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
     document.getElementById('tm-asgn-other').value='';
-    document.getElementById('tm-rev').value='';
-    document.getElementById('tm-mtg').checked=false;document.getElementById('tm-today').checked=false;
     if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
   }
   document.getElementById('tm-parent').value=parentId||'';
@@ -1305,12 +1294,10 @@ async function saveTask(){
     parent_task_id:parentVal,
     name,description:document.getElementById('tm-desc').value.trim()||null,
     assignee_id:selIds.find(x=>!x.startsWith('other:'))||null,co_assignees:selIds.length?JSON.stringify(selIds):null,
-    reviewer_id:document.getElementById('tm-rev').value||null,
     status,deadline:document.getElementById('tm-dl').value||null,
     estimated_completion:document.getElementById('tm-est').value||null,
     next_action:document.getElementById('tm-na').value.trim()||null,
-    related_urls:url?[url]:[],    meeting_check:document.getElementById('tm-mtg').checked,today_flag:document.getElementById('tm-today').checked,
-    request_id:document.getElementById('tm-request-id').value||null,
+    related_urls:url?[url]:[],    request_id:document.getElementById('tm-request-id').value||null,
     updated_at:new Date().toISOString()};
   if(status==='完了')data.completed_at=new Date().toISOString();
   const{error}=id?await sb.from('pm_tasks').update(data).eq('id',id):await sb.from('pm_tasks').insert(data);
@@ -1335,9 +1322,7 @@ function showDetail(id){
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">ステータス</span><div style="margin-top:4px">${badge(t.status)}</div></div>
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">担当者</span><div style="margin-top:4px;font-weight:600">${mn(t.assignee_id)}</div></div>
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">期限</span><div style="margin-top:4px;font-weight:600;color:${isOv(t.deadline)?'var(--red)':isSn(t.deadline)?'var(--yel)':'inherit'}">${fd(t.deadline)}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">優先度</span><div style="margin-top:4px;font-weight:600">${t.priority||'—'}</div></div>
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">プロジェクト</span><div style="margin-top:4px;font-size:13px">${pn(t.project_id)}</div></div>
-      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">確認者</span><div style="margin-top:4px;font-weight:600">${mn(t.reviewer_id)}</div></div>
     </div>
     ${t.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">説明</span><div style="margin-top:4px;font-size:13px">${t.description}</div></div>`:''}
     ${t.bottleneck?`<div class="bn bn-red" style="margin-bottom:12px">🚧 ${t.bottleneck}</div>`:''}
@@ -1345,10 +1330,7 @@ function showDetail(id){
     ${t.next_action?`<div class="bn bn-blu" style="margin-bottom:12px"><span>→</span><div><strong>次のアクション：</strong>${t.next_action}</div></div>`:''}
     ${t.related_urls&&t.related_urls.length?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">関連URL</span><div style="margin-top:4px">${t.related_urls.map(u=>`<a href="${u}" target="_blank" style="font-size:12px;display:block;word-break:break-all">${u}</a>`).join('')}</div></div>`:''}
     ${t.notes?`<div style="margin-bottom:12px;font-size:12px;color:var(--tm)">📝 ${t.notes}</div>`:''}
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">
-      ${t.meeting_check?'<span class="tag" style="background:#F0FDF4;color:#166534">📋 次回会議で確認</span>':''}
-      ${t.today_flag?'<span class="tag" style="background:#EDE9FE;color:#5B21B6">☀️ 今日やる</span>':''}
-    </div>`;
+`;
   document.getElementById('detail-modal').style.display='flex';
 }
 function closeDetail(){document.getElementById('detail-modal').style.display='none';}
@@ -1454,14 +1436,11 @@ function selectCatTag(el,cat){
 function openQuickModal(memberId){
   const mSel='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
   document.getElementById('qm-asgn').innerHTML=mSel;
-  document.getElementById('qm-rev').innerHTML=mSel;
   document.getElementById('qm-mid').value=memberId||'';
   if(memberId)document.getElementById('qm-asgn').value=memberId;
   else if(curMember&&curMember.id)document.getElementById('qm-asgn').value=curMember.id;
   ['qm-name','qm-desc','qm-dl','qm-est','qm-na','qm-url'].forEach(x=>document.getElementById(x).value='');
   document.getElementById('qm-status').value='未着手';
-  document.getElementById('qm-today').checked=false;
-  document.getElementById('qm-mtg').checked=false;
   document.getElementById('quick-modal').style.display='flex';
 }
 function closeQuickModal(){document.getElementById('quick-modal').style.display='none';}
@@ -1472,14 +1451,11 @@ async function saveQuickTask(){
   const data={name,
     description:document.getElementById('qm-desc').value.trim()||null,
     assignee_id:document.getElementById('qm-asgn').value||null,
-    reviewer_id:document.getElementById('qm-rev').value||null,
     status,
     deadline:document.getElementById('qm-dl').value||null,
     estimated_completion:document.getElementById('qm-est').value||null,
     next_action:document.getElementById('qm-na').value.trim()||null,
     related_urls:qurl?[qurl]:[],
-    today_flag:document.getElementById('qm-today').checked,
-    meeting_check:document.getElementById('qm-mtg').checked,
     updated_at:new Date().toISOString()};
   if(status==='完了')data.completed_at=new Date().toISOString();
   const{error}=await sb.from('pm_tasks').insert(data);
@@ -1551,6 +1527,7 @@ function copyLinkUrl(url,btn){
 // ── CALENDAR EVENTS ──
 const EVT_COLORS={'グッズ・販売':'#F97316','MV・音楽':'#8B5CF6','ツアー・物販':'#3B82F6','撮影':'#10B981','会議':'#9CA3AF','メディア':'#EC4899','その他':'#6B7280'};
 
+async function forceReseedContent(){if(!confirm('コンテンツカレンダーのデータを最新版に更新しますか？'))return;try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){alert('エラー: '+e.message);return;}await loadAll();renderContent();alert('更新完了しました！');};
 function openEvtModal(id){
   document.getElementById('em-title').textContent=id?'イベントを編集':'イベントを追加';
   const delBtn=document.getElementById('em-del-btn');
