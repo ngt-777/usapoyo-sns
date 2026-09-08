@@ -205,7 +205,7 @@ a{color:var(--accent)}
     <nav class="nav-sec">
       <div class="nav-sec-l">運用</div>
       <div class="nav-item" data-page="meeting" onclick="nav('meeting')"><span class="ni">📝</span><span>定例会議</span></div>
-      <div class="nav-item" data-page="requests" onclick="nav('requests')"><span class="ni">📩</span><span>他部署依頼</span></div>
+      <div class="nav-item" data-page="content" onclick="nav('content')"><span class="ni">🗓</span><span>年間カレンダー</span></div>
       <div class="nav-item" data-page="links" onclick="nav('links')"><span class="ni">📦</span><span>素材・リンク</span></div>
     </nav>
   </div>
@@ -214,7 +214,7 @@ a{color:var(--accent)}
     <div class="page active" id="page-teamtask">
       <div class="ph">
         <div><div class="pt">うさぽよチームタスク</div></div>
-        <button class="btn bp" onclick="openQuickModal()">＋ タスク追加</button>
+        <div style="display:flex;gap:8px"><button class="btn bs bsm" onclick="openCatModal()">＋ カテゴリ追加</button><button class="btn bp" onclick="openQuickModal()">＋ タスク追加</button></div>
       </div>
       <div style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
         <div style="font-size:13px;font-weight:700;color:var(--tp)">👥 メンバー別タスク</div>
@@ -257,9 +257,21 @@ a{color:var(--accent)}
       <div class="ph"><div><div class="pt">定例会議</div><div class="ps">アジェンダ自動生成・議事録管理</div></div><button class="btn bp" onclick="openMeetingModal()">＋ 会議を作成</button></div>
       <div id="mtg-body"><div class="ld">読み込み中...</div></div>
     </div>
-    <div class="page" id="page-requests">
-      <div class="ph"><div><div class="pt">他部署依頼</div><div class="ps">外部依頼・割り込み業務の管理</div></div><button class="btn bp" onclick="openReqModal()">＋ 依頼追加</button></div>
-      <div id="req-body"><div class="ld">読み込み中...</div></div>
+
+
+    <div class="page" id="page-content">
+      <div class="ph"><div><div class="pt">🗓 コンテンツ年間カレンダー</div><div class="ps">月別イベント・行事のコンテンツ企画リファレンス</div></div><button class="btn bp" onclick="openContentModal()">＋ イベント追加</button></div>
+      <div class="chips" id="cc-chips">
+        <div class="chip on" onclick="setCCat(this,'all')">すべて</div>
+        <div class="chip" onclick="setCCat(this,'祝日')">祝日</div>
+        <div class="chip" onclick="setCCat(this,'ギャル')">ギャル</div>
+        <div class="chip" onclick="setCCat(this,'文化行事')">文化行事</div>
+        <div class="chip" onclick="setCCat(this,'季節')">季節</div>
+        <div class="chip" onclick="setCCat(this,'ビジネス')">ビジネス</div>
+        <div class="chip" onclick="setCCat(this,'キャラ')">キャラ</div>
+        <div class="chip" onclick="setCCat(this,'日別テーマ')">日別テーマ</div>
+      </div>
+      <div id="content-body"><div class="ld">読み込み中...</div></div>
     </div>
 
     <div class="page" id="page-links">
@@ -439,6 +451,68 @@ a{color:var(--accent)}
   </div></div>
 </div>
 
+
+
+<!-- Content Calendar Modal -->
+<div id="content-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeContentModal()">
+  <div class="mbox" style="max-width:500px"><div class="mhead"><div class="mtitle" id="ccm-title">イベントを追加</div><button class="mclose" onclick="closeContentModal()">✕</button></div>
+  <div class="mbody">
+    <input type="hidden" id="ccm-id">
+    <div class="fg"><label class="fl">イベント名 *</label><input class="fi" id="ccm-name" placeholder="例：バレンタインデー"></div>
+    <div class="frow">
+      <div class="fg"><label class="fl">月 *</label>
+        <select class="fsel" id="ccm-month">
+          <option value="1">1月</option><option value="2">2月</option><option value="3">3月</option>
+          <option value="4">4月</option><option value="5">5月</option><option value="6">6月</option>
+          <option value="7">7月</option><option value="8">8月</option><option value="9">9月</option>
+          <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl">日（任意）</label><input class="fi" type="number" id="ccm-day" min="1" max="31" placeholder="例：14"></div>
+    </div>
+    <div class="fg"><label class="fl">カテゴリ（複数選択可）</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0" id="ccm-cats">
+        <div class="asgn-chip" data-val="祝日" onclick="toggleCCat(this)">祝日</div>
+        <div class="asgn-chip" data-val="ギャル" onclick="toggleCCat(this)">ギャル</div>
+        <div class="asgn-chip" data-val="文化行事" onclick="toggleCCat(this)">文化行事</div>
+        <div class="asgn-chip" data-val="季節" onclick="toggleCCat(this)">季節</div>
+        <div class="asgn-chip" data-val="ビジネス" onclick="toggleCCat(this)">ビジネス</div>
+        <div class="asgn-chip" data-val="キャラ" onclick="toggleCCat(this)">キャラ</div>
+        <div class="asgn-chip" data-val="日別テーマ" onclick="toggleCCat(this)">日別テーマ</div>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">説明・メモ</label><textarea class="fta" id="ccm-desc" style="height:48px"></textarea></div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn-del" id="ccm-del" style="display:none;margin-right:auto" onclick="deleteContent()">削除</button>
+      <button class="btn bs" onclick="closeContentModal()">キャンセル</button>
+      <button class="btn bp" onclick="saveContent()">保存する</button>
+    </div>
+  </div></div>
+</div>
+<!-- Category Modal -->
+<div id="cat-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeCatModal()">
+  <div class="mbox" style="max-width:440px"><div class="mhead"><div class="mtitle">カテゴリを追加</div><button class="mclose" onclick="closeCatModal()">✕</button></div>
+  <div class="mbody">
+    <div class="frow">
+      <div class="fg"><label class="fl">アイコン（絵文字）</label><input class="fi" id="cm-icon" placeholder="📦" style="font-size:20px;text-align:center;width:60px"></div>
+      <div class="fg" style="flex:3"><label class="fl">カテゴリ名 *</label><input class="fi" id="cm-name" placeholder="例：他部署依頼"></div>
+    </div>
+    <div class="fg"><label class="fl">カラー</label>
+      <select class="fsel" id="cm-color">
+        <option value="#7C6FCD">🟣 パープル</option><option value="#F97316">🟠 オレンジ</option>
+        <option value="#3B82F6">🔵 ブルー</option><option value="#10B981">🟢 グリーン</option>
+        <option value="#EC4899">🩷 ピンク</option><option value="#EF4444">🔴 レッド</option>
+        <option value="#F59E0B">🟡 イエロー</option><option value="#9CA3AF">⚪ グレー</option>
+      </select>
+    </div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeCatModal()">キャンセル</button>
+      <button class="btn bp" onclick="saveCat()">追加する</button>
+    </div>
+  </div></div>
+</div>
 <!-- Project Modal -->
 <div id="proj-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeProjModal()">
   <div class="mbox" style="max-width:440px"><div class="mhead"><div class="mtitle">プロジェクトを追加</div><button class="mclose" onclick="closeProjModal()">✕</button></div>
@@ -540,7 +614,8 @@ a{color:var(--accent)}
 <script>
 // STATE
 let sb=null;
-const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[]};
+const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[]};
+let ccFilter='all';
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
 const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2025-12-30','2025-12-31','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-30','2026-12-31','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23','2027-12-30','2027-12-31']);
@@ -608,10 +683,11 @@ async function showApp(){
   if(document.getElementById('tb-date'))document.getElementById('tb-date').textContent=ds;
   await loadAll();
   if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
+  if(!D.contentEvents.length){try{await seedContentEvents();}catch(e){}await loadAll();}
   renderTeamTask();
 }
 async function loadAll(){
-  const[a,b,c,d,e,f,g,h,i,j]=await Promise.all([
+  const[a,b,c,d,e,f,g,h,i,j,k]=await Promise.all([
     sb.from('pm_members').select('*').order('sort_order'),
     sb.from('pm_categories').select('*').order('sort_order'),
     sb.from('pm_projects').select('*').order('created_at'),
@@ -621,12 +697,14 @@ async function loadAll(){
     sb.from('pm_meetings').select('*').order('scheduled_date',{ascending:false}),
     sb.from('pm_other_requests').select('*').order('delivery_deadline'),
     sb.from('pm_links').select('*').order('sort_order'),
-    sb.from('pm_calendar_events').select('*').order('event_date')
+    sb.from('pm_calendar_events').select('*').order('event_date'),
+    sb.from('pm_content_events').select('*').order('month,sort_order')
   ]);
   D.members=a.data||[];D.categories=b.data||[];D.projects=c.data||[];D.tasks=d.data||[];
   D.milestones=e.data||[];D.sns=f.data||[];D.meetings=g.data||[];D.requests=h.data||[];
   D.links=(typeof i!=='undefined'?i.data:null)||[];
   D.events=(typeof j!=='undefined'?j.data:null)||[];
+  D.contentEvents=(typeof k!=='undefined'?k.data:null)||[];
 }
 const mn=id=>{if(!id)return'未設定';const m=D.members.find(x=>x.id===id);return m?m.name:'未設定';};
 const mnMulti=t=>{if(t.co_assignees){try{const ids=JSON.parse(t.co_assignees);if(ids.length>0){const names=ids.map(id=>id.startsWith('other:')?id.slice(6):(D.members.find(x=>x.id===id)?.name||'?'));return names.join('・');}}catch(e){}}return mn(t.assignee_id);};
@@ -651,8 +729,8 @@ function nav(page){
     else if(page==='calendar')renderCal();
     else if(page==='sns')renderSns();
     else if(page==='meeting')renderMeeting();
-    else if(page==='requests')renderReq();
     else if(page==='links')renderLinks();
+    else if(page==='content')renderContent();
   });
 }
 
@@ -783,6 +861,30 @@ function renderProject(){
     h+='</div>';
   });
   if(!h)h='<div class="empty"><h3>プロジェクトがありません</h3></div>';
+  // 他部署依頼セクション
+  const actR=D.requests.filter(r=>r.status!=='完了'),doneR=D.requests.filter(r=>r.status==='完了');
+  h+=`<div class="pcat"><div class="pcat-hd"><span>📩</span><h3 style="flex:1">他部署依頼</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openReqModal()">＋ 依頼追加</button></div>
+  ${actR.map(r=>`<div class="pblk" style="border-left:3px solid var(--org)">
+    <div class="pblk-hd" onclick="togglePB('req-${r.id}')">
+      <span>📩</span><div class="pblk-nm">${r.name}</div>
+      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+        <span style="font-size:11px;color:var(--tm)">${r.requester}</span>
+        ${r.fee?`<span style="font-size:11px;font-weight:600;color:var(--ts)">${Number(r.fee).toLocaleString()}円</span>`:''}
+        ${r.delivery_deadline?`<span style="font-size:11px;color:${isOv(r.delivery_deadline)?'var(--red)':isSn(r.delivery_deadline)?'var(--yel)':'var(--tm)'}">📅${fd(r.delivery_deadline)}</span>`:''}
+        ${badge(r.status)}
+        <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openReqModal('${r.id}')">✏</button>
+      </div>
+    </div>
+    <div id="pb-req-${r.id}" style="padding:8px 16px">
+      ${r.content?`<div style="font-size:12px;color:var(--ts);white-space:pre-wrap;margin-bottom:4px">${r.content}</div>`:''}
+      ${r.response_deadline?`<div style="font-size:11px;color:var(--tm)">初稿期限：${fd(r.response_deadline)}</div>`:''}
+      ${r.notes?`<div style="font-size:11px;color:var(--tm);margin-top:4px">📝 ${r.notes}</div>`:''}
+      ${r.affects_usapoyo?`<div class="bn bn-yel" style="margin-top:6px;font-size:11px">⚠ うさぽよ業務への影響あり</div>`:''}
+    </div>
+  </div>`).join('')}
+  ${actR.length===0?'<div style="font-size:12px;color:rgba(255,255,255,.4);padding:12px 16px">依頼なし</div>':''}
+  ${doneR.length?`<details style="padding:4px 16px"><summary style="font-size:11px;color:rgba(255,255,255,.4);cursor:pointer">完了済み（${doneR.length}件）</summary>${doneR.map(r=>`<div style="font-size:12px;color:rgba(255,255,255,.4);padding:2px 0;text-decoration:line-through">${r.name}</div>`).join('')}</details>`:''}
+  </div>`;
   document.getElementById('proj-body').innerHTML=h;
 }
 function tRow(t,depth){
@@ -820,7 +922,7 @@ function renderTaskboard(){
   const grid=showM.length===1?'max-width:600px':'display:grid;grid-template-columns:repeat('+showM.length+',1fr);gap:16px';
   let h=`<div style="${grid}">`;
   showM.forEach(m=>{
-    const all=D.tasks.filter(t=>t.assignee_id===m.id);
+    const all=D.tasks.filter(t=>{if(t.assignee_id===m.id)return true;if(t.co_assignees){try{return JSON.parse(t.co_assignees).includes(m.id);}catch(e){}}return false;});
     const active=all.filter(t=>t.status!=='完了').sort((a,b)=>(sOrd[a.status]||4)-(sOrd[b.status]||4));
     const done=all.filter(t=>t.status==='完了').slice(0,5);
     const mr=D.requests.filter(r=>r.assignee_id===m.id&&r.status!=='完了');
@@ -1550,6 +1652,123 @@ async function saveProj(){
   const{error}=projId?await sb.from('pm_projects').update(data).eq('id',projId):await sb.from('pm_projects').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
   closeProjModal();await loadAll();renderProject();
+}
+
+
+// ── CATEGORY CRUD ──
+function openCatModal(){['cm-icon','cm-name'].forEach(x=>document.getElementById(x).value='');document.getElementById('cm-color').value='#7C6FCD';document.getElementById('cat-modal').style.display='flex';}
+function closeCatModal(){document.getElementById('cat-modal').style.display='none';}
+async function saveCat(){
+  const name=document.getElementById('cm-name').value.trim();if(!name){alert('カテゴリ名を入力してください');return;}
+  const data={name,icon:document.getElementById('cm-icon').value.trim()||'📁',color:document.getElementById('cm-color').value,sort_order:D.categories.length+1};
+  const{error}=await sb.from('pm_categories').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeCatModal();await loadAll();renderTeamTask();
+}
+
+// ── CONTENT CALENDAR ──
+const CC_COLS={'祝日':'#EF4444','ギャル':'#EC4899','文化行事':'#8B5CF6','季節':'#10B981','ビジネス':'#3B82F6','キャラ':'#F97316','日別テーマ':'#F59E0B'};
+
+function setCCat(el,cat){document.querySelectorAll('#cc-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');ccFilter=cat;renderContent();}
+
+function renderContent(){
+  const months=['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+  let h='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px">';
+  months.forEach((mon,i)=>{
+    const mNum=i+1;
+    let evts=D.contentEvents.filter(e=>e.month===mNum);
+    if(ccFilter!=='all')evts=evts.filter(e=>{try{return JSON.parse(e.categories||'[]').includes(ccFilter);}catch(er){return false;}});
+    evts.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+    h+=`<div class="card">
+      <div style="font-size:15px;font-weight:800;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border)">${mon}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px">
+        ${evts.map(e=>{
+          const cats=JSON.parse(e.categories||'[]');
+          const col=CC_COLS[cats[0]]||'#9CA3AF';
+          return`<div style="display:inline-flex;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;background:${col}18;color:${col};cursor:pointer;border:1px solid ${col}44" onclick="openContentModal('${e.id}')" title="${cats.join('・')}">${e.name}</div>`;
+        }).join('')}
+        ${evts.length===0?'<div style="font-size:11px;color:var(--tm)">—</div>':''}
+      </div>
+    </div>`;
+  });
+  h+='</div>';
+  document.getElementById('content-body').innerHTML=h;
+}
+
+function toggleCCat(el){el.classList.toggle('on');}
+
+function openContentModal(id){
+  document.getElementById('ccm-title').textContent=id?'イベントを編集':'イベントを追加';
+  document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>c.classList.remove('on'));
+  document.getElementById('ccm-del').style.display=id?'inline-flex':'none';
+  if(id){
+    const e=D.contentEvents.find(x=>x.id===id);if(!e)return;
+    document.getElementById('ccm-id').value=e.id;document.getElementById('ccm-name').value=e.name||'';
+    document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';
+    document.getElementById('ccm-desc').value=e.description||'';
+    try{const cats=JSON.parse(e.categories||'[]');document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>{if(cats.includes(c.dataset.val))c.classList.add('on');});}catch(er){}
+  }else{
+    ['ccm-id','ccm-name','ccm-day','ccm-desc'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('ccm-month').value=new Date().getMonth()+1;
+  }
+  document.getElementById('content-modal').style.display='flex';
+}
+function closeContentModal(){document.getElementById('content-modal').style.display='none';}
+
+async function saveContent(){
+  const name=document.getElementById('ccm-name').value.trim();if(!name){alert('イベント名を入力してください');return;}
+  const id=document.getElementById('ccm-id').value;
+  const cats=Array.from(document.querySelectorAll('#ccm-cats .asgn-chip.on')).map(c=>c.dataset.val);
+  const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,
+    categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null};
+  const{error}=id?await sb.from('pm_content_events').update(data).eq('id',id):await sb.from('pm_content_events').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeContentModal();await loadAll();renderContent();
+}
+async function deleteContent(){
+  if(!confirm('このイベントを削除しますか？'))return;
+  const id=document.getElementById('ccm-id').value;
+  await sb.from('pm_content_events').delete().eq('id',id);
+  closeContentModal();await loadAll();renderContent();
+}
+
+async function seedContentEvents(){
+  const seeds=[
+    {name:'元旦・正月',month:1,categories:'["祝日","文化行事"]',sort_order:1},{name:'成人の日',month:1,categories:'["祝日"]',sort_order:2},
+    {name:'福袋争奪',month:1,categories:'["ビジネス"]',sort_order:3},{name:'初詣コーデ',month:1,categories:'["文化行事","ギャル"]',sort_order:4},
+    {name:'干支',month:1,categories:'["文化行事","キャラ"]',sort_order:5},{name:'箱根駅伝',month:1,categories:'["文化行事"]',sort_order:6},
+    {name:'節分',month:2,categories:'["文化行事","季節"]',sort_order:1},{name:'バレンタインデー',month:2,categories:'["文化行事","季節"]',sort_order:2},
+    {name:'バレンタインネイル',month:2,categories:'["ギャル"]',sort_order:3},{name:'猫の日',month:2,categories:'["日別テーマ","キャラ"]',sort_order:4},
+    {name:'ひな祭り',month:3,categories:'["文化行事"]',sort_order:1},{name:'卒業式',month:3,categories:'["文化行事"]',sort_order:2},
+    {name:'花見',month:3,categories:'["季節"]',sort_order:3},{name:'春ネイル',month:3,categories:'["ギャル","季節"]',sort_order:4},
+    {name:'ブタの日',month:3,categories:'["日別テーマ","キャラ"]',sort_order:5},{name:'耳の日',month:3,categories:'["日別テーマ"]',sort_order:6},
+    {name:'春分の日',month:3,categories:'["祝日","季節"]',sort_order:7},
+    {name:'桜',month:4,categories:'["季節"]',sort_order:1},{name:'エイプリルフール',month:4,categories:'["文化行事"]',sort_order:2},
+    {name:'入学式・入社式',month:4,categories:'["文化行事"]',sort_order:3},{name:'イースター',month:4,categories:'["文化行事"]',sort_order:4},
+    {name:'SSコレクション',month:4,categories:'["ビジネス"]',sort_order:5},
+    {name:'ゴールデンウィーク',month:5,categories:'["祝日"]',sort_order:1},{name:'こどもの日',month:5,categories:'["祝日"]',sort_order:2},
+    {name:'母の日',month:5,categories:'["文化行事"]',sort_order:3},{name:'体育祭',month:5,categories:'["文化行事"]',sort_order:4},
+    {name:'梅雨入り',month:6,categories:'["季節"]',sort_order:1},{name:'衣替え',month:6,categories:'["季節","ギャル"]',sort_order:2},
+    {name:'夏休み',month:6,categories:'["季節"]',sort_order:3},{name:'プール',month:6,categories:'["季節","ギャル"]',sort_order:4},
+    {name:'梅雨映えヘア',month:6,categories:'["ギャル","季節"]',sort_order:5},
+    {name:'七夕',month:7,categories:'["文化行事"]',sort_order:1},{name:'花火大会',month:7,categories:'["季節","文化行事"]',sort_order:2},
+    {name:'海の日・海開き',month:7,categories:'["祝日","季節"]',sort_order:3},{name:'海ギャル',month:7,categories:'["ギャル","季節"]',sort_order:4},
+    {name:'祭り',month:7,categories:'["文化行事","季節"]',sort_order:5},{name:'夏フェス',month:7,categories:'["文化行事"]',sort_order:6},
+    {name:'お盆',month:8,categories:'["文化行事"]',sort_order:1},{name:'祭り',month:8,categories:'["文化行事","季節"]',sort_order:2},
+    {name:'ひまわり',month:8,categories:'["季節"]',sort_order:3},{name:'フットネイル&ボディグリッター',month:8,categories:'["ギャル"]',sort_order:4},
+    {name:'お月見',month:9,categories:'["文化行事","季節"]',sort_order:1},{name:'秋分の日',month:9,categories:'["祝日","季節"]',sort_order:2},
+    {name:'秋コスメ',month:9,categories:'["ギャル","季節"]',sort_order:3},{name:'AW展示会',month:9,categories:'["ビジネス"]',sort_order:4},
+    {name:'ハロウィン',month:10,categories:'["文化行事"]',sort_order:1},{name:'食欲の秋',month:10,categories:'["季節"]',sort_order:2},
+    {name:'スポーツの日',month:10,categories:'["祝日"]',sort_order:3},{name:'紅葉シーズン',month:10,categories:'["季節"]',sort_order:4},
+    {name:'ハロウィンネイル&メイク',month:10,categories:'["ギャル","文化行事"]',sort_order:5},{name:'推しの秋',month:10,categories:'["文化行事"]',sort_order:6},
+    {name:'七五三',month:11,categories:'["文化行事"]',sort_order:1},{name:'文化の日',month:11,categories:'["祝日"]',sort_order:2},
+    {name:'ブラックフライデー',month:11,categories:'["ビジネス"]',sort_order:3},{name:'年末ライブチケット',month:11,categories:'["ビジネス"]',sort_order:4},
+    {name:'ポッキーの日',month:11,categories:'["日別テーマ"]',sort_order:5},
+    {name:'クリスマス',month:12,categories:'["文化行事","祝日"]',sort_order:1},{name:'忘年会シーズン',month:12,categories:'["文化行事"]',sort_order:2},
+    {name:'年末カウントダウン',month:12,categories:'["文化行事"]',sort_order:3},{name:'年末セール',month:12,categories:'["ビジネス"]',sort_order:4},
+    {name:'年越しそば',month:12,categories:'["文化行事","季節"]',sort_order:5},
+  ];
+  await sb.from('pm_content_events').insert(seeds);
 }
 
 async function seedAll(){
