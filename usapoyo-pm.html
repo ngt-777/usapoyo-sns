@@ -1046,15 +1046,23 @@ function renderTaskboard(){
     const barCol=pct<70?'var(--grn)':pct<90?'var(--yel)':'var(--red)';
     const remH=Math.max(availH-totalUsed,0).toFixed(1);
 
-    const mtr=t=>`<div class="trow">
-      <div class="tchk ${t.status==='完了'?'ck':''}" onclick="toggleTask('${t.id}')">${t.status==='完了'?'✓':''}</div>
-      <div class="tn ${t.status==='完了'?'done':''}" onclick="showDetail('${t.id}')">${t.name}</div>
-      <div class="tm2">
-        ${t.today_flag?'<span style="font-size:11px">☀️</span>':''}
-        ${t.work_hours?`<span style="font-size:10px;color:var(--ts);background:var(--bg);padding:1px 5px;border-radius:3px">${t.work_hours}h</span>`:''}
-        ${badge(t.status)}
-        ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
-      </div></div>`;
+    const mtr=t=>{
+      const par=t.parent_task_id?D.tasks.find(x=>x.id===t.parent_task_id):null;
+      const gpar=par&&par.parent_task_id?D.tasks.find(x=>x.id===par.parent_task_id):null;
+      let ctx='';
+      if(gpar&&par)ctx=`<span style="font-size:10px;color:var(--tm)">${gpar.name.length>10?gpar.name.slice(0,10)+'…':gpar.name} ＞ ${par.name.length>10?par.name.slice(0,10)+'…':par.name} ＞ </span>`;
+      else if(par)ctx=`<span style="font-size:10px;color:var(--tm)">${par.name.length>14?par.name.slice(0,14)+'…':par.name} ＞ </span>`;
+      return`<div class="trow">
+        <div class="tchk ${t.status==='完了'?'ck':''}" onclick="toggleTask('${t.id}')">${t.status==='完了'?'✓':''}</div>
+        <div class="tn ${t.status==='完了'?'done':''}" onclick="showDetail('${t.id}')" style="display:flex;flex-direction:column;align-items:flex-start;gap:1px">
+          ${ctx?`<div>${ctx}<span>${t.name}</span></div>`:`<span>${t.name}</span>`}
+        </div>
+        <div class="tm2">
+          ${t.work_hours?`<span style="font-size:10px;color:var(--ts);background:var(--bg);padding:1px 5px;border-radius:3px">${t.work_hours}h</span>`:''}
+          ${badge(t.status)}
+          ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
+        </div></div>`;
+    };
 
     h+=`<div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;margin-bottom:10px">
@@ -1550,6 +1558,8 @@ function openTaskModal(id,preProj,parentId,requestId){
     const otherVals=savedIds.filter(x=>x&&x.startsWith('other:')).map(x=>x.slice(6));
     if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value=otherVals.join('・');
     const tmRev2=document.getElementById('tm-rev');if(tmRev2)tmRev2.value=t.reviewer_id||'';
+    // 編集時は既存のparent_task_idを保持
+    document.getElementById('tm-parent').value=t.parent_task_id||'';
     document.getElementById('tm-status').value=t.status||'未着手';
     document.getElementById('tm-dl').value=t.deadline||'';
     document.getElementById('tm-work-date').value=t.work_date||'';
@@ -1564,10 +1574,12 @@ function openTaskModal(id,preProj,parentId,requestId){
     document.getElementById('tm-recurring').checked=false;document.getElementById('tm-freq').style.display='none';
     document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=!!(curMember?.id&&chip.dataset.id===curMember.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
     if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value='';
+    document.getElementById('tm-parent').value='';
     const tmRev3=document.getElementById('tm-rev');if(tmRev3)tmRev3.value='';document.getElementById('tm-status').value='未着手';
     if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
   }
-  document.getElementById('tm-parent').value=parentId||'';
+  // parentIdが明示的に指定された場合のみ上書き（サブタスク追加時）
+  if(parentId!==undefined)document.getElementById('tm-parent').value=parentId||'';
   document.getElementById('tm-request-id').value=requestId||'';
   document.getElementById('task-modal').style.display='flex';
 }
