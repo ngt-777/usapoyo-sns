@@ -1574,7 +1574,6 @@ async function deleteContent(){if(!confirm('このイベントを削除します
 // ── MEMBER RESOURCE ──
 
 
-async 
 // ── CATEGORY CRUD ──
 function openCatModal(){['cm-icon','cm-name'].forEach(x=>document.getElementById(x).value='');document.getElementById('cm-color').value='#7C6FCD';document.getElementById('cat-modal').style.display='flex';}
 function closeCatModal(){document.getElementById('cat-modal').style.display='none';}
@@ -1759,7 +1758,6 @@ async function deleteTaskSafe(id){
   if(curPage==='teamtask')renderTeamTask();else if(curPage==='meeting')renderMeeting();
 }
 
-async 
 // ── REQUEST MODAL ──
 function setReqPreset(text){document.getElementById('rm-content').value=text;document.getElementById('rm-content').focus();}
 function openReqModal(id){
