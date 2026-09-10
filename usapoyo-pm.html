@@ -1246,7 +1246,7 @@ function renderSns(){
         const maxPosts=cell.evts.length>0?2:3;
         return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
           <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}"> ${cell.day}</span></div>
-          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}33;color:#1A1A2E;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid ${e.color}" onclick="event.stopPropagation();openEvtModal('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
+          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}33;color:#1A1A2E;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid ${e.color}" onclick="event.stopPropagation();showEvtDetail('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
           ${cell.posts.slice(0,maxPosts).map(p=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${(CAT_COLORS[p.category]||'#9CA3AF')}22;color:${CAT_COLORS[p.category]||'#9CA3AF'};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
           ${cell.posts.length>maxPosts?`<div style="font-size:9px;color:var(--tm)">+${cell.posts.length-maxPosts}</div>`:''}
         </div>`;
@@ -1538,7 +1538,7 @@ function openTaskModal(id,preProj,parentId,requestId){
   const pl=document.getElementById('tm-parent-label');if(pl)pl.style.display=parentId?'block':'none';
   document.getElementById('tm-cat').innerHTML='<option value="">カテゴリ</option>'+D.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
   document.getElementById('tm-asgn-checks').innerHTML=D.members.filter(m=>['長田','小森','西村'].includes(m.name)).map(m=>`<div class="asgn-chip" data-id="${m.id}" data-checked="0" onclick="toggleAsgn(this)">${m.name}</div>`).join('');
-  document.getElementById('tm-rev').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  const tmRev=document.getElementById('tm-rev');if(tmRev)tmRev.innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
   if(id){
     const t=D.tasks.find(x=>x.id===id);if(!t)return;
     document.getElementById('tm-id').value=t.id;
@@ -1549,7 +1549,7 @@ function openTaskModal(id,preProj,parentId,requestId){
     document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=savedIds.includes(chip.dataset.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
     const otherVals=savedIds.filter(x=>x&&x.startsWith('other:')).map(x=>x.slice(6));
     if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value=otherVals.join('・');
-    document.getElementById('tm-rev').value=t.reviewer_id||'';
+    const tmRev2=document.getElementById('tm-rev');if(tmRev2)tmRev2.value=t.reviewer_id||'';
     document.getElementById('tm-status').value=t.status||'未着手';
     document.getElementById('tm-dl').value=t.deadline||'';
     document.getElementById('tm-work-date').value=t.work_date||'';
@@ -1564,7 +1564,7 @@ function openTaskModal(id,preProj,parentId,requestId){
     document.getElementById('tm-recurring').checked=false;document.getElementById('tm-freq').style.display='none';
     document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=!!(curMember?.id&&chip.dataset.id===curMember.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
     if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value='';
-    document.getElementById('tm-rev').value='';document.getElementById('tm-status').value='未着手';
+    const tmRev3=document.getElementById('tm-rev');if(tmRev3)tmRev3.value='';document.getElementById('tm-status').value='未着手';
     if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
   }
   document.getElementById('tm-parent').value=parentId||'';
@@ -1742,6 +1742,28 @@ async function saveQuickTask(){
 }
 
 // ── EVENT MODAL ──
+function showEvtDetail(id){
+  const e=D.events.find(x=>x.id===id);if(!e)return;
+  const EVT_CATS={'グッズ・販売':'#F97316','MV・音楽':'#8B5CF6','ツアー・物販':'#3B82F6','撮影':'#10B981','会議':'#9CA3AF','メディア':'#EC4899','その他':'#6B7280'};
+  const col=e.color||(EVT_CATS[e.category]||'#7C6FCD');
+  document.getElementById('det-title').textContent=e.name;
+  document.getElementById('det-del').onclick=()=>{closeDetail();deleteEvt2(id);};
+  document.getElementById('det-edit').onclick=()=>{closeDetail();openEvtModal(id);};
+  document.getElementById('det-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">日付</span>
+        <div style="margin-top:4px;font-weight:600">${fdl(e.event_date)}${e.event_date_end&&e.event_date_end!==e.event_date?' 〜 '+fdl(e.event_date_end):''}</div></div>
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">カテゴリ</span>
+        <div style="margin-top:4px"><span style="font-size:12px;font-weight:600;color:${col};background:${col}22;padding:2px 8px;border-radius:100px">${e.category||'その他'}</span></div></div>
+    </div>
+    ${e.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">説明・メモ</span><div style="margin-top:4px;font-size:13px;white-space:pre-wrap">${e.description}</div></div>`:'<div style="font-size:12px;color:var(--tm)">説明なし</div>'}`;
+  document.getElementById('detail-modal').style.display='flex';
+}
+async function deleteEvt2(id){
+  if(!confirm('このイベントを削除しますか？'))return;
+  await sb.from('pm_calendar_events').delete().eq('id',id);
+  await loadAll();renderSns();
+}
 function openEvtModal(id){
   document.getElementById('em-title').textContent=id?'イベントを編集':'イベントを追加';
   const delBtn=document.getElementById('em-del-btn');
