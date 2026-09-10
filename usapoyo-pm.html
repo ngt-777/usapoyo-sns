@@ -189,7 +189,7 @@ a{color:var(--accent)}
 
 <div id="app" style="display:none">
   <div id="sidebar">
-    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v39</span></h1><p>Hip Shake</p></div>
+    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v40</span></h1><p>Hip Shake</p></div>
     <div class="sb-mem">
       <div class="sb-mem-l">担当者</div>
       <div class="sb-mem-n" onclick="changeMember()"><span id="cur-mem">—</span><span style="font-size:9px;opacity:.4">▼</span></div>
@@ -1229,22 +1229,10 @@ function renderTaskboard(){
   document.getElementById('tb-body').innerHTML=h;
 }
 
-function renderTeamTask(){renderTaskboard();renderProject();}
-function setTbF(el,name){document.querySelectorAll('#tb-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');tbFilter=name;renderTaskboard();}
-function togglePB(id){const el=document.getElementById('pb-'+id);if(el)el.style.display=el.style.display==='none'?'':'none';}
-function setProjF(id){projF=id;renderProject();}
 
 
 
-function toggleSubs(id,btn){
-  const el=document.getElementById(id);if(!el)return;
-  const open=el.style.display!=='none'&&el.style.display!=='';
-  el.style.display=open?'none':'block';
-  const n=el.querySelectorAll('.trow').length;
-  btn.textContent=open?`▶ ${n}件`:`▼ ${n}件`;
-  btn.style.color=open?'var(--accent)':'var(--grn)';
-  btn.style.borderColor=open?'var(--accent)':'var(--grn)';
-}
+
 
 function calFilter(el,f){document.querySelectorAll('#cal-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');calF=f;renderCal();}
 function renderCal(){
@@ -1584,27 +1572,9 @@ async function saveContent(){
 async function deleteContent(){if(!confirm('このイベントを削除しますか？'))return;const id=document.getElementById('ccm-id').value;await sb.from('pm_content_events').delete().eq('id',id);closeContentModal();await loadAll();renderContent();}
 
 // ── MEMBER RESOURCE ──
-function openMHM(mid,name){
-  const now=new Date(),y=now.getFullYear(),m=now.getMonth()+1;
-  document.getElementById('mhm-mid').value=mid;
-  document.getElementById('mhm-title').textContent=name+' のリソース設定';
-  const ySel=document.getElementById('mhm-year');
-  ySel.innerHTML=[y-1,y,y+1].map(yr=>`<option value="${yr}">${yr}年</option>`).join('');
-  ySel.value=y;document.getElementById('mhm-month').value=m;
-  const ex=D.monthlyHours.find(h=>h.member_id===mid&&h.year===y&&h.month===m);
-  const mem=D.members.find(x=>x.id===mid);
-  document.getElementById('mhm-hours').value=ex?ex.available_hours:(mem?.monthly_hours||80);
-  document.getElementById('mhm-modal').style.display='flex';
-}
-function closeMHM(){document.getElementById('mhm-modal').style.display='none';}
-async function saveMHM(){
-  const mid=document.getElementById('mhm-mid').value,y=parseInt(document.getElementById('mhm-year').value),m=parseInt(document.getElementById('mhm-month').value),h=parseFloat(document.getElementById('mhm-hours').value);
-  if(!h||h<=0){alert('時間を入力してください');return;}
-  const{error}=await sb.from('pm_member_monthly_hours').upsert({member_id:mid,year:y,month:m,available_hours:h},{onConflict:'member_id,year,month'});
-  if(error){alert('保存エラー: '+error.message);return;}
-  closeMHM();await loadAll();renderTaskboard();
-}
 
+
+async 
 // ── CATEGORY CRUD ──
 function openCatModal(){['cm-icon','cm-name'].forEach(x=>document.getElementById(x).value='');document.getElementById('cm-color').value='#7C6FCD';document.getElementById('cat-modal').style.display='flex';}
 function closeCatModal(){document.getElementById('cat-modal').style.display='none';}
@@ -1789,14 +1759,7 @@ async function deleteTaskSafe(id){
   if(curPage==='teamtask')renderTeamTask();else if(curPage==='meeting')renderMeeting();
 }
 
-async function deleteTask(id){
-  if(!confirm('このタスクを削除しますか？\nこの操作は取り消せません。'))return;
-  const{error}=await sb.from('pm_tasks').delete().eq('id',id);
-  if(error){alert('削除エラー: '+error.message);return;}
-  closeDetail();await loadAll();
-  if(curPage==='teamtask')renderTeamTask();else if(curPage==='project')renderProject();else if(curPage==='meeting')renderMeeting();
-}
-
+async 
 // ── REQUEST MODAL ──
 function setReqPreset(text){document.getElementById('rm-content').value=text;document.getElementById('rm-content').focus();}
 function openReqModal(id){
