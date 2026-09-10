@@ -367,15 +367,23 @@ a{color:var(--accent)}
     <input type="hidden" id="rm-id">
     <div class="frow">
       <div class="fg"><label class="fl">依頼名 *</label><input class="fi" id="rm-name"></div>
-      <div class="fg"><label class="fl">依頼元</label><input class="fi" id="rm-req" placeholder="例：ひめらぶ"></div>
+      <div class="fg"><label class="fl">依頼元</label>
+        <div style="display:flex;gap:6px">
+          <select class="fsel" id="rm-req-sel" onchange="if(this.value){document.getElementById('rm-req').value=this.value;}" style="flex:1">
+            <option value="">候補から選ぶ</option>
+          </select>
+          <input class="fi" id="rm-req" placeholder="または直接入力" style="flex:2">
+        </div>
+      </div>
     </div>
     <div class="fg">
       <label class="fl">依頼内容（候補から選ぶか直接入力）</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <div class="chip" onclick="setReqPreset('ロゴ制作')">ロゴ制作</div>
-        <div class="chip" onclick="setReqPreset('ジャケットイラスト制作')">ジャケットイラスト制作</div>
-        <div class="chip" onclick="setReqPreset('グッズデザイン')">グッズデザイン</div>
-        <div class="chip" onclick="setReqPreset('20○○年○○月○○日発売 ○号 ○P入稿データ制作')">入稿データ制作</div>
+        <div class="chip" onclick="setReqPreset('【LINEスタンプ】')">【LINEスタンプ】</div>
+        <div class="chip" onclick="setReqPreset('【ロゴ制作】')">【ロゴ制作】</div>
+        <div class="chip" onclick="setReqPreset('【ジャケットイラスト制作】')">【ジャケットイラスト制作】</div>
+        <div class="chip" onclick="setReqPreset('【グッズデザイン】')">【グッズデザイン】</div>
+        <div class="chip" onclick="setReqPreset('【入稿データ制作】')">【入稿データ制作】</div>
       </div>
       <textarea class="fta" id="rm-content" style="height:54px" placeholder="依頼内容を入力（上の候補を選ぶと自動入力）"></textarea>
     </div>
@@ -389,6 +397,10 @@ a{color:var(--accent)}
       <div class="fg"><label class="fl">ステータス</label>
         <select class="fsel" id="rm-status"><option value="未着手">未着手</option><option value="進行中">進行中</option><option value="回答待ち">回答待ち</option><option value="要確認">要確認</option><option value="完了">完了</option></select>
       </div>
+    </div>
+    <div class="frow">
+      <div class="fg"><label class="fl">作業予定日</label><input class="fi" type="date" id="rm-work-date"></div>
+      <div class="fg"><label class="fl">作業時間（h）</label><input class="fi" type="number" id="rm-work-hours" min="0.5" max="200" step="0.5" placeholder="例：3"></div>
     </div>
     <div class="fg"><label class="fl">メモ</label><textarea class="fta" id="rm-notes" style="height:48px"></textarea></div>
     <label class="fchk" style="margin-bottom:14px"><input type="checkbox" id="rm-aff"> うさぽよ業務のスケジュールに影響する</label>
@@ -487,7 +499,15 @@ a{color:var(--accent)}
       </div>
     </div>
     <div class="fg"><label class="fl">担当</label><select class="fsel" id="sm-asgn"></select></div>
-    <div class="fg"><label class="fl">投稿概要</label><textarea class="fta" id="sm-desc" style="height:54px"></textarea></div>
+    <div class="fg"><label class="fl">投稿概要</label><textarea class="fta" id="sm-desc" style="height:54px" placeholder="投稿の概要・構成メモ"></textarea></div>
+    <div class="fg"><label class="fl">キャプション</label><textarea class="fta" id="sm-caption" style="height:80px" placeholder="実際に投稿するキャプション文"></textarea></div>
+    <div class="fg"><label class="fl">ハッシュタグ（複数選択可）</label>
+      <div id="sm-hashtag-chips" style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:6px"></div>
+      <div style="display:flex;gap:6px">
+        <input class="fi" id="sm-hashtag-input" placeholder="#新しいタグ" style="flex:1" onkeydown="if(event.key==='Enter'){event.preventDefault();addSnsHashtag();}">
+        <button class="btn bs bsm" onclick="addSnsHashtag()">＋ 追加</button>
+      </div>
+    </div>
     <div class="frow">
       <div class="fg"><label class="fl">素材状況</label><select class="fsel" id="sm-mat"><option>未着手</option><option>制作中</option><option>完成</option></select></div>
       <div class="fg"><label class="fl">投稿ステータス</label>
@@ -684,7 +704,7 @@ a{color:var(--accent)}
 <script>
 // STATE
 let sb=null;
-const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[],monthlyHours:[],linkCats:[]};
+const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[],monthlyHours:[],linkCats:[],snsHashtags:[],reqSources:[]};
 let ccFilter='all',ccStatusFilter='all',ccMonthView=null;
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
@@ -757,7 +777,7 @@ async function showApp(){
   renderTeamTask();
 }
 async function loadAll(){
-  const[a,b,c,d,e,f,g,h,i,j,k,l,m]=await Promise.all([
+  const[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]=await Promise.all([
     sb.from('pm_members').select('*').order('sort_order'),
     sb.from('pm_categories').select('*').order('sort_order'),
     sb.from('pm_projects').select('*').order('created_at'),
@@ -770,7 +790,9 @@ async function loadAll(){
     sb.from('pm_calendar_events').select('*').order('event_date'),
     sb.from('pm_content_events').select('*').order('month,sort_order'),
     sb.from('pm_member_monthly_hours').select('*'),
-    sb.from('pm_link_cats').select('*').order('sort_order')
+    sb.from('pm_link_cats').select('*').order('sort_order'),
+    sb.from('pm_sns_hashtags').select('*').order('sort_order'),
+    sb.from('pm_req_sources').select('*').order('sort_order')
   ]);
   D.members=a.data||[];D.categories=b.data||[];D.projects=c.data||[];D.tasks=d.data||[];
   D.milestones=e.data||[];D.sns=f.data||[];D.meetings=g.data||[];D.requests=h.data||[];
@@ -779,6 +801,8 @@ async function loadAll(){
   D.contentEvents=(typeof k!=='undefined'?k.data:null)||[];
   D.monthlyHours=(typeof l!=='undefined'?l.data:null)||[];
   D.linkCats=(typeof m!=='undefined'?m.data:null)||[];
+  D.snsHashtags=(typeof n!=='undefined'?n.data:null)||[];
+  D.reqSources=(typeof o!=='undefined'?o.data:null)||[];
 }
 const mn=id=>{if(!id)return'未設定';const m=D.members.find(x=>x.id===id);return m?m.name:'未設定';};
 const mnMulti=t=>{if(t.co_assignees){try{const ids=JSON.parse(t.co_assignees);if(ids.length>0){const names=ids.map(id=>id.startsWith('other:')?id.slice(6):(D.members.find(x=>x.id===id)?.name||'?'));return names.join('・');}}catch(e){}}return mn(t.assignee_id);};
@@ -1055,11 +1079,12 @@ function renderTaskboard(){
     const availH=mhRec?parseFloat(mhRec.available_hours):(m.monthly_hours||80);
     const usedH=all.filter(t=>t.work_date&&new Date(t.work_date+'T00:00:00').getFullYear()===curY&&(new Date(t.work_date+'T00:00:00').getMonth()+1)===curM)
       .reduce((s,t)=>s+(parseFloat(t.work_hours)||0),0);
+    const reqUsedH=D.requests.filter(r=>r.assignee_id===m.id&&r.work_date&&new Date(r.work_date+'T00:00:00').getFullYear()===curY&&(new Date(r.work_date+'T00:00:00').getMonth()+1)===curM).reduce((s,r)=>s+(parseFloat(r.work_hours)||0),0);
     const recurH=all.filter(t=>t.is_recurring&&t.work_hours).reduce((s,t)=>{
       const f=t.recurring_freq||'毎月';
       return s+(f==='毎週'?parseFloat(t.work_hours)*4:f==='隔週'?parseFloat(t.work_hours)*2:parseFloat(t.work_hours));
     },0);
-    const totalUsed=usedH+recurH;
+    const totalUsed=usedH+recurH+reqUsedH;
     const pct=availH>0?Math.min(totalUsed/availH*100,100):0;
     const barCol=pct<70?'var(--grn)':pct<90?'var(--yel)':'var(--red)';
     const remH=Math.max(availH-totalUsed,0).toFixed(1);
@@ -1301,7 +1326,9 @@ function openSnsDetail(id){
       <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase">ステータス</span><div style="margin-top:4px"><span class="badge ${sc[p.post_status]||'sn'}"><span class="bd"></span>${p.post_status||'企画中'}</span></div></div>
     </div>
     <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px">${(p.platforms||[]).map(pl=>`<span class="tag ${pc[pl]||''}">${pl}</span>`).join('')}</div>
-    ${p.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">リリース内容</span><div style="margin-top:4px;font-size:13px">${p.description}</div></div>`:''}
+    ${p.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">投稿概要</span><div style="margin-top:4px;font-size:13px">${p.description}</div></div>`:''}
+    ${p.caption?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">キャプション</span><div style="margin-top:4px;font-size:13px;white-space:pre-wrap">${p.caption}</div></div>`:''}
+    ${p.hashtags&&p.hashtags.length?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">ハッシュタグ</span><div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${(typeof p.hashtags==='string'?JSON.parse(p.hashtags):p.hashtags).map(t=>`<span style="font-size:11px;padding:2px 8px;border-radius:100px;background:var(--purbg);color:var(--pur)">${t}</span>`).join('')}</div></div>`:''}
     ${p.thumbnail_url?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">サムネイルURL</span><div style="margin-top:4px"><a href="${p.thumbnail_url}" target="_blank" style="font-size:12px;word-break:break-all">${p.thumbnail_url}</a></div></div>`:''}
     <div style="font-size:12px;color:var(--tm)">素材：${p.material_status||'—'}</div>`;
   document.getElementById('detail-modal').style.display='flex';
@@ -1691,12 +1718,19 @@ function setReqPreset(text){document.getElementById('rm-content').value=text;doc
 function openReqModal(id){
   document.getElementById('rm-title').textContent=id?'他部署依頼を編集':'他部署依頼を追加';
   document.getElementById('rm-asgn').innerHTML='<option value="">要確認</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  // 依頼元候補を動的生成
+  const srcSel=document.getElementById('rm-req-sel');
+  if(srcSel){const srcs=D.reqSources.length?D.reqSources.map(s=>s.name):['KOGYARU','nuts','egg','Natuul','ひめらぶ','ミラきゅる'];srcSel.innerHTML='<option value="">候補から選ぶ</option>'+srcs.map(s=>`<option value="${s}">${s}</option>`).join('');}
   if(id){const r=D.requests.find(x=>x.id===id);if(!r)return;
     document.getElementById('rm-id').value=r.id;document.getElementById('rm-name').value=r.name||'';document.getElementById('rm-req').value=r.requester||'';document.getElementById('rm-content').value=r.content||'';
     document.getElementById('rm-asgn').value=r.assignee_id||'';document.getElementById('rm-resdl').value=r.response_deadline||'';document.getElementById('rm-deldl').value=r.delivery_deadline||'';
     document.getElementById('rm-fee').value=r.fee||30000;document.getElementById('rm-status').value=r.status||'未着手';document.getElementById('rm-notes').value=r.notes||'';document.getElementById('rm-aff').checked=!!r.affects_usapoyo;
+    const rwdEl=document.getElementById('rm-work-date');if(rwdEl)rwdEl.value=r.work_date||'';
+    const rwhEl=document.getElementById('rm-work-hours');if(rwhEl)rwhEl.value=r.work_hours||'';
   }else{['rm-id','rm-name','rm-req','rm-content','rm-notes','rm-resdl','rm-deldl'].forEach(x=>document.getElementById(x).value='');
-    document.getElementById('rm-asgn').value='';document.getElementById('rm-fee').value=30000;document.getElementById('rm-status').value='未着手';document.getElementById('rm-aff').checked=false;}
+    document.getElementById('rm-asgn').value='';document.getElementById('rm-fee').value=30000;document.getElementById('rm-status').value='未着手';document.getElementById('rm-aff').checked=false;
+    const rwdEl2=document.getElementById('rm-work-date');if(rwdEl2)rwdEl2.value='';
+    const rwhEl2=document.getElementById('rm-work-hours');if(rwhEl2)rwhEl2.value='';}
   document.getElementById('req-modal').style.display='flex';
 }
 function closeReqModal(){document.getElementById('req-modal').style.display='none';}
@@ -1706,9 +1740,14 @@ async function saveReq(){
   const data={name,requester:document.getElementById('rm-req').value.trim(),content:document.getElementById('rm-content').value.trim()||null,
     assignee_id:document.getElementById('rm-asgn').value||null,response_deadline:document.getElementById('rm-resdl').value||null,
     delivery_deadline:document.getElementById('rm-deldl').value||null,fee:parseInt(document.getElementById('rm-fee').value)||30000,
-    status:document.getElementById('rm-status').value,notes:document.getElementById('rm-notes').value.trim()||null,affects_usapoyo:document.getElementById('rm-aff').checked};
+    status:document.getElementById('rm-status').value,notes:document.getElementById('rm-notes').value.trim()||null,affects_usapoyo:document.getElementById('rm-aff').checked,
+    work_date:document.getElementById('rm-work-date')?.value||null,
+    work_hours:parseFloat(document.getElementById('rm-work-hours')?.value)||null};
   const{error}=id?await sb.from('pm_other_requests').update(data).eq('id',id):await sb.from('pm_other_requests').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
+  // 新しい依頼元をpm_req_sourcesに保存
+  const reqName=document.getElementById('rm-req').value.trim();
+  if(reqName&&!D.reqSources.find(s=>s.name===reqName)){try{await sb.from('pm_req_sources').insert({name:reqName,sort_order:D.reqSources.length+100});}catch(e){}}
   closeReqModal();await loadAll();renderProject();
 }
 
@@ -1728,18 +1767,56 @@ function selectCatTag(el,cat){
   if(cat==='その他（書き込み）'){cust.style.display='block';const v=document.getElementById('sm-cat-input').value.trim();document.getElementById('sm-cat').value=v||'その他（書き込み）';setTimeout(()=>document.getElementById('sm-cat-input').focus(),50);}
   else{cust.style.display='none';document.getElementById('sm-cat').value=cat;}
 }
+
+// ── SNS HASHTAGS ──
+function initHashtagChips(selectedTags){
+  const sel=typeof selectedTags==='string'?JSON.parse(selectedTags||'[]'):selectedTags||[];
+  const allTags=D.snsHashtags.length?D.snsHashtags.map(t=>t.tag):['#うさぽよ','#gyaru','#ギャル','#キャラクター','#アニメ','#ゆるキャラ','#イラスト','#LINEトーク','#うさぽよじゃんけん'];
+  // 選択済みでDBにないものも含める
+  const extra=sel.filter(t=>!allTags.includes(t));
+  const chips=[...allTags,...extra];
+  document.getElementById('sm-hashtag-chips').innerHTML=chips.map(t=>{
+    const on=sel.includes(t);
+    return`<div class="asgn-chip${on?' on':''}" data-tag="${t}" onclick="this.classList.toggle('on')" style="font-size:11px;padding:3px 10px">${t}</div>`;
+  }).join('');
+}
+async function addSnsHashtag(){
+  const input=document.getElementById('sm-hashtag-input');
+  let tag=input.value.trim();
+  if(!tag)return;
+  if(!tag.startsWith('#'))tag='#'+tag;
+  // チップに追加
+  const chips=document.getElementById('sm-hashtag-chips');
+  const existing=chips.querySelector(`[data-tag="${tag}"]`);
+  if(existing){existing.classList.add('on');input.value='';return;}
+  const chip=document.createElement('div');
+  chip.className='asgn-chip on';chip.dataset.tag=tag;chip.textContent=tag;chip.style.cssText='font-size:11px;padding:3px 10px';
+  chip.onclick=()=>chip.classList.toggle('on');
+  chips.appendChild(chip);
+  input.value='';
+  // DBに保存（重複は無視）
+  if(!D.snsHashtags.find(h=>h.tag===tag)){
+    try{await sb.from('pm_sns_hashtags').insert({tag,sort_order:D.snsHashtags.length+100});}catch(e){}
+    D.snsHashtags.push({tag});
+  }
+}
+
 function openSnsModal(id,preDate){
   document.getElementById('sm-asgn').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
   if(id){const p=D.sns.find(x=>x.id===id);if(!p)return;
     document.getElementById('sm-id').value=p.id;document.getElementById('sm-date').value=p.scheduled_date||'';document.getElementById('sm-time').value=p.scheduled_time||'';
     document.getElementById('sm-name').value=p.content_name||'';initCatTags(p.category||'イベント系');
     document.getElementById('sm-asgn').value=p.assignee_id||'';document.getElementById('sm-desc').value=p.description||'';
+    document.getElementById('sm-caption').value=p.caption||'';
+    initHashtagChips(p.hashtags||[]);
     document.getElementById('sm-mat').value=p.material_status||'未着手';document.getElementById('sm-status').value=p.post_status||'制作中';
     document.getElementById('sm-thumb').value=p.thumbnail_url||'';
     document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=p.platforms&&p.platforms.includes(cb.value));
   }else{['sm-id','sm-time','sm-name','sm-desc','sm-thumb'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('sm-date').value=preDate||'';initCatTags('');
     document.getElementById('sm-asgn').value=curMember?.id||'';
+    document.getElementById('sm-caption').value='';
+    initHashtagChips([]);
     document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=false);}
   document.getElementById('sns-modal').style.display='flex';
 }
@@ -1749,7 +1826,10 @@ async function saveSns(){
   const id=document.getElementById('sm-id').value,platforms=Array.from(document.querySelectorAll('[name="sm-plat"]:checked')).map(c=>c.value);
   const data={scheduled_date:document.getElementById('sm-date').value||null,scheduled_time:document.getElementById('sm-time').value||null,platforms,content_name:name,
     category:document.getElementById('sm-cat').value,assignee_id:document.getElementById('sm-asgn').value||null,
-    description:document.getElementById('sm-desc').value.trim()||null,material_status:document.getElementById('sm-mat').value,
+    description:document.getElementById('sm-desc').value.trim()||null,
+    caption:document.getElementById('sm-caption').value.trim()||null,
+    hashtags:JSON.stringify(Array.from(document.querySelectorAll('#sm-hashtag-chips .asgn-chip.on')).map(c=>c.dataset.tag)),
+    material_status:document.getElementById('sm-mat').value,
     post_status:document.getElementById('sm-status').value,thumbnail_url:document.getElementById('sm-thumb').value.trim()||null};
   const{error}=id?await sb.from('pm_sns_posts').update(data).eq('id',id):await sb.from('pm_sns_posts').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
