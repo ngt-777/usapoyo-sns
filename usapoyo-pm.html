@@ -941,58 +941,73 @@ function renderDash(){
 
 function renderProject(){
   // projFが存在しないカテゴリIDを指している場合はリセット
-  if(projF!=='all'&&!D.categories.find(c=>c.id===projF))projF='all';
+  if(projF!=='all'&&!D.categories.find(c=>c.id===projF)){projF='all';}
 
-  document.getElementById('proj-chips').innerHTML=`<div class="chip ${projF==='all'?'on':''}" onclick="setProjF('all')">すべて</div>`+
+  document.getElementById('proj-chips').innerHTML=
+    `<div class="chip ${projF==='all'?'on':''}" onclick="setProjF('all')">すべて</div>`+
     D.categories.map(c=>`<div class="chip ${projF===c.id?'on':''}" onclick="setProjF('${c.id}')">${c.name}</div>`).join('');
 
-  // 表示対象カテゴリ
   const fCats=projF==='all'?D.categories:D.categories.filter(c=>c.id===projF);
-
-  // 全プロジェクトを把握（カテゴリ不明プロジェクトを拾うため）
   const knownCatIds=new Set(D.categories.map(c=>c.id));
   const renderedProjIds=new Set();
 
-  // プロジェクトブロック生成ヘルパー
   const projBlock=(proj,catId)=>{
     renderedProjIds.add(proj.id);
     const ptRaw=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
     const pt=sortTasks(ptRaw);
-    const done=ptRaw.filter(t=>t.status==='完了').length,total=ptRaw.length,prog=total>0?Math.round(done/total*100):0;
-    return`<div class="pblk"><div class="pblk-hd" onclick="togglePB('${proj.id}')">
-      <span>📌</span><div class="pblk-nm">${proj.name}</div>
-      <div style="display:flex;align-items:center;gap:8px">
-        <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
-        <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>
-        <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openProjModal('${catId||''}','${proj.id}')" title="プロジェクトを編集">✏</button>
+    const done=ptRaw.filter(t=>isFullyComplete(t.id)).length,total=ptRaw.length;
+    const prog=total>0?Math.round(done/total*100):0;
+    return`<div class="pblk">
+      <div class="pblk-hd" onclick="togglePB('${proj.id}')">
+        <span>📌</span><div class="pblk-nm">${proj.name}</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
+          <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>
+          <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openProjModal('${catId||''}','${proj.id}')" title="編集">✏</button>
+        </div>
       </div>
-    </div>
-    <div class="ptasks" id="pb-${proj.id}">
-      ${pt.map(t=>tRow(t)).join('')}
-      <div style="padding:8px 0"><button class="btn bg bsm" onclick="openTaskModal(null,'${proj.id}')">＋ タスク追加</button></div>
-    </div></div>`;
+      <div class="ptasks" id="pb-${proj.id}">
+        ${pt.map(t=>tRow(t)).join('')}
+        <div style="padding:8px 0"><button class="btn bg bsm" onclick="openTaskModal(null,'${proj.id}')">＋ タスク追加</button></div>
+      </div>
+    </div>`;
   };
 
   let h='';
   fCats.forEach(cat=>{
     const cps=D.projects.filter(p=>p.category_id===cat.id);
-    h+=`<div class="pcat"><div class="pcat-hd"><span>${cat.icon||'📁'}</span><h3 style="flex:1">${cat.name}</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button></div>`;
-    cps.forEach(proj=>{h+=projBlock(proj,cat.id);});
-    if(!cps.length)h+='<div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px 16px">プロジェクトなし（＋プロジェクト追加から登録）</div>';
+    // カテゴリヘッダーは必ず表示（プロジェクトが0件でも）
+    h+=`<div class="pcat">
+      <div class="pcat-hd">
+        <span>${cat.icon||'📁'}</span>
+        <h3 style="flex:1">${cat.name}</h3>
+        <button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button>
+      </div>`;
+    if(cps.length===0){
+      h+=`<div style="font-size:11px;color:rgba(255,255,255,.5);padding:10px 16px;font-style:italic">プロジェクトがありません。「＋ プロジェクト追加」から登録してください。</div>`;
+    }else{
+      cps.forEach(proj=>{h+=projBlock(proj,cat.id);});
+    }
     h+='</div>';
   });
 
-  // カテゴリ不明プロジェクト（category_idがnullまたは不明）を「その他」セクションに表示
+  // カテゴリ不明プロジェクト（category_id=nullや不明）
   if(projF==='all'){
     const orphans=D.projects.filter(p=>!renderedProjIds.has(p.id)&&(!p.category_id||!knownCatIds.has(p.category_id)));
     if(orphans.length>0){
-      h+=`<div class="pcat"><div class="pcat-hd"><span>📁</span><h3 style="flex:1">その他（カテゴリ未設定）</h3></div>`;
+      h+=`<div class="pcat"><div class="pcat-hd"><span>📁</span><h3 style="flex:1">カテゴリ未設定</h3></div>`;
       orphans.forEach(proj=>{h+=projBlock(proj,null);});
       h+='</div>';
     }
   }
 
-  if(!h)h=`<div class="card" style="padding:24px;text-align:center"><p style="color:var(--tm)">プロジェクトが表示できません</p><p style="font-size:11px;color:var(--tm)">カテゴリ:${D.categories.length}件 / プロジェクト:${D.projects.length}件 / フィルター:${projF}</p><button class="btn bs bsm" style="margin-top:8px" onclick="projF='all';renderProject()">フィルターをリセット</button></div>`;
+  if(!h){
+    h=`<div class="card" style="padding:24px;text-align:center">
+      <p style="color:var(--tm)">カテゴリがありません</p>
+      <p style="font-size:11px;color:var(--tm)">カテゴリ:${D.categories.length}件 / プロジェクト:${D.projects.length}件</p>
+      <button class="btn bs bsm" style="margin-top:8px" onclick="openCatModal()">＋ カテゴリを追加</button>
+    </div>`;
+  }
 
   // 他部署依頼セクション
   const actR=D.requests.filter(r=>r.status!=='完了'),doneR=D.requests.filter(r=>r.status==='完了');
@@ -1797,12 +1812,15 @@ function closeDetail(){document.getElementById('detail-modal').style.display='no
 function isFullyComplete(taskId){
   const t=D.tasks.find(x=>x.id===taskId);
   if(!t||t.status!=='完了')return false;
+  // 子タスクなし → 自分が完了なら完全完了
   const children=D.tasks.filter(c=>c.parent_task_id===taskId);
-  return children.length===0||children.every(c=>isFullyComplete(c.id));
+  if(children.length===0)return true;
+  // 子タスクあり → 全子孫が完了の場合のみ完全完了
+  return children.every(c=>isFullyComplete(c.id));
 }
 function getTaskDate(t){
-  const dates=[t.work_date,t.deadline].filter(Boolean);
-  return dates.length?dates.sort()[0]:'9999-12-31';
+  // deadline優先（最終期限が並び基準）、なければwork_date、なければ最後
+  return t.deadline||t.work_date||'9999-12-31';
 }
 function sortTasks(tasks){
   return [...tasks].sort((a,b)=>{
