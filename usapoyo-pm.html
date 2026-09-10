@@ -992,7 +992,7 @@ function renderProject(){
     }
   }
 
-  if(!h)h='<div class="card" style="padding:24px;text-align:center"><p style="color:var(--tm)">プロジェクトがありません</p><p style="font-size:11px;color:var(--tm)">「カテゴリ追加」でカテゴリを作成してから「＋ プロジェクト追加」で登録してください</p></div>';
+  if(!h)h=`<div class="card" style="padding:24px;text-align:center"><p style="color:var(--tm)">プロジェクトが表示できません</p><p style="font-size:11px;color:var(--tm)">カテゴリ:${D.categories.length}件 / プロジェクト:${D.projects.length}件 / フィルター:${projF}</p><button class="btn bs bsm" style="margin-top:8px" onclick="projF='all';renderProject()">フィルターをリセット</button></div>`;
 
   // 他部署依頼セクション
   const actR=D.requests.filter(r=>r.status!=='完了'),doneR=D.requests.filter(r=>r.status==='完了');
@@ -1760,9 +1760,10 @@ async function toggleTask(id){
   t.status=ns;
   t.updated_at=new Date().toISOString();
   if(ns==='完了'){t.completed_at=t.updated_at;}else{t.completed_at=null;}
-  // 2. 即再描画（ソート含む）
-  if(curPage==='teamtask'){renderTaskboard();renderProject();}
-  else if(curPage==='meeting')renderMeeting();
+  // 2. 即再描画（ソート含む）- DOMの存在確認で確実に実行
+  if(document.getElementById('proj-body'))renderProject();
+  if(document.getElementById('tb-body'))renderTaskboard();
+  if(document.getElementById('mtg-body'))renderMeeting();
   // 3. バックグラウンドでDB同期
   const upd={status:ns,updated_at:t.updated_at};
   if(ns==='完了')upd.completed_at=t.completed_at;
@@ -1805,8 +1806,10 @@ function getTaskDate(t){
 }
 function sortTasks(tasks){
   return [...tasks].sort((a,b)=>{
+    // 完了判定: 自身が完了かつ全子孫が完了
     const ac=isFullyComplete(a.id)?0:1,bc=isFullyComplete(b.id)?0:1;
     if(ac!==bc)return ac-bc;
+    // 同グループ内は日付順
     return getTaskDate(a).localeCompare(getTaskDate(b));
   });
 }
