@@ -1823,12 +1823,18 @@ function getTaskDate(t){
   return t.deadline||t.work_date||'9999-12-31';
 }
 function sortTasks(tasks){
+  // 自分自身のステータスのみで判定（子タスクの状態は問わない）
+  // 完了チェックを付けた瞬間に上へ移動する
   return [...tasks].sort((a,b)=>{
-    // 完了判定: 自身が完了かつ全子孫が完了
-    const ac=isFullyComplete(a.id)?0:1,bc=isFullyComplete(b.id)?0:1;
-    if(ac!==bc)return ac-bc;
-    // 同グループ内は日付順
-    return getTaskDate(a).localeCompare(getTaskDate(b));
+    const aDone=a.status==='完了'?0:1;
+    const bDone=b.status==='完了'?0:1;
+    if(aDone!==bDone)return aDone-bDone;
+    // 同グループ内: deadline優先、なければwork_date、なければ最後
+    const aD=a.deadline||a.work_date||'9999-12-31';
+    const bD=b.deadline||b.work_date||'9999-12-31';
+    if(aD<bD)return -1;
+    if(aD>bD)return 1;
+    return 0;
   });
 }
 
