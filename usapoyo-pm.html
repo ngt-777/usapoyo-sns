@@ -775,10 +775,10 @@ function renderMemGrid(){
 function selectMember(m){curMember=m;sessionStorage.setItem('cur_member',JSON.stringify(m));document.getElementById('member-screen').style.display='none';document.getElementById('cur-mem').textContent=m.name||'ゲスト';renderTaskboard();}
 function changeMember(){renderMemGrid();document.getElementById('member-screen').style.display='flex';}
 async function showApp(){
-  document.getElementById('app').style.display='flex';
-  document.getElementById('cur-mem').textContent=curMember?.name||'ゲスト';
+  const appEl=document.getElementById('app');if(appEl)appEl.style.display='flex';
+  const curMemEl=document.getElementById('cur-mem');if(curMemEl)curMemEl.textContent=curMember?.name||'ゲスト';
   const ds=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  document.getElementById('dash-date').textContent=ds;
+  const dashDate=document.getElementById('dash-date');if(dashDate)dashDate.textContent=ds;
   if(document.getElementById('tb-date'))document.getElementById('tb-date').textContent=ds;
   await loadAll();
   if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
