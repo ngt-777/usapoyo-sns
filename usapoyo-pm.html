@@ -189,7 +189,7 @@ a{color:var(--accent)}
 
 <div id="app" style="display:none">
   <div id="sidebar">
-    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v38</span></h1><p>Hip Shake</p></div>
+    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v39</span></h1><p>Hip Shake</p></div>
     <div class="sb-mem">
       <div class="sb-mem-l">担当者</div>
       <div class="sb-mem-n" onclick="changeMember()"><span id="cur-mem">—</span><span style="font-size:9px;opacity:.4">▼</span></div>
@@ -1234,80 +1234,8 @@ function setTbF(el,name){document.querySelectorAll('#tb-chips .chip').forEach(c=
 function togglePB(id){const el=document.getElementById('pb-'+id);if(el)el.style.display=el.style.display==='none'?'':'none';}
 function setProjF(id){projF=id;renderProject();}
 
-function renderProject(){
-  document.getElementById('proj-chips').innerHTML=`<div class="chip ${projF==='all'?'on':''}" onclick="setProjF('all')">すべて</div>`+
-    D.categories.map(c=>`<div class="chip ${projF===c.id?'on':''}" onclick="setProjF('${c.id}')">${c.name}</div>`).join('');
-  const fCats=projF==='all'?D.categories:D.categories.filter(c=>c.id===projF);
-  let h='';
-  fCats.forEach(cat=>{
-    const cps=D.projects.filter(p=>p.category_id===cat.id);if(!cps.length)return;
-    h+=`<div class="pcat"><div class="pcat-hd"><span>${cat.icon||'📁'}</span><h3 style="flex:1">${cat.name}</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button></div>`;
-    cps.forEach(proj=>{
-      const pt=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
-      const done=pt.filter(t=>t.status==='完了').length,total=pt.length,prog=total>0?Math.round(done/total*100):0;
-      const hasU=pt.some(t=>t.status==='要対応'),hasW=pt.some(t=>['外部返答待ち','確認待ち','素材待ち'].includes(t.status));
-      h+=`<div class="pblk"><div class="pblk-hd" onclick="togglePB('${proj.id}')">
-        <span>📌</span><div class="pblk-nm">${proj.name}</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
-          <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>
-          <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openProjModal('${cat.id}','${proj.id}')">✏</button>
-        </div>
-      </div>
-      <div class="ptasks" id="pb-${proj.id}">${pt.map(t=>tRow(t)).join('')}<div style="padding:8px 0"><button class="btn bg bsm" onclick="openTaskModal(null,'${proj.id}')">＋ タスク追加</button></div></div></div>`;
-    });
-    h+='</div>';
-  });
-  if(!h)h='<div class="empty"><h3>プロジェクトがありません</h3></div>';
-  const actR=D.requests.filter(r=>r.status!=='完了'),doneR=D.requests.filter(r=>r.status==='完了');
-  h+=`<div class="pcat"><div class="pcat-hd"><span>📩</span><h3 style="flex:1">他部署依頼</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openReqModal()">＋ 依頼追加</button></div>
-  ${actR.map(r=>`<div class="pblk" style="border-left:3px solid var(--org)">
-    <div class="pblk-hd" onclick="togglePB('req-${r.id}')">
-      <span>📩</span><div class="pblk-nm">${r.name}</div>
-      <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-        <span style="font-size:11px;color:var(--tm)">${r.requester}</span>
-        ${r.fee?`<span style="font-size:11px;font-weight:600;color:var(--ts)">${Number(r.fee).toLocaleString()}円</span>`:''}
-        ${r.delivery_deadline?`<span style="font-size:11px;color:${isOv(r.delivery_deadline)?'var(--red)':isSn(r.delivery_deadline)?'var(--yel)':'var(--tm)'}">📅${fd(r.delivery_deadline)}</span>`:''}
-        ${badge(r.status)}
-        <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openReqModal('${r.id}')">✏</button>
-      </div>
-    </div>
-    <div id="pb-req-${r.id}" style="padding:8px 16px">
-      ${r.content?`<div style="font-size:12px;color:var(--ts);white-space:pre-wrap;margin-bottom:4px">${r.content}</div>`:''}
-      ${r.response_deadline?`<div style="font-size:11px;color:var(--tm)">初稿期限：${fd(r.response_deadline)}</div>`:''}
-      ${r.notes?`<div style="font-size:11px;color:var(--tm);margin-top:4px">📝 ${r.notes}</div>`:''}
-      ${(()=>{const rt=D.tasks.filter(t=>t.request_id===r.id);return rt.map(t=>tRow(t,1)).join('')+`<div style="padding:6px 0"><button class="btn bg bsm" onclick="openTaskModal(null,null,null,'${r.id}')">＋ サブタスク追加</button></div>`;})()}
-    </div>
-  </div>`).join('')}
-  ${actR.length===0?'<div style="font-size:12px;color:rgba(255,255,255,.4);padding:12px 16px">依頼なし</div>':''}
-  ${doneR.length?`<details style="padding:4px 16px"><summary style="font-size:11px;color:rgba(255,255,255,.4);cursor:pointer">完了済み（${doneR.length}件）</summary>${doneR.map(r=>`<div style="font-size:12px;color:rgba(255,255,255,.4);padding:2px 0;text-decoration:line-through">${r.name}</div>`).join('')}</details>`:''}
-  </div>`;
-  document.getElementById('proj-body').innerHTML=h;
-}
 
-function tRow(t,depth){
-  depth=depth||0;
-  const ck=t.status==='完了',subs=D.tasks.filter(s=>s.parent_task_id===t.id);
-  const pad=8+depth*20,fs=Math.max(11,13-depth);
-  const bg=depth>0?`rgba(240,238,252,${Math.min(depth*0.5,0.8)})`:'transparent';
-  const arrow=depth===1?'↳ ':depth>=2?'  ↳ ':'';
-  const subId='sub-'+t.id;
-  const rowHtml=`<div class="trow" style="padding-left:${pad}px;background:${bg}">
-    <div class="tchk ${ck?'ck':''}" onclick="toggleTask('${t.id}')">${ck?'✓':''}</div>
-    <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')" style="font-size:${fs}px">${arrow}${t.name}</div>
-    <div class="tm2">
-      ${subs.length>0?`<button class="btn bg" style="padding:1px 8px;font-size:10px;color:var(--accent);border:1px solid var(--accent);border-radius:100px;flex-shrink:0" onclick="event.stopPropagation();toggleSubs('${subId}',this)">▼ ${subs.length}件</button>`:''}
-      <span class="tass">${mnMulti(t)}</span>
-      ${badge(t.status)}
-      ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
-      ${t.work_hours?`<span style="font-size:10px;color:var(--ts);background:var(--bg);padding:1px 5px;border-radius:3px">${t.work_hours}h</span>`:''}
-      <button class="btn bg" style="padding:2px 5px;font-size:11px" onclick="openTaskModal('${t.id}')">✏</button>
-      <button class="btn bg" style="padding:2px 5px;font-size:11px;color:var(--accent)" title="サブタスクを追加" onclick="openTaskModal(null,null,'${t.id}')">＋</button>
-    </div></div>`;
-  let subsHtml='';
-  if(subs.length>0){subsHtml=`<div id="${subId}">${subs.map(s=>tRow(s,depth+1)).join('')}</div>`;}
-  return rowHtml+subsHtml;
-}
+
 function toggleSubs(id,btn){
   const el=document.getElementById(id);if(!el)return;
   const open=el.style.display!=='none'&&el.style.display!=='';
