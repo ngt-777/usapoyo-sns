@@ -708,6 +708,7 @@ const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meet
 let ccFilter='all',ccStatusFilter='all',ccMonthView=null;
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
+const collapsedTasks=new Set();
 const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2025-12-30','2025-12-31','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-30','2026-12-31','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23','2027-12-30','2027-12-31']);
 function getCatColor(cat){
   if(CAT_COLORS[cat])return CAT_COLORS[cat];
@@ -945,8 +946,9 @@ function renderProject(){
     const cps=D.projects.filter(p=>p.category_id===cat.id);
     h+=`<div class="pcat"><div class="pcat-hd"><span>${cat.icon||'📁'}</span><h3 style="flex:1">${cat.name}</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button></div>`;
     cps.forEach(proj=>{
-      const pt=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
-      const done=pt.filter(t=>t.status==='完了').length,total=pt.length,prog=total>0?Math.round(done/total*100):0;
+      const ptRaw=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
+      const pt=sortTasks(ptRaw);
+      const done=ptRaw.filter(t=>t.status==='完了').length,total=ptRaw.length,prog=total>0?Math.round(done/total*100):0;
       const hasU=pt.some(t=>t.status==='要対応'),hasW=pt.some(t=>['外部返答待ち','確認待ち','素材待ち'].includes(t.status));
       const pSt=hasU?'要対応':hasW?'確認待ち':prog===100?'完了':'進行中';
       h+=`<div class="pblk"><div class="pblk-hd" onclick="togglePB('${proj.id}')">
@@ -999,30 +1001,31 @@ function tRow(t,depth){
   const bg=depth>0?`rgba(240,238,252,${Math.min(depth*0.5,0.8)})`:'transparent';
   const arrow=depth===1?'↳ ':depth>=2?'  ↳ ':'';
   const subId='sub-'+t.id;
-
+  const isCollapsed=collapsedTasks.has(t.id);
   const rowHtml=`<div class="trow" style="padding-left:${pad}px;background:${bg}">
     <div class="tchk ${ck?'ck':''}" onclick="toggleTask('${t.id}')">${ck?'✓':''}</div>
-    <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')" style="font-size:${fs}px">${arrow}${t.name}</div>
+    <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')" style="flex-direction:column;align-items:flex-start;gap:0;font-size:${fs}px">${arrow}${t.name}</div>
     <div class="tm2">
-      ${subs.length>0?`<button class="btn bg" style="padding:1px 8px;font-size:10px;color:var(--accent);border:1px solid var(--accent);border-radius:100px;flex-shrink:0" onclick="event.stopPropagation();toggleSubs('${subId}',this)">▼ ${subs.length}件</button>`:''}
+      ${subs.length>0?`<button class="btn bg" style="padding:1px 8px;font-size:10px;color:${isCollapsed?'var(--accent)':'var(--grn)'};border:1px solid ${isCollapsed?'var(--accent)':'var(--grn)'};border-radius:100px;flex-shrink:0" onclick="event.stopPropagation();toggleSubs('${subId}',this)">${isCollapsed?'▶':'▼'} ${subs.length}件</button>`:''}
       <span class="tass">${mnMulti(t)}</span>
       ${badge(t.status)}
       ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
+      ${t.work_hours?`<span style="font-size:10px;color:var(--ts);background:var(--bg);padding:1px 5px;border-radius:3px">${t.work_hours}h</span>`:''}
       <button class="btn bg" style="padding:2px 5px;font-size:11px" onclick="openTaskModal('${t.id}')">✏</button>
-      <button class="btn bg" style="padding:2px 5px;font-size:11px;color:var(--accent)" title="サブタスクを追加" onclick="openTaskModal(null,null,'${t.id}')">＋</button>
+      <button class="btn bg" style="padding:2px 5px;font-size:11px;color:var(--accent)" onclick="openTaskModal(null,null,'${t.id}')">＋</button>
+      <button class="btn-del" style="padding:2px 5px;font-size:10px" onclick="event.stopPropagation();deleteTaskSafe('${t.id}')">🗑</button>
     </div></div>`;
-
   let subsHtml='';
-  if(subs.length>0){
-    subsHtml=`<div id="${subId}">${subs.map(s=>tRow(s,depth+1)).join('')}</div>`;
-  }
+  if(subs.length>0){subsHtml=`<div id="${subId}" style="display:${isCollapsed?'none':'block'}">${subs.map(s=>tRow(s,depth+1)).join('')}</div>`;}
   return rowHtml+subsHtml;
 }
 
 function toggleSubs(id,btn){
   const el=document.getElementById(id);if(!el)return;
+  const taskId=id.replace('sub-','');
   const open=el.style.display!=='none'&&el.style.display!=='';
   el.style.display=open?'none':'block';
+  if(open)collapsedTasks.add(taskId);else collapsedTasks.delete(taskId);
   const n=el.querySelectorAll('.trow').length;
   btn.textContent=open?`▶ ${n}件`:`▼ ${n}件`;
   btn.style.color=open?'var(--accent)':'var(--grn)';
@@ -1159,8 +1162,7 @@ function renderTaskboard(){
           ${mr.length?`<div style="font-size:12px"><span style="color:var(--org)">他部署</span> <strong>${mr.length}件</strong></div>`:''}
         </div>
       </div>
-      ${done.length?`<div style="font-size:10px;font-weight:700;color:var(--grn);padding:0 4px;margin-bottom:4px;letter-spacing:.04em">✓ 完了済み（${done.length}件）</div>
-      <div class="card" style="padding:4px 14px;margin-bottom:8px;opacity:.75">${done.map(mtr).join('')}</div>`:''}
+      ${done.length?`<details style="margin-bottom:8px"><summary style="font-size:11px;color:var(--tm);cursor:pointer;padding:6px 4px;user-select:none">▶ 完了済み（${done.length}件）</summary><div class="card" style="padding:4px 14px;margin-top:4px;opacity:.75">${done.map(mtr).join('')}</div></details>`:''}
       ${active.length?`<div class="card" style="padding:4px 14px;margin-bottom:8px">${active.map(mtr).join('')}</div>`:'<div class="card" style="padding:14px;text-align:center;font-size:12px;color:var(--tm)">タスクなし</div>'}
       ${mr.length?`<div style="font-size:10px;font-weight:700;color:var(--org);padding:0 4px;margin-bottom:4px">📩 他部署依頼</div>
       <div style="background:var(--orgbg);border:1px solid #FED7AA;border-radius:var(--r);padding:6px 14px;margin-bottom:8px">
@@ -1441,8 +1443,9 @@ function renderLinks(){
     const items=D.links.filter(l=>l.category===cat).sort((a,b)=>a.sort_order-b.sort_order);
     const catLinksCount=D.links.filter(l=>l.category===cat).length;
     const catInDB=D.linkCats.find(c=>c.name===cat);
+    const editBtn=catInDB?`<button onclick="editLinkCat('${catInDB.id}','${cat}')" style="font-size:10px;padding:1px 6px;background:none;border:1px solid var(--border);color:var(--ts);border-radius:3px;cursor:pointer;margin-right:4px">編集</button>`:'';
     const delBtn=catInDB?`<button onclick="deleteLinkCat('${catInDB.id}','${cat}',${catLinksCount})" style="font-size:10px;padding:1px 6px;background:none;border:1px solid var(--redbg);color:var(--red);border-radius:3px;cursor:pointer">削除</button>`:'';
-    h+=`<div style="margin-bottom:24px"><div style="font-size:11px;font-weight:700;color:var(--ts);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between"><span>${cat}</span>${delBtn}</div>
+    h+=`<div style="margin-bottom:24px"><div style="font-size:11px;font-weight:700;color:var(--ts);letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid var(--border);display:flex;align-items:center;justify-content:space-between"><span>${cat}</span><div>${editBtn}${delBtn}</div></div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:10px">
         ${items.map(l=>`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px 16px;display:flex;gap:10px;align-items:flex-start">
           <div style="flex:1;min-width:0">
@@ -1460,6 +1463,16 @@ function renderLinks(){
     </div>`;
   });
   document.getElementById('links-body').innerHTML=h;
+}
+async function editLinkCat(catId,oldName){
+  const newName=prompt(`カテゴリー名を変更してください`,oldName);
+  if(!newName||newName.trim()===oldName||!newName.trim())return;
+  const trimmed=newName.trim();
+  const{error}=await sb.from('pm_link_cats').update({name:trimmed}).eq('id',catId);
+  if(error){alert('エラー: '+error.message);return;}
+  // 既存リンクのカテゴリー名も更新
+  await sb.from('pm_links').update({category:trimmed}).eq('category',oldName);
+  await loadAll();renderLinks();
 }
 function deleteLinkCat(catId,catName,linkCount){
   if(linkCount>0){alert(`「${catName}」には${linkCount}件のリンクが登録されています。\n先にリンクを別のカテゴリへ移動してください。`);return;}
@@ -1548,7 +1561,7 @@ function renderContent(){
       evts.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
       h+=`<div class="card" style="cursor:pointer" onclick="ccMonthView=${mNum};renderContent()">
         <div style="font-size:15px;font-weight:800;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;justify-content:space-between;align-items:center">
-          <span>${mNameMap[mNum]}</span><span style="font-size:11px;color:var(--tm);font-weight:400">${evts.length}件 →</span>
+          <span style="color:${mNum===new Date().getMonth()+1?'var(--red)':'inherit'}">${mNameMap[mNum]}</span><span style="font-size:11px;color:var(--tm);font-weight:400">${evts.length}件 →</span>
         </div>
         <div style="display:flex;flex-wrap:wrap;gap:4px">
           ${evts.map(e=>{const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';const st=e.status||'未設定';const stCol=CC_STATUS[st]?.col||'#9CA3AF';
@@ -1741,6 +1754,42 @@ function showDetail(id){
   document.getElementById('detail-modal').style.display='flex';
 }
 function closeDetail(){document.getElementById('detail-modal').style.display='none';}
+// ── タスク共通ヘルパー ──
+function isFullyComplete(taskId){
+  const t=D.tasks.find(x=>x.id===taskId);
+  if(!t||t.status!=='完了')return false;
+  const children=D.tasks.filter(c=>c.parent_task_id===taskId);
+  return children.length===0||children.every(c=>isFullyComplete(c.id));
+}
+function getTaskDate(t){
+  const dates=[t.work_date,t.deadline].filter(Boolean);
+  return dates.length?dates.sort()[0]:'9999-12-31';
+}
+function sortTasks(tasks){
+  return [...tasks].sort((a,b)=>{
+    const ac=isFullyComplete(a.id)?0:1,bc=isFullyComplete(b.id)?0:1;
+    if(ac!==bc)return ac-bc;
+    return getTaskDate(a).localeCompare(getTaskDate(b));
+  });
+}
+
+// ── ④ 親タスク削除（サブタスク込み） ──
+async function deleteTaskRecursive(id){
+  const children=D.tasks.filter(t=>t.parent_task_id===id);
+  for(const c of children)await deleteTaskRecursive(c.id);
+  await sb.from('pm_tasks').delete().eq('id',id);
+}
+async function deleteTaskSafe(id){
+  const subs=D.tasks.filter(t=>t.parent_task_id===id);
+  const msg=subs.length>0
+    ?`このタスクには${subs.length}件のサブタスクが含まれています。\n親タスクを削除すると配下のタスクも削除されます。\n本当に削除しますか？`
+    :'このタスクを削除しますか？\nこの操作は取り消せません。';
+  if(!confirm(msg))return;
+  await deleteTaskRecursive(id);
+  closeDetail();await loadAll();
+  if(curPage==='teamtask')renderTeamTask();else if(curPage==='meeting')renderMeeting();
+}
+
 async function deleteTask(id){
   if(!confirm('このタスクを削除しますか？\nこの操作は取り消せません。'))return;
   const{error}=await sb.from('pm_tasks').delete().eq('id',id);
