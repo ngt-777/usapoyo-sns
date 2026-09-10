@@ -940,35 +940,60 @@ function renderDash(){
 }
 
 function renderProject(){
+  // projFが存在しないカテゴリIDを指している場合はリセット
+  if(projF!=='all'&&!D.categories.find(c=>c.id===projF))projF='all';
+
   document.getElementById('proj-chips').innerHTML=`<div class="chip ${projF==='all'?'on':''}" onclick="setProjF('all')">すべて</div>`+
     D.categories.map(c=>`<div class="chip ${projF===c.id?'on':''}" onclick="setProjF('${c.id}')">${c.name}</div>`).join('');
+
+  // 表示対象カテゴリ
   const fCats=projF==='all'?D.categories:D.categories.filter(c=>c.id===projF);
+
+  // 全プロジェクトを把握（カテゴリ不明プロジェクトを拾うため）
+  const knownCatIds=new Set(D.categories.map(c=>c.id));
+  const renderedProjIds=new Set();
+
+  // プロジェクトブロック生成ヘルパー
+  const projBlock=(proj,catId)=>{
+    renderedProjIds.add(proj.id);
+    const ptRaw=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
+    const pt=sortTasks(ptRaw);
+    const done=ptRaw.filter(t=>t.status==='完了').length,total=ptRaw.length,prog=total>0?Math.round(done/total*100):0;
+    return`<div class="pblk"><div class="pblk-hd" onclick="togglePB('${proj.id}')">
+      <span>📌</span><div class="pblk-nm">${proj.name}</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
+        <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>
+        <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openProjModal('${catId||''}','${proj.id}')" title="プロジェクトを編集">✏</button>
+      </div>
+    </div>
+    <div class="ptasks" id="pb-${proj.id}">
+      ${pt.map(t=>tRow(t)).join('')}
+      <div style="padding:8px 0"><button class="btn bg bsm" onclick="openTaskModal(null,'${proj.id}')">＋ タスク追加</button></div>
+    </div></div>`;
+  };
+
   let h='';
   fCats.forEach(cat=>{
     const cps=D.projects.filter(p=>p.category_id===cat.id);
     h+=`<div class="pcat"><div class="pcat-hd"><span>${cat.icon||'📁'}</span><h3 style="flex:1">${cat.name}</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button></div>`;
-    cps.forEach(proj=>{
-      const ptRaw=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
-      const pt=sortTasks(ptRaw);
-      const done=ptRaw.filter(t=>t.status==='完了').length,total=ptRaw.length,prog=total>0?Math.round(done/total*100):0;
-      const hasU=pt.some(t=>t.status==='要対応'),hasW=pt.some(t=>['外部返答待ち','確認待ち','素材待ち'].includes(t.status));
-      const pSt=hasU?'要対応':hasW?'確認待ち':prog===100?'完了':'進行中';
-      h+=`<div class="pblk"><div class="pblk-hd" onclick="togglePB('${proj.id}')">
-        <span>📌</span><div class="pblk-nm">${proj.name}</div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
-          <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>
-          <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts);margin-left:4px" onclick="event.stopPropagation();openProjModal('${cat.id}','${proj.id}')" title="プロジェクトを編集">✏</button>
-        </div>
-      </div>
-      <div class="ptasks" id="pb-${proj.id}">
-        ${pt.map(t=>tRow(t)).join('')}
-        <div style="padding:8px 0"><button class="btn bg bsm" onclick="openTaskModal(null,'${proj.id}')">＋ タスク追加</button></div>
-      </div></div>`;
-    });
+    cps.forEach(proj=>{h+=projBlock(proj,cat.id);});
+    if(!cps.length)h+='<div style="font-size:11px;color:rgba(255,255,255,.4);padding:8px 16px">プロジェクトなし（＋プロジェクト追加から登録）</div>';
     h+='</div>';
   });
-  if(!h)h='<div class="empty"><h3>プロジェクトがありません</h3></div>';
+
+  // カテゴリ不明プロジェクト（category_idがnullまたは不明）を「その他」セクションに表示
+  if(projF==='all'){
+    const orphans=D.projects.filter(p=>!renderedProjIds.has(p.id)&&(!p.category_id||!knownCatIds.has(p.category_id)));
+    if(orphans.length>0){
+      h+=`<div class="pcat"><div class="pcat-hd"><span>📁</span><h3 style="flex:1">その他（カテゴリ未設定）</h3></div>`;
+      orphans.forEach(proj=>{h+=projBlock(proj,null);});
+      h+='</div>';
+    }
+  }
+
+  if(!h)h='<div class="card" style="padding:24px;text-align:center"><p style="color:var(--tm)">プロジェクトがありません</p><p style="font-size:11px;color:var(--tm)">「カテゴリ追加」でカテゴリを作成してから「＋ プロジェクト追加」で登録してください</p></div>';
+
   // 他部署依頼セクション
   const actR=D.requests.filter(r=>r.status!=='完了'),doneR=D.requests.filter(r=>r.status==='完了');
   h+=`<div class="pcat"><div class="pcat-hd"><span>📩</span><h3 style="flex:1">他部署依頼</h3><button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openReqModal()">＋ 依頼追加</button></div>
@@ -987,7 +1012,6 @@ function renderProject(){
       ${r.content?`<div style="font-size:12px;color:var(--ts);white-space:pre-wrap;margin-bottom:4px">${r.content}</div>`:''}
       ${r.response_deadline?`<div style="font-size:11px;color:var(--tm)">初稿期限：${fd(r.response_deadline)}</div>`:''}
       ${r.notes?`<div style="font-size:11px;color:var(--tm);margin-top:4px">📝 ${r.notes}</div>`:''}
-      ${r.affects_usapoyo?`<div class="bn bn-yel" style="margin-top:6px;font-size:11px">⚠ うさぽよ業務への影響あり</div>`:''}
       ${(()=>{const rt=D.tasks.filter(t=>t.request_id===r.id);return rt.map(t=>tRow(t,1)).join('')+`<div style="padding:6px 0"><button class="btn bg bsm" onclick="openTaskModal(null,null,null,'${r.id}')">＋ サブタスク追加</button></div>`;})()}
     </div>
   </div>`).join('')}
@@ -996,6 +1020,7 @@ function renderProject(){
   </div>`;
   document.getElementById('proj-body').innerHTML=h;
 }
+
 function tRow(t,depth){
   depth=depth||0;
   const ck=t.status==='完了',subs=D.tasks.filter(s=>s.parent_task_id===t.id);
@@ -1730,13 +1755,20 @@ async function saveTask(){
 }
 async function toggleTask(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
-  const ns=t.status==='完了'?'未着手':'完了',upd={status:ns,updated_at:new Date().toISOString()};
-  if(ns==='完了')upd.completed_at=new Date().toISOString();
-  await sb.from('pm_tasks').update(upd).eq('id',id);
-  await loadAll();
-  // 完了状態変更後は必ずソートを再実行
+  const ns=t.status==='完了'?'未着手':'完了';
+  // 1. メモリを即時更新（楽観的更新）
+  t.status=ns;
+  t.updated_at=new Date().toISOString();
+  if(ns==='完了'){t.completed_at=t.updated_at;}else{t.completed_at=null;}
+  // 2. 即再描画（ソート含む）
   if(curPage==='teamtask'){renderTaskboard();renderProject();}
   else if(curPage==='meeting')renderMeeting();
+  // 3. バックグラウンドでDB同期
+  const upd={status:ns,updated_at:t.updated_at};
+  if(ns==='完了')upd.completed_at=t.completed_at;
+  sb.from('pm_tasks').update(upd).eq('id',id).then(({error})=>{
+    if(error){console.error('toggleTask DB error:',error);}
+  });
 }
 function showDetail(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
