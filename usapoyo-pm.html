@@ -189,7 +189,7 @@ a{color:var(--accent)}
 
 <div id="app" style="display:none">
   <div id="sidebar">
-    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v37</span></h1><p>Hip Shake</p></div>
+    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v38</span></h1><p>Hip Shake</p></div>
     <div class="sb-mem">
       <div class="sb-mem-l">担当者</div>
       <div class="sb-mem-n" onclick="changeMember()"><span id="cur-mem">—</span><span style="font-size:9px;opacity:.4">▼</span></div>
@@ -946,14 +946,11 @@ function renderDash(){
 }
 
 function renderProject(){
-  // projFが存在しないカテゴリIDを指している場合はリセット
-  if(projF!=='all'&&!D.categories.find(c=>c.id===projF)){projF='all';}
-
   document.getElementById('proj-chips').innerHTML=
     `<div class="chip ${projF==='all'?'on':''}" onclick="setProjF('all')">すべて</div>`+
     D.categories.map(c=>`<div class="chip ${projF===c.id?'on':''}" onclick="setProjF('${c.id}')">${c.name}</div>`).join('');
 
-  const fCats=projF==='all'?D.categories:D.categories.filter(c=>c.id===projF);
+  const fCats=projF==='all'?D.categories:(D.categories.filter(c=>c.id===projF).length>0?D.categories.filter(c=>c.id===projF):D.categories);
   const knownCatIds=new Set(D.categories.map(c=>c.id));
   const renderedProjIds=new Set();
 
