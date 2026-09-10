@@ -290,7 +290,12 @@ a{color:var(--accent)}
     </div>
 
     <div class="page" id="page-links">
-      <div class="ph"><div><div class="pt">📦 素材・リンク</div><div class="ps">Drive・ドキュメント・アカウント・ツールのリンク集</div></div><button class="btn bp" onclick="openLinkModal()">＋ リンクを追加</button></div>
+      <div class="ph"><div><div class="pt">📦 素材・リンク</div><div class="ps">Drive・ドキュメント・アカウント・ツールのリンク集</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn bs bsm" onclick="openAddLinkCat()">＋ カテゴリ追加</button>
+          <button class="btn bp" onclick="openLinkModal()">＋ リンクを追加</button>
+        </div>
+      </div>
       <div id="links-body"><div class="ld">読み込み中...</div></div>
     </div>
   </div>
@@ -583,16 +588,27 @@ a{color:var(--accent)}
   </div></div>
 </div>
 
+
+<!-- Link Category Add Modal -->
+<div id="lcat-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeLCat()">
+  <div class="mbox" style="max-width:400px"><div class="mhead"><div class="mtitle">カテゴリを追加</div><button class="mclose" onclick="closeLCat()">✕</button></div>
+  <div class="mbody">
+    <div class="fg"><label class="fl">カテゴリ名 *</label><input class="fi" id="lcat-name" placeholder="例：KOGYARUコラボ" autofocus></div>
+    <div style="font-size:11px;color:var(--tm);margin-bottom:14px">追加したカテゴリはリンク追加モーダルの選択肢にも表示されます。</div>
+    <div class="sep"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn bs" onclick="closeLCat()">キャンセル</button>
+      <button class="btn bp" onclick="saveLCat()">追加する</button>
+    </div>
+  </div></div>
+</div>
 <!-- Link Modal -->
 <div id="link-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeLinkModal()">
   <div class="mbox" style="max-width:500px"><div class="mhead"><div class="mtitle" id="lm-title">リンクを追加</div><button class="mclose" onclick="closeLinkModal()">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="lm-id">
     <div class="fg"><label class="fl">カテゴリ</label>
-      <select class="fsel" id="lm-cat">
-          <option>ツール</option><option>公式アカウント</option><option>LINEスタンプ</option>
-          <option>ドキュメント</option><option>音源・動画</option><option>グッズ</option><option>通常コンテンツ</option><option>グッズPR</option><option>その他</option>
-      </select>
+      <select class="fsel" id="lm-cat"><!-- populated dynamically --></select>
     </div>
     <div class="fg"><label class="fl">名前 *</label><input class="fi" id="lm-name" placeholder="例：うさぽよじゃんけん 音源"></div>
     <div class="fg"><label class="fl">URL *</label><input class="fi" id="lm-url" placeholder="https://..."></div>
@@ -668,7 +684,7 @@ a{color:var(--accent)}
 <script>
 // STATE
 let sb=null;
-const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[],monthlyHours:[]};
+const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[],monthlyHours:[],linkCats:[]};
 let ccFilter='all',ccStatusFilter='all',ccMonthView=null;
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
@@ -741,7 +757,7 @@ async function showApp(){
   renderTeamTask();
 }
 async function loadAll(){
-  const[a,b,c,d,e,f,g,h,i,j,k,l]=await Promise.all([
+  const[a,b,c,d,e,f,g,h,i,j,k,l,m]=await Promise.all([
     sb.from('pm_members').select('*').order('sort_order'),
     sb.from('pm_categories').select('*').order('sort_order'),
     sb.from('pm_projects').select('*').order('created_at'),
@@ -753,7 +769,8 @@ async function loadAll(){
     sb.from('pm_links').select('*').order('sort_order'),
     sb.from('pm_calendar_events').select('*').order('event_date'),
     sb.from('pm_content_events').select('*').order('month,sort_order'),
-    sb.from('pm_member_monthly_hours').select('*')
+    sb.from('pm_member_monthly_hours').select('*'),
+    sb.from('pm_link_cats').select('*').order('sort_order')
   ]);
   D.members=a.data||[];D.categories=b.data||[];D.projects=c.data||[];D.tasks=d.data||[];
   D.milestones=e.data||[];D.sns=f.data||[];D.meetings=g.data||[];D.requests=h.data||[];
@@ -761,6 +778,7 @@ async function loadAll(){
   D.events=(typeof j!=='undefined'?j.data:null)||[];
   D.contentEvents=(typeof k!=='undefined'?k.data:null)||[];
   D.monthlyHours=(typeof l!=='undefined'?l.data:null)||[];
+  D.linkCats=(typeof m!=='undefined'?m.data:null)||[];
 }
 const mn=id=>{if(!id)return'未設定';const m=D.members.find(x=>x.id===id);return m?m.name:'未設定';};
 const mnMulti=t=>{if(t.co_assignees){try{const ids=JSON.parse(t.co_assignees);if(ids.length>0){const names=ids.map(id=>id.startsWith('other:')?id.slice(6):(D.members.find(x=>x.id===id)?.name||'?'));return names.join('・');}}catch(e){}}return mn(t.assignee_id);};
@@ -1358,8 +1376,13 @@ async function copyAgenda(){
 }
 
 function renderLinks(){
-  const catOrd=['ツール','公式アカウント','LINEスタンプ','ドキュメント','音源・動画','グッズ','通常コンテンツ','グッズPR','その他'];
-  const cats=[...new Set(D.links.map(l=>l.category))].sort((a,b)=>{const ia=catOrd.indexOf(a),ib=catOrd.indexOf(b);return(ia===-1?99:ia)-(ib===-1?99:ib);});
+  // DBのlinkCatsを優先、なければデフォルト順
+  const lcNames=D.linkCats.length?D.linkCats.map(c=>c.name):['ツール','公式アカウント','LINEスタンプ','ドキュメント','音源・動画','グッズ','通常コンテンツ','グッズPR','他媒体','その他'];
+  const linkCatSet=new Set(D.links.map(l=>l.category));
+  // DBカテゴリ + リンクに使われているがDBにない(古い)カテゴリも含める
+  const cats=[...new Set([...lcNames.filter(c=>linkCatSet.has(c)||true),...D.links.map(l=>l.category)])].filter((c,i,a)=>a.indexOf(c)===i);
+  const catOrd=lcNames;
+  cats.sort((a,b)=>{const ia=catOrd.indexOf(a),ib=catOrd.indexOf(b);return(ia===-1?99:ia)-(ib===-1?99:ib);});
   if(!D.links.length){document.getElementById('links-body').innerHTML='<div class="empty"><h3>リンクがありません</h3><p>「＋ リンクを追加」から登録してください</p></div>';return;}
   let h='';
   cats.forEach(cat=>{
@@ -1383,12 +1406,30 @@ function renderLinks(){
   });
   document.getElementById('links-body').innerHTML=h;
 }
+function openAddLinkCat(){
+  document.getElementById('lcat-name').value='';
+  document.getElementById('lcat-modal').style.display='flex';
+  setTimeout(()=>document.getElementById('lcat-name').focus(),100);
+}
+function closeLCat(){document.getElementById('lcat-modal').style.display='none';}
+async function saveLCat(){
+  const name=document.getElementById('lcat-name').value.trim();
+  if(!name){alert('カテゴリ名を入力してください');return;}
+  if(D.linkCats.find(c=>c.name===name)){alert('同じ名前のカテゴリが既に存在します');return;}
+  const maxSort=D.linkCats.length?Math.max(...D.linkCats.map(c=>c.sort_order||0))+1:100;
+  const{error}=await sb.from('pm_link_cats').insert({name,sort_order:maxSort});
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeLCat();await loadAll();renderLinks();
+}
 function copyLinkUrl(url,btn){const orig=btn.textContent;navigator.clipboard.writeText(url).then(()=>{btn.textContent='✓ コピー済み';btn.style.color='var(--grn)';setTimeout(()=>{btn.textContent=orig;btn.style.color='';},2000);}).catch(()=>{const ta=document.createElement('textarea');ta.value=url;document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta);btn.textContent='✓';setTimeout(()=>{btn.textContent=orig;},1500);});}
 function openLinkModal(id){
   document.getElementById('lm-title').textContent=id?'リンクを編集':'リンクを追加';
-  document.getElementById('rm-asgn')?null:null;
-  if(id){const l=D.links.find(x=>x.id===id);if(!l)return;document.getElementById('lm-id').value=l.id;document.getElementById('lm-cat').value=l.category||'その他';document.getElementById('lm-name').value=l.name||'';document.getElementById('lm-url').value=l.url||'';document.getElementById('lm-desc').value=l.description||'';}
-  else{['lm-id','lm-name','lm-url','lm-desc'].forEach(x=>document.getElementById(x).value='');document.getElementById('lm-cat').value='その他';}
+  // カテゴリ選択肢を動的生成
+  const catSel=document.getElementById('lm-cat');
+  const cats=D.linkCats.length?D.linkCats.map(c=>c.name):['ツール','公式アカウント','LINEスタンプ','ドキュメント','音源・動画','グッズ','通常コンテンツ','グッズPR','他媒体','その他'];
+  catSel.innerHTML=cats.map(c=>`<option value="${c}">${c}</option>`).join('');
+  if(id){const l=D.links.find(x=>x.id===id);if(!l)return;document.getElementById('lm-id').value=l.id;catSel.value=l.category||'その他';document.getElementById('lm-name').value=l.name||'';document.getElementById('lm-url').value=l.url||'';document.getElementById('lm-desc').value=l.description||'';}
+  else{['lm-id','lm-name','lm-url','lm-desc'].forEach(x=>document.getElementById(x).value='');catSel.value=cats[0]||'ツール';}
   document.getElementById('link-modal').style.display='flex';
 }
 function closeLinkModal(){document.getElementById('link-modal').style.display='none';}
