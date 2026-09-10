@@ -189,7 +189,7 @@ a{color:var(--accent)}
 
 <div id="app" style="display:none">
   <div id="sidebar">
-    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v36</span></h1><p>Hip Shake</p></div>
+    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v37</span></h1><p>Hip Shake</p></div>
     <div class="sb-mem">
       <div class="sb-mem-l">担当者</div>
       <div class="sb-mem-n" onclick="changeMember()"><span id="cur-mem">—</span><span style="font-size:9px;opacity:.4">▼</span></div>
@@ -775,15 +775,21 @@ function renderMemGrid(){
 function selectMember(m){curMember=m;sessionStorage.setItem('cur_member',JSON.stringify(m));document.getElementById('member-screen').style.display='none';document.getElementById('cur-mem').textContent=m.name||'ゲスト';renderTaskboard();}
 function changeMember(){renderMemGrid();document.getElementById('member-screen').style.display='flex';}
 async function showApp(){
-  const appEl=document.getElementById('app');if(appEl)appEl.style.display='flex';
-  const curMemEl=document.getElementById('cur-mem');if(curMemEl)curMemEl.textContent=curMember?.name||'ゲスト';
-  const ds=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'long'});
-  const dashDate=document.getElementById('dash-date');if(dashDate)dashDate.textContent=ds;
-  if(document.getElementById('tb-date'))document.getElementById('tb-date').textContent=ds;
-  await loadAll();
-  if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
-  if(!D.contentEvents.length||D.contentEvents.every(e=>!e.status)||localStorage.getItem('cc_ver')!=='v15'){try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){}await loadAll();}
-  renderTeamTask();
+  try{
+    const appEl=document.getElementById('app');
+    if(appEl)appEl.style.display='flex';
+    const curMemEl=document.getElementById('cur-mem');
+    if(curMemEl)curMemEl.textContent=curMember?.name||'ゲスト';
+  }catch(e){console.warn('showApp init:',e);}
+  try{
+    await loadAll();
+    if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
+    if(!D.contentEvents.length||D.contentEvents.every(e=>!e.status)||localStorage.getItem('cc_ver')!=='v15'){
+      try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){}
+      await loadAll();
+    }
+    renderTeamTask();
+  }catch(e){console.error('showApp error:',e);}
 }
 async function loadAll(){
   const[a,b,c,d,e,f,g,h,i,j,k,l,m,n,o]=await Promise.all([
