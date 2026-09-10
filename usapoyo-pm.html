@@ -189,7 +189,7 @@ a{color:var(--accent)}
 
 <div id="app" style="display:none">
   <div id="sidebar">
-    <div class="sb-logo"><h1>🐰 うさぽよ PM</h1><p>Hip Shake</p></div>
+    <div class="sb-logo"><h1>🐰 うさぽよ PM <span style="font-size:9px;background:#7C6FCD;color:#fff;padding:1px 5px;border-radius:3px;vertical-align:middle">v36</span></h1><p>Hip Shake</p></div>
     <div class="sb-mem">
       <div class="sb-mem-l">担当者</div>
       <div class="sb-mem-n" onclick="changeMember()"><span id="cur-mem">—</span><span style="font-size:9px;opacity:.4">▼</span></div>
@@ -954,7 +954,14 @@ function renderProject(){
   const projBlock=(proj,catId)=>{
     renderedProjIds.add(proj.id);
     const ptRaw=D.tasks.filter(t=>t.project_id===proj.id&&!t.parent_task_id);
-    const pt=sortTasks(ptRaw);
+    // インラインソート（外部関数依存なし）
+    const pt=[...ptRaw].sort((a,b)=>{
+      const aD=a.status==='完了'?0:1,bD=b.status==='完了'?0:1;
+      if(aD!==bD)return aD-bD;
+      const ad=a.deadline||a.work_date||'9999-12-31';
+      const bd=b.deadline||b.work_date||'9999-12-31';
+      return ad<bd?-1:ad>bd?1:0;
+    });
     const done=ptRaw.filter(t=>isFullyComplete(t.id)).length,total=ptRaw.length;
     const prog=total>0?Math.round(done/total*100):0;
     return`<div class="pblk">
@@ -1771,20 +1778,16 @@ async function saveTask(){
 async function toggleTask(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
   const ns=t.status==='完了'?'未着手':'完了';
-  // 1. メモリを即時更新（楽観的更新）
   t.status=ns;
   t.updated_at=new Date().toISOString();
   if(ns==='完了'){t.completed_at=t.updated_at;}else{t.completed_at=null;}
-  // 2. 即再描画（ソート含む）- DOMの存在確認で確実に実行
-  if(document.getElementById('proj-body'))renderProject();
-  if(document.getElementById('tb-body'))renderTaskboard();
-  if(document.getElementById('mtg-body'))renderMeeting();
-  // 3. バックグラウンドでDB同期
-  const upd={status:ns,updated_at:t.updated_at};
-  if(ns==='完了')upd.completed_at=t.completed_at;
-  sb.from('pm_tasks').update(upd).eq('id',id).then(({error})=>{
-    if(error){console.error('toggleTask DB error:',error);}
-  });
+  // DOM再描画
+  const pb=document.getElementById('proj-body');
+  const tb=document.getElementById('tb-body');
+  if(pb)renderProject();
+  if(tb)renderTaskboard();
+  // DB同期
+  sb.from('pm_tasks').update({status:ns,updated_at:t.updated_at,completed_at:t.completed_at||null}).eq('id',id);
 }
 function showDetail(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
