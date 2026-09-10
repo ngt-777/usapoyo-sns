@@ -366,7 +366,19 @@ a{color:var(--accent)}
   <div class="mbody">
     <input type="hidden" id="rm-id">
     <div class="frow">
-      <div class="fg"><label class="fl">依頼名 *</label><input class="fi" id="rm-name"></div>
+      <div class="fg"><label class="fl">依頼名 *</label>
+        <div style="display:flex;gap:6px;align-items:center">
+          <select class="fsel" id="rm-type" style="flex:0 0 auto;min-width:155px">
+            <option value="">種類なし</option>
+            <option value="【LINEスタンプ】">【LINEスタンプ】</option>
+            <option value="【ロゴ制作】">【ロゴ制作】</option>
+            <option value="【ジャケット制作】">【ジャケット制作】</option>
+            <option value="【グッズデザイン】">【グッズデザイン】</option>
+            <option value="【入稿データ制作】">【入稿データ制作】</option>
+          </select>
+          <input class="fi" id="rm-name" placeholder="個別の依頼名（例：わがままバースデー）" style="flex:1">
+        </div>
+      </div>
       <div class="fg"><label class="fl">依頼元</label>
         <div style="display:flex;gap:6px">
           <select class="fsel" id="rm-req-sel" onchange="if(this.value){document.getElementById('rm-req').value=this.value;}" style="flex:1">
@@ -376,17 +388,7 @@ a{color:var(--accent)}
         </div>
       </div>
     </div>
-    <div class="fg">
-      <label class="fl">依頼内容（候補から選ぶか直接入力）</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px">
-        <div class="chip" onclick="setReqPreset('【LINEスタンプ】')">【LINEスタンプ】</div>
-        <div class="chip" onclick="setReqPreset('【ロゴ制作】')">【ロゴ制作】</div>
-        <div class="chip" onclick="setReqPreset('【ジャケットイラスト制作】')">【ジャケットイラスト制作】</div>
-        <div class="chip" onclick="setReqPreset('【グッズデザイン】')">【グッズデザイン】</div>
-        <div class="chip" onclick="setReqPreset('【入稿データ制作】')">【入稿データ制作】</div>
-      </div>
-      <textarea class="fta" id="rm-content" style="height:54px" placeholder="依頼内容を入力（上の候補を選ぶと自動入力）"></textarea>
-    </div>
+    <div class="fg"><label class="fl">依頼内容（具体的な作業内容・詳細）</label><textarea class="fta" id="rm-content" style="height:70px" placeholder="具体的な作業内容や詳細を入力してください"></textarea></div>
     <div class="fg"><label class="fl">担当者</label><select class="fsel" id="rm-asgn"></select></div>
     <div class="frow">
       <div class="fg"><label class="fl">初稿あげる期限</label><input class="fi" type="date" id="rm-resdl"></div>
@@ -1723,14 +1725,18 @@ async function saveTask(){
   if(status==='完了')data.completed_at=new Date().toISOString();
   const{error}=id?await sb.from('pm_tasks').update(data).eq('id',id):await sb.from('pm_tasks').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
-  closeTaskModal();await loadAll();if(curPage==='teamtask')renderTeamTask();
+  closeTaskModal();await loadAll();
+  if(curPage==='teamtask'){renderTaskboard();renderProject();}
 }
 async function toggleTask(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
   const ns=t.status==='完了'?'未着手':'完了',upd={status:ns,updated_at:new Date().toISOString()};
   if(ns==='完了')upd.completed_at=new Date().toISOString();
   await sb.from('pm_tasks').update(upd).eq('id',id);
-  await loadAll();if(curPage==='teamtask')renderTeamTask();else if(curPage==='meeting')renderMeeting();
+  await loadAll();
+  // 完了状態変更後は必ずソートを再実行
+  if(curPage==='teamtask'){renderTaskboard();renderProject();}
+  else if(curPage==='meeting')renderMeeting();
 }
 function showDetail(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
@@ -1807,12 +1813,21 @@ function openReqModal(id){
   const srcSel=document.getElementById('rm-req-sel');
   if(srcSel){const srcs=D.reqSources.length?D.reqSources.map(s=>s.name):['KOGYARU','nuts','egg','Natuul','ひめらぶ','ミラきゅる'];srcSel.innerHTML='<option value="">候補から選ぶ</option>'+srcs.map(s=>`<option value="${s}">${s}</option>`).join('');}
   if(id){const r=D.requests.find(x=>x.id===id);if(!r)return;
-    document.getElementById('rm-id').value=r.id;document.getElementById('rm-name').value=r.name||'';document.getElementById('rm-req').value=r.requester||'';document.getElementById('rm-content').value=r.content||'';
+    document.getElementById('rm-id').value=r.id;
+    // 既存の依頼名を種類＋個別名に分割
+    const RTYPES=['【LINEスタンプ】','【ロゴ制作】','【ジャケット制作】','【ジャケットイラスト制作】','【グッズデザイン】','【入稿データ制作】'];
+    const existingName=r.name||'';
+    const typeMatch=RTYPES.find(t=>existingName.startsWith(t));
+    const rmTypeSel=document.getElementById('rm-type');
+    if(typeMatch&&rmTypeSel){rmTypeSel.value=typeMatch==='【ジャケットイラスト制作】'?'【ジャケット制作】':typeMatch;document.getElementById('rm-name').value=existingName.slice(typeMatch.length).trim();}
+    else{if(rmTypeSel)rmTypeSel.value='';document.getElementById('rm-name').value=existingName;}
+    document.getElementById('rm-req').value=r.requester||'';document.getElementById('rm-content').value=r.content||'';
     document.getElementById('rm-asgn').value=r.assignee_id||'';document.getElementById('rm-resdl').value=r.response_deadline||'';document.getElementById('rm-deldl').value=r.delivery_deadline||'';
     document.getElementById('rm-fee').value=r.fee||30000;document.getElementById('rm-status').value=r.status||'未着手';document.getElementById('rm-notes').value=r.notes||'';document.getElementById('rm-aff').checked=!!r.affects_usapoyo;
     const rwdEl=document.getElementById('rm-work-date');if(rwdEl)rwdEl.value=r.work_date||'';
     const rwhEl=document.getElementById('rm-work-hours');if(rwhEl)rwhEl.value=r.work_hours||'';
   }else{['rm-id','rm-name','rm-req','rm-content','rm-notes','rm-resdl','rm-deldl'].forEach(x=>document.getElementById(x).value='');
+    const rmTypeSelR=document.getElementById('rm-type');if(rmTypeSelR)rmTypeSelR.value='';
     document.getElementById('rm-asgn').value='';document.getElementById('rm-fee').value=30000;document.getElementById('rm-status').value='未着手';document.getElementById('rm-aff').checked=false;
     const rwdEl2=document.getElementById('rm-work-date');if(rwdEl2)rwdEl2.value='';
     const rwhEl2=document.getElementById('rm-work-hours');if(rwhEl2)rwhEl2.value='';}
@@ -1820,7 +1835,10 @@ function openReqModal(id){
 }
 function closeReqModal(){document.getElementById('req-modal').style.display='none';}
 async function saveReq(){
-  const name=document.getElementById('rm-name').value.trim();if(!name){alert('依頼名を入力してください');return;}
+  const rmType=document.getElementById('rm-type')?.value||'';
+  const rmDetail=document.getElementById('rm-name').value.trim();
+  const name=(rmType+rmDetail).trim()||(rmType||rmDetail);
+  if(!name){alert('依頼名を入力してください（種類または個別名を入力）');return;}
   const id=document.getElementById('rm-id').value;
   const data={name,requester:document.getElementById('rm-req').value.trim(),content:document.getElementById('rm-content').value.trim()||null,
     assignee_id:document.getElementById('rm-asgn').value||null,response_deadline:document.getElementById('rm-resdl').value||null,
