@@ -991,27 +991,43 @@ function calcInsightRates(ins){
 }
 
 function getPostStatus(post){
-  // 日付をYYYY-MM-DDの文字列として比較（タイムゾーン問題を回避）
-  const todayStr=new Date().toLocaleDateString('sv-SE'); // "2026-08-31"形式
-  const postedStr=post.date||'';
-  const toDay=d=>new Date(d.replace(/-/g,'/'));// "/"区切りにするとローカル時刻で解釈
-  const diffDays=postedStr?((toDay(todayStr)-toDay(postedStr))/(1000*60*60*24)):0;
-  if(post.insight7d)return'done';
-  if(post.skip1d&&diffDays>=7)return'week1';
-  if(post.skip1d)return'skip1d';
-  if(post.insight1d&&diffDays>=7)return'week1';
-  if(post.insight1d)return'day1';
-  return'waiting';
+  const now = new Date();
+  // 投稿日時を組み立て（date + time があれば時刻込み、なければ日付のみ）
+  let postedAt;
+  if(post.date){
+    const timeStr = post.time || '00:00';
+    postedAt = new Date((post.date + 'T' + timeStr).replace(/-/g,'/').replace('T',' '));
+  } else {
+    return 'scheduled'; // 日付未設定
+  }
+  const diffHours = (now - postedAt) / (1000 * 60 * 60);
+
+  // 投稿前
+  if(diffHours < 0) return 'scheduled';
+
+  // インサイト入力済み判定
+  if(post.insight7d) return 'done';
+  if(post.skip1d && diffHours >= 7*24) return 'week1-input';
+  if(post.skip1d) return 'skip1d';
+  if(post.insight1d && diffHours >= 7*24) return 'week1-input';
+  if(post.insight1d) return 'week1-wait';
+
+  // 未入力
+  if(diffHours >= 7*24) return 'week1-input'; // 7日経過・1週間後未入力
+  if(diffHours >= 24) return 'day1-input';    // 24時間経過・1日後未入力
+  return 'day1-wait';                          // 投稿後〜24時間
 }
 
 function statusBadge(post){
   const s=getPostStatus(post);
   const map={
-    waiting: ['待ち','waiting'],
-    day1:    ['1日後入力済','day1'],
-    skip1d:  ['1日後スキップ','day1'],
-    week1:   ['1週間後待ち','week1'],
-    done:    ['集計完了','done'],
+    scheduled:   ['投稿予定','scheduled'],
+    'day1-wait': ['1日後待ち','waiting'],
+    'day1-input':['1日後入力','waiting'],
+    skip1d:      ['1日後スキップ','day1'],
+    'week1-wait':['1週間後待ち','week1'],
+    'week1-input':['1週間後入力','week1'],
+    done:        ['完了','done'],
   };
   const[txt,cls]=map[s]||['—',''];
   return`<span class="status ${cls}"><span class="status-dot"></span>${txt}</span>`;
@@ -1510,20 +1526,21 @@ function renderDetail(post){
 
 
   // 投稿からの経過日数
-  const todayStr2=new Date().toLocaleDateString('sv-SE');
-  const toDay2=d=>new Date(d.replace(/-/g,'/'));
-  const daysSincePost=post.date?((toDay2(todayStr2)-toDay2(post.date))/(1000*60*60*24)):0;
   // 1日後ボタン
-  const btn1d = status==='waiting'
+  const btn1d = status==='day1-input'
     ? `<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','1d')">1日後データを入力</button>
        <button class="btn btn-sm" onclick="skip1dInsight('${post.id}')" style="background:#fee2e2;color:#dc2626;border:1px solid #fca5a5;padding:6px 12px;border-radius:6px;font-size:12px;cursor:pointer">1日後データ不可</button>`
-    : (status==='day1'||status==='skip1d'||status==='week1'||status==='done')
-      ? `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','1d')">${post.insight1d?'1日後を編集':post.skip1d?'1日後スキップ済（編集）':'1日後を編集'}</button>`
+    : (status==='skip1d'||status==='week1-wait'||status==='week1-input'||status==='done')
+      ? `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','1d')">${post.insight1d?'1日後を編集':post.skip1d?'1日後スキップ済':'1日後を編集'}</button>`
+    : status==='day1-wait'
+      ? `<button class="btn btn-ghost btn-sm" disabled style="opacity:.5">1日後データ（24時間後に入力可）</button>`
       : '';
-  // 1週間後ボタン：7日経過したら表示
-  const btn7d = daysSincePost>=7
-    ? `<button class="${(status==='week1'||status==='skip1d')?'btn btn-primary':'btn btn-secondary'} btn-sm" onclick="openInsightModal('${post.id}','7d')">${post.insight7d?'1週間後を編集':'1週間後データを入力'}</button>`
-    : `<button class="btn btn-sm btn-ghost" disabled style="opacity:.5">1週間後データ（投稿から7日後に入力可）</button>`;
+  // 1週間後ボタン
+  const btn7d = (status==='week1-input')
+    ? `<button class="btn btn-primary btn-sm" onclick="openInsightModal('${post.id}','7d')">1週間後データを入力</button>`
+    : (status==='done'||status==='week1-wait')
+      ? `<button class="btn btn-secondary btn-sm" onclick="openInsightModal('${post.id}','7d')">${post.insight7d?'1週間後を編集':'1週間後データを入力'}</button>`
+      : `<button class="btn btn-sm btn-ghost" disabled style="opacity:.5">1週間後データ（投稿から7日後に入力可）</button>`;
 
   document.getElementById('detail-content').innerHTML=`
   <div style="margin-bottom:16px">
@@ -1563,6 +1580,7 @@ function renderDetail(post){
   <div style="display:flex;gap:10px;margin-bottom:20px">
     ${btn1d}
     ${btn7d}
+    <button class="btn btn-ghost btn-sm" onclick="duplicatePost('${post.id}')">複製</button>
     <button class="btn btn-danger btn-sm" onclick="deletePost('${post.id}')">削除</button>
   </div>
   <div class="insight-grid">
@@ -1713,6 +1731,34 @@ async function saveEditPost(){
   closeEditModal();
   showToast('投稿情報を更新しました','success');
   renderDetail(refreshed);
+}
+
+function duplicatePost(id){
+  const post=DB.posts.find(p=>p.id===id);
+  if(!post)return;
+  // 新規登録フォームに元投稿の情報を引き継ぐ
+  navigateTo('post-new');
+  // 少し待ってからフォームに値をセット
+  setTimeout(()=>{
+    document.getElementById('f-title').value=post.title||'';
+    document.getElementById('f-platform').value=post.platform||'Instagram';
+    document.getElementById('f-date').value=new Date().toLocaleDateString('sv-SE'); // 日付は今日
+    document.getElementById('f-time').value=post.time||'';
+    document.getElementById('f-category').value=post.category||'';
+    document.getElementById('f-format').value=post.format||'';
+    document.getElementById('f-url').value=''; // URLは空（別媒体のため）
+    document.getElementById('f-memo').value=post.memo||'';
+    document.getElementById('f-caption').value=post.caption||'';
+    document.getElementById('f-music-title').value=post.musicTitle||'';
+    document.getElementById('f-music-artist').value=post.musicArtist||'';
+    // ハッシュタグを引き継ぐ
+    currentHashtags=[...(post.hashtags||[])];
+    renderTags(); updatePresetButtons();
+    // プラットフォームの変更イベントを発火
+    const platEl=document.getElementById('f-platform');
+    if(platEl)platEl.dispatchEvent(new Event('change'));
+    showToast('投稿情報を引き継ぎました。媒体などを変更して登録してください','info');
+  }, 100);
 }
 
 async function deletePost(id){
