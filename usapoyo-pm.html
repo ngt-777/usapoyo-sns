@@ -644,6 +644,12 @@ a{color:var(--accent)}
   </div></div>
 </div>
 
+
+<!-- Day Detail Modal -->
+<div id="day-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeDayModal()">
+  <div class="mbox" style="max-width:520px"><div class="mhead"><div class="mtitle" id="day-modal-title">予定一覧</div><button class="mclose" onclick="closeDayModal()">✕</button></div>
+  <div class="mbody" id="day-modal-body"></div></div>
+</div>
 <!-- Event Modal -->
 <div id="evt-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeEvtModal()">
   <div class="mbox" style="max-width:480px"><div class="mhead"><div class="mtitle" id="em-title">イベントを追加</div><button class="mclose" onclick="closeEvtModal()">✕</button></div>
@@ -1291,11 +1297,11 @@ function renderSns(){
         const it=isToday(cell.ds),isHol=JP_HOL.has(cell.ds);
         const dcol=it?'#fff':(dow2===0||isHol)?'var(--red)':dow2===6?'var(--blu)':'var(--tp)';
         const maxPosts=cell.evts.length>0?2:3;
-        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer" onclick="openSnsModal(null,'${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
+        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer" onclick="showDayDetail('${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
           <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}"> ${cell.day}</span></div>
           ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}33;color:#1A1A2E;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid ${e.color}" onclick="event.stopPropagation();showEvtDetail('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
           ${cell.posts.slice(0,maxPosts).map(p=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${getCatColor(p.category)}28;color:${getCatColor(p.category)};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
-          ${cell.posts.length>maxPosts?`<div style="font-size:9px;color:var(--tm)">+${cell.posts.length-maxPosts}</div>`:''}
+          ${cell.posts.length>maxPosts?`<div style="font-size:9px;color:var(--accent);cursor:pointer;font-weight:600" onclick="event.stopPropagation();showDayDetail('${cell.ds}')">+${cell.posts.length-maxPosts}件 →</div>`:''}
         </div>`;
       }).join('')}
     </div>
@@ -1958,6 +1964,53 @@ async function deleteEvt2(id){
   await sb.from('pm_calendar_events').delete().eq('id',id);
   await loadAll();renderSns();
 }
+
+// ── DAY DETAIL ──
+function showDayDetail(ds){
+  const date=new Date(ds+'T00:00:00');
+  const title=date.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'long'});
+  document.getElementById('day-modal-title').textContent=title+'の予定';
+  const dayEvts=D.events.filter(e=>e.event_date<=ds&&(!e.event_date_end||e.event_date_end>=ds)||e.event_date===ds);
+  const dayPosts=D.sns.filter(p=>p.scheduled_date===ds);
+  const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
+  let h='';
+  if(dayEvts.length===0&&dayPosts.length===0){
+    h='<div style="text-align:center;padding:16px;color:var(--tm)">この日の予定はありません</div>';
+    h+=`<div style="text-align:center;padding-top:4px"><button class="btn bp bsm" onclick="closeDayModal();openSnsModal(null,'${ds}')">＋ SNS投稿を追加</button> <button class="btn bs bsm" onclick="closeDayModal();openEvtModal()">＋ イベントを追加</button></div>`;
+  }else{
+    if(dayEvts.length>0){
+      h+=`<div style="font-size:11px;font-weight:700;color:var(--ts);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">📌 イベント（${dayEvts.length}件）</div>`;
+      dayEvts.forEach(e=>{
+        const col=e.color||'#7C6FCD';
+        h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeDayModal();showEvtDetail('${e.id}')">
+          <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
+          <div><div style="font-size:13px;font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--tm)">${e.category||'イベント'}</div></div>
+          <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
+        </div>`;
+      });
+    }
+    if(dayPosts.length>0){
+      h+=`<div style="font-size:11px;font-weight:700;color:var(--ts);margin:${dayEvts.length?'12px':'0'} 0 6px;text-transform:uppercase;letter-spacing:.04em">📱 SNS投稿（${dayPosts.length}件）</div>`;
+      dayPosts.forEach(p=>{
+        const col=getCatColor(p.category);
+        const plats=(p.platforms||[]).map(pl=>`<span class="tag ${pc[pl]||''}" style="font-size:10px">${pl}</span>`).join('');
+        h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeDayModal();openSnsDetail('${p.id}')">
+          <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.content_name}</div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">${plats}<span style="font-size:10px;color:${col};background:${col}18;padding:1px 6px;border-radius:100px">${p.category||''}</span></div>
+          </div>
+          <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
+        </div>`;
+      });
+    }
+    h+=`<div style="margin-top:12px;display:flex;gap:8px"><button class="btn bp bsm" onclick="closeDayModal();openSnsModal(null,'${ds}')">＋ SNS投稿を追加</button><button class="btn bs bsm" onclick="closeDayModal();openEvtModal()">＋ イベントを追加</button></div>`;
+  }
+  document.getElementById('day-modal-body').innerHTML=h;
+  document.getElementById('day-modal').style.display='flex';
+}
+function closeDayModal(){document.getElementById('day-modal').style.display='none';}
+
 function openEvtModal(id){
   document.getElementById('em-title').textContent=id?'イベントを編集':'イベントを追加';
   const delBtn=document.getElementById('em-del-btn');
