@@ -1411,7 +1411,12 @@ function renderPostList(){
   const pf=document.getElementById('filter-platform').value;
   const cf=document.getElementById('filter-category').value;
   const sf=document.getElementById('filter-status').value;
-  let filtered=posts;
+  // 投稿日時降順でソート（新しい・未来が上）
+  const postDateTime=p=>{
+    if(!p.date) return '';
+    return p.date + 'T' + (p.time||'00:00');
+  };
+  let filtered=[...posts].sort((a,b)=>postDateTime(b).localeCompare(postDateTime(a)));
   if(pf)filtered=filtered.filter(p=>p.platform===pf);
   if(cf)filtered=filtered.filter(p=>p.category===cf);
   if(sf)filtered=filtered.filter(p=>getPostStatus(p)===sf);
