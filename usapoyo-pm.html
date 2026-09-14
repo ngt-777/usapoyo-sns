@@ -1693,8 +1693,16 @@ async function toggleTask(id){
   const tb=document.getElementById('tb-body');
   if(pb)renderProject();
   if(tb)renderTaskboard();
-  // DB同期
-  sb.from('pm_tasks').update({status:ns,updated_at:t.updated_at,completed_at:t.completed_at||null}).eq('id',id);
+  // DB同期（awaitして確実に保存）
+  const{error}=await sb.from('pm_tasks').update({status:ns,updated_at:t.updated_at,completed_at:t.completed_at||null}).eq('id',id);
+  if(error){
+    // 保存失敗時はロールバック
+    t.status=ns==='完了'?'未着手':'完了';
+    t.completed_at=null;
+    if(document.getElementById('proj-body'))renderProject();
+    if(document.getElementById('tb-body'))renderTaskboard();
+    alert('保存エラー: '+error.message);
+  }
 }
 function showDetail(id){
   const t=D.tasks.find(x=>x.id===id);if(!t)return;
