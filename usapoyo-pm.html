@@ -335,10 +335,27 @@ a{color:var(--accent)}
       <div class="fg"><label class="fl">作業時間（h）</label><input class="fi" type="number" id="tm-work-hours" min="0.5" max="200" step="0.5" placeholder="例：3"></div>
       <div class="fg"><label class="fl">定期タスク</label>
         <div style="display:flex;gap:8px;align-items:center;padding:8px 0">
-          <label class="fchk"><input type="checkbox" id="tm-recurring" onchange="document.getElementById('tm-freq').style.display=this.checked?'block':'none'"> 定期タスク</label>
-          <select class="fsel" id="tm-freq" style="display:none;width:auto">
-            <option value="毎週">毎週</option><option value="隔週">隔週</option><option value="毎月">毎月</option>
+          <label class="fchk"><input type="checkbox" id="tm-recurring" onchange="document.getElementById('tm-freq').style.display=this.checked?'block':'none';document.getElementById('tm-days').style.display=(this.checked&&document.getElementById('tm-freq').value==='曜日指定')?'block':'none'"> 定期タスク</label>
+          <select class="fsel" id="tm-freq" style="display:none;width:auto" onchange="onTmFreqChange()">
+            <option value="毎週">毎週（同曜日）</option>
+            <option value="隔週">隔週</option>
+            <option value="毎月">毎月（同日）</option>
+            <option value="毎日">毎日</option>
+            <option value="平日">平日（月〜金）</option>
+            <option value="曜日指定">曜日指定...</option>
           </select>
+          <div id="tm-days" style="display:none;margin-top:6px">
+            <div style="font-size:11px;color:var(--tm);margin-bottom:4px">繰り返す曜日</div>
+            <div style="display:flex;gap:5px">
+              <div class="asgn-chip" data-day="月" onclick="toggleDay(this)">月</div>
+              <div class="asgn-chip" data-day="火" onclick="toggleDay(this)">火</div>
+              <div class="asgn-chip" data-day="水" onclick="toggleDay(this)">水</div>
+              <div class="asgn-chip" data-day="木" onclick="toggleDay(this)">木</div>
+              <div class="asgn-chip" data-day="金" onclick="toggleDay(this)">金</div>
+              <div class="asgn-chip" data-day="土" onclick="toggleDay(this)">土</div>
+              <div class="asgn-chip" data-day="日" onclick="toggleDay(this)">日</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -827,11 +844,22 @@ async function advanceRecurringTasks(){
     let d=new Date(t.work_date+'T00:00:00');
     const freq=t.recurring_freq||'毎週';
     // 今日以降になるまで繰り返し進める
-    while(d<today){
-      if(freq==='毎週')d.setDate(d.getDate()+7);
-      else if(freq==='隔週')d.setDate(d.getDate()+14);
-      else if(freq==='毎月')d.setMonth(d.getMonth()+1);
-      else d.setDate(d.getDate()+7);
+    const dayMap={月:1,火:2,水:3,木:4,金:5,土:6,日:0};
+    if(freq==='毎日'){
+      d=new Date(today);
+    }else if(freq==='平日'){
+      d=new Date(today);while([0,6].includes(d.getDay()))d.setDate(d.getDate()+1);
+    }else if(freq.startsWith('曜日:')){
+      const tDays=freq.slice(3).split(',').map(x=>dayMap[x]).filter(x=>x!==undefined);
+      d=new Date(today);let cnt=0;
+      while(!tDays.includes(d.getDay())&&cnt++<7)d.setDate(d.getDate()+1);
+    }else{
+      while(d<today){
+        if(freq==='毎週')d.setDate(d.getDate()+7);
+        else if(freq==='隔週')d.setDate(d.getDate()+14);
+        else if(freq==='毎月')d.setMonth(d.getMonth()+1);
+        else d.setDate(d.getDate()+7);
+      }
     }
     const newDate=d.toISOString().split('T')[0];
     if(newDate!==t.work_date){
@@ -1183,6 +1211,11 @@ async function saveMHM(){
 }
 
 function renderTeamTask(){renderTaskboard();renderProject();}
+function onTmFreqChange(){
+  const v=document.getElementById('tm-freq').value;
+  document.getElementById('tm-days').style.display=v==='曜日指定'?'block':'none';
+}
+function toggleDay(el){el.classList.toggle('on');}
 function toggleAsgn(el){el.classList.toggle('on');el.dataset.checked=el.classList.contains('on')?'1':'0';}
 function setTbF(el,name){document.querySelectorAll('#tb-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');tbFilter=name;renderTaskboard();}
 function renderTaskboard(){
@@ -1699,13 +1732,26 @@ function openTaskModal(id,preProj,parentId,requestId){
     document.getElementById('tm-work-date').value=t.work_date||'';
     document.getElementById('tm-work-hours').value=t.work_hours||'';
     document.getElementById('tm-recurring').checked=!!t.is_recurring;
-    document.getElementById('tm-freq').value=t.recurring_freq||'毎週';
+    const savedFreq=t.recurring_freq||'毎週';
+    const tmDays=document.getElementById('tm-days');
+    if(savedFreq.startsWith('曜日:')){
+      document.getElementById('tm-freq').value='曜日指定';
+      const selDays=savedFreq.slice(3).split(',');
+      document.querySelectorAll('#tm-days .asgn-chip').forEach(c=>c.classList.toggle('on',selDays.includes(c.dataset.day)));
+      if(t.is_recurring)tmDays.style.display='block';
+    }else{
+      document.getElementById('tm-freq').value=savedFreq;
+      document.querySelectorAll('#tm-days .asgn-chip').forEach(c=>c.classList.remove('on'));
+      tmDays.style.display='none';
+    }
     document.getElementById('tm-freq').style.display=t.is_recurring?'block':'none';
     document.getElementById('tm-na').value=t.next_action||'';document.getElementById('tm-url').value=(t.related_urls&&t.related_urls[0])||'';
   }else{
     document.getElementById('tm-id').value='';
     ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-work-date','tm-work-hours'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('tm-recurring').checked=false;document.getElementById('tm-freq').style.display='none';
+    document.getElementById('tm-days').style.display='none';
+    document.querySelectorAll('#tm-days .asgn-chip').forEach(c=>c.classList.remove('on'));
     document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=!!(curMember?.id&&chip.dataset.id===curMember.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
     if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value='';
     document.getElementById('tm-parent').value='';
@@ -1733,7 +1779,15 @@ async function saveTask(){
     work_date:document.getElementById('tm-work-date').value||null,
     work_hours:parseFloat(document.getElementById('tm-work-hours').value)||null,
     is_recurring:document.getElementById('tm-recurring').checked,
-    recurring_freq:document.getElementById('tm-recurring').checked?document.getElementById('tm-freq').value:null,
+    recurring_freq:(()=>{
+      if(!document.getElementById('tm-recurring').checked)return null;
+      const fv=document.getElementById('tm-freq').value;
+      if(fv==='曜日指定'){
+        const sd=Array.from(document.querySelectorAll('#tm-days .asgn-chip.on')).map(c=>c.dataset.day);
+        return sd.length?'曜日:'+sd.join(','):'毎週';
+      }
+      return fv;
+    })(),
     next_action:document.getElementById('tm-na').value.trim()||null,related_urls:url?[url]:[],
     request_id:document.getElementById('tm-request-id').value||null,
     updated_at:new Date().toISOString()};
