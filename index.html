@@ -1747,7 +1747,7 @@ function duplicatePost(id){
   setTimeout(()=>{
     document.getElementById('f-title').value=post.title||'';
     document.getElementById('f-platform').value=post.platform||'Instagram';
-    document.getElementById('f-date').value=new Date().toLocaleDateString('sv-SE'); // 日付は今日
+    document.getElementById('f-date').value=post.date||new Date().toLocaleDateString('sv-SE'); // 複製元の日付を引き継ぐ
     document.getElementById('f-time').value=post.time||'';
     document.getElementById('f-category').value=post.category||'';
     document.getElementById('f-format').value=post.format||'';
