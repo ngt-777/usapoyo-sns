@@ -781,6 +781,30 @@ function renderMemGrid(){
 }
 function selectMember(m){curMember=m;sessionStorage.setItem('cur_member',JSON.stringify(m));document.getElementById('member-screen').style.display='none';document.getElementById('cur-mem').textContent=m.name||'ゲスト';renderTaskboard();}
 function changeMember(){renderMemGrid();document.getElementById('member-screen').style.display='flex';}
+
+// ── 定期タスクの作業予定日を自動更新 ──
+async function advanceRecurringTasks(){
+  const today=new Date();today.setHours(0,0,0,0);
+  const targets=D.tasks.filter(t=>t.is_recurring&&t.work_date&&new Date(t.work_date+'T00:00:00')<today);
+  if(!targets.length)return;
+  for(const t of targets){
+    let d=new Date(t.work_date+'T00:00:00');
+    const freq=t.recurring_freq||'毎週';
+    // 今日以降になるまで繰り返し進める
+    while(d<today){
+      if(freq==='毎週')d.setDate(d.getDate()+7);
+      else if(freq==='隔週')d.setDate(d.getDate()+14);
+      else if(freq==='毎月')d.setMonth(d.getMonth()+1);
+      else d.setDate(d.getDate()+7);
+    }
+    const newDate=d.toISOString().split('T')[0];
+    if(newDate!==t.work_date){
+      await sb.from('pm_tasks').update({work_date:newDate,updated_at:new Date().toISOString()}).eq('id',t.id);
+      t.work_date=newDate; // メモリも更新
+    }
+  }
+}
+
 async function showApp(){
   try{
     const appEl=document.getElementById('app');
@@ -790,6 +814,7 @@ async function showApp(){
   }catch(e){console.warn('showApp init:',e);}
   try{
     await loadAll();
+    await advanceRecurringTasks(); // 定期タスクの予定日を自動更新
     if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
     if(!D.contentEvents.length||D.contentEvents.every(e=>!e.status)||localStorage.getItem('cc_ver')!=='v15'){
       try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){}
