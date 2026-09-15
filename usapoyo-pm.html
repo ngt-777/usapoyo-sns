@@ -812,6 +812,8 @@ async function deleteCatItem(catId,catName){
     if(tasks.length>0)await sb.from('pm_tasks').delete().in('id',tasks.map(t=>t.id));
     await sb.from('pm_projects').delete().eq('id',proj.id);
   }
+  // 関連テーブルの外部キーをnullに（制約エラー回避）
+  await sb.from('pm_milestones').update({category_id:null}).eq('category_id',catId);
   const{error}=await sb.from('pm_categories').delete().eq('id',catId);
   if(error){alert('削除エラー: '+error.message);return;}
   await loadAll();renderProject();
