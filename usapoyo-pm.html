@@ -783,6 +783,40 @@ function selectMember(m){curMember=m;sessionStorage.setItem('cur_member',JSON.st
 function changeMember(){renderMemGrid();document.getElementById('member-screen').style.display='flex';}
 
 // ── 定期タスクの作業予定日を自動更新 ──
+
+// ── プロジェクト・カテゴリ削除 ──
+async function deleteProjItem(projId,projName){
+  const tasks=D.tasks.filter(t=>t.project_id===projId);
+  const msg=tasks.length>0
+    ?`「${projName}」には${tasks.length}件のタスクが含まれています。\n削除するとタスクも一緒に削除されます。\n本当に削除しますか？`
+    :`「${projName}」を削除しますか？\nこの操作は取り消せません。`;
+  if(!confirm(msg))return;
+  if(tasks.length>0){
+    await sb.from('pm_tasks').delete().in('id',tasks.map(t=>t.id));
+  }
+  const{error}=await sb.from('pm_projects').delete().eq('id',projId);
+  if(error){alert('削除エラー: '+error.message);return;}
+  await loadAll();renderProject();
+}
+
+async function deleteCatItem(catId,catName){
+  const projs=D.projects.filter(p=>p.category_id===catId);
+  const taskCount=D.tasks.filter(t=>projs.some(p=>p.id===t.project_id)).length;
+  let msg=`「${catName}」を削除しますか？\nこの操作は取り消せません。`;
+  if(projs.length>0){
+    msg=`「${catName}」には${projs.length}件のプロジェクト・${taskCount}件のタスクが含まれています。\nすべて一緒に削除されます。\n本当に削除しますか？`;
+  }
+  if(!confirm(msg))return;
+  for(const proj of projs){
+    const tasks=D.tasks.filter(t=>t.project_id===proj.id);
+    if(tasks.length>0)await sb.from('pm_tasks').delete().in('id',tasks.map(t=>t.id));
+    await sb.from('pm_projects').delete().eq('id',proj.id);
+  }
+  const{error}=await sb.from('pm_categories').delete().eq('id',catId);
+  if(error){alert('削除エラー: '+error.message);return;}
+  await loadAll();renderProject();
+}
+
 async function advanceRecurringTasks(){
   const today=new Date();today.setHours(0,0,0,0);
   const targets=D.tasks.filter(t=>t.is_recurring&&t.work_date&&new Date(t.work_date+'T00:00:00')<today);
@@ -1005,7 +1039,7 @@ function renderProject(){
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:72px"><div class="pbar"><div class="pf ${prog===100?'done':''}" style="width:${prog}%"></div></div></div>
           <span style="font-size:11px;color:var(--tm)">${done}/${total}</span>
-          <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openProjModal('${catId||''}','${proj.id}')" title="編集">✏</button>
+          <button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--border);border-radius:3px;cursor:pointer;color:var(--ts)" onclick="event.stopPropagation();openProjModal('${catId||''}','${proj.id}')" title="編集">✏</button><button style="padding:2px 7px;font-size:11px;background:none;border:1px solid var(--redbg);border-radius:3px;cursor:pointer;color:var(--red)" onclick="event.stopPropagation();deleteProjItem('${proj.id}','${proj.name}')" title="削除">🗑</button>
         </div>
       </div>
       <div class="ptasks" id="pb-${proj.id}">
@@ -1023,7 +1057,7 @@ function renderProject(){
       <div class="pcat-hd">
         <span>${cat.icon||'📁'}</span>
         <h3 style="flex:1">${cat.name}</h3>
-        <button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button>
+        <button style="padding:3px 10px;font-size:11px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:4px;cursor:pointer" onclick="openProjModal('${cat.id}')">＋ プロジェクト追加</button><button style="padding:3px 8px;font-size:11px;background:rgba(239,68,68,.25);color:#FCA5A5;border:1px solid rgba(239,68,68,.4);border-radius:4px;cursor:pointer;margin-left:6px" onclick="deleteCatItem('${cat.id}','${cat.name}')">🗑 削除</button>
       </div>`;
     if(cps.length===0){
       h+=`<div style="font-size:11px;color:rgba(255,255,255,.5);padding:10px 16px;font-style:italic">プロジェクトがありません。「＋ プロジェクト追加」から登録してください。</div>`;
