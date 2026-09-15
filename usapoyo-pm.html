@@ -717,7 +717,7 @@ const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meet
 let ccFilter='all',ccStatusFilter='all',ccMonthView=null;
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
 let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
-const collapsedTasks=new Set();
+const expandedTasks=new Set(); // 展開中のタスクIDを管理（デフォルト折りたたみ）
 const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2025-12-30','2025-12-31','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-30','2026-12-31','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23','2027-12-30','2027-12-31']);
 function getCatColor(cat){
   if(CAT_COLORS[cat])return CAT_COLORS[cat];
@@ -1060,12 +1060,12 @@ function tRow(t,depth){
   const bg=depth>0?`rgba(240,238,252,${Math.min(depth*0.5,0.8)})`:'transparent';
   const arrow=depth===1?'↳ ':depth>=2?'  ↳ ':'';
   const subId='sub-'+t.id;
-  const isCollapsed=collapsedTasks.has(t.id);
+  const isExpanded=expandedTasks.has(t.id);
   const rowHtml=`<div class="trow" style="padding-left:${pad}px;background:${bg}">
     <div class="tchk ${ck?'ck':''}" onclick="toggleTask('${t.id}')">${ck?'✓':''}</div>
     <div class="tn ${ck?'done':''}" onclick="showDetail('${t.id}')" style="flex-direction:column;align-items:flex-start;gap:0;font-size:${fs}px">${arrow}${t.name}</div>
     <div class="tm2">
-      ${subs.length>0?`<button class="btn bg" style="padding:1px 8px;font-size:10px;color:${isCollapsed?'var(--accent)':'var(--grn)'};border:1px solid ${isCollapsed?'var(--accent)':'var(--grn)'};border-radius:100px;flex-shrink:0" onclick="event.stopPropagation();toggleSubs('${subId}',this)">${isCollapsed?'▶':'▼'} ${subs.length}件</button>`:''}
+      ${subs.length>0?`<button class="btn bg" style="padding:1px 8px;font-size:10px;color:${isExpanded?'var(--grn)':'var(--accent)'};border:1px solid ${isExpanded?'var(--grn)':'var(--accent)'};border-radius:100px;flex-shrink:0" onclick="event.stopPropagation();toggleSubs('${subId}',this)">${isExpanded?'▼':'▶'} ${subs.length}件</button>`:''}
       <span class="tass">${mnMulti(t)}</span>
       ${badge(t.status)}
       ${t.deadline?`<span class="tdl ${dlc(t.deadline)}">📅${fd(t.deadline)}</span>`:''}
@@ -1075,16 +1075,16 @@ function tRow(t,depth){
       <button class="btn-del" style="padding:2px 5px;font-size:10px" onclick="event.stopPropagation();deleteTaskSafe('${t.id}')">🗑</button>
     </div></div>`;
   let subsHtml='';
-  if(subs.length>0){subsHtml=`<div id="${subId}" style="display:${isCollapsed?'none':'block'}">${subs.map(s=>tRow(s,depth+1)).join('')}</div>`;}
+  if(subs.length>0){subsHtml=`<div id="${subId}" style="display:${isExpanded?'block':'none'}">${subs.map(s=>tRow(s,depth+1)).join('')}</div>`;}
   return rowHtml+subsHtml;
 }
 
 function toggleSubs(id,btn){
   const el=document.getElementById(id);if(!el)return;
   const taskId=id.replace('sub-','');
-  const open=el.style.display!=='none'&&el.style.display!=='';
+  const open=el.style.display==='block';
   el.style.display=open?'none':'block';
-  if(open)collapsedTasks.add(taskId);else collapsedTasks.delete(taskId);
+  if(open)expandedTasks.delete(taskId);else expandedTasks.add(taskId);
   const n=el.querySelectorAll('.trow').length;
   btn.textContent=open?`▶ ${n}件`:`▼ ${n}件`;
   btn.style.color=open?'var(--accent)':'var(--grn)';
