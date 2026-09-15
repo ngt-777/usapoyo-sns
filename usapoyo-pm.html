@@ -530,8 +530,16 @@ a{color:var(--accent)}
     </div>
     <div class="frow">
       <div class="fg"><label class="fl">素材状況</label><select class="fsel" id="sm-mat"><option>未着手</option><option>制作中</option><option>完成</option></select></div>
-      <div class="fg"><label class="fl">投稿ステータス</label>
-        <select class="fsel" id="sm-status"><option value="制作中">🔵 制作中</option><option value="確認待ち">🟡 確認待ち</option><option value="予約投稿済">🟠 予約投稿済</option><option value="投稿完了">🟢 投稿完了</option></select>
+      <div class="fg"><label class="fl">投稿ステータス</label>        <label class="fl">ステータス</label>
+        <select class="fsel" id="sm-status">
+          <option value="制作中">🔵 制作中</option>
+          <option value="確認待ち">🟡 確認待ち</option>
+          <option value="投稿準備完了">🟣 投稿準備完了</option>
+          <option value="予約投稿済">🟠 予約投稿済</option>
+          <option value="投稿完了">🟢 投稿完了</option>
+          <option value="インサイト集計（1日後入力済み）">📊 インサイト集計（1日後入力済み）</option>
+          <option value="インサイト集計（1週間後入力済み）">📈 インサイト集計（1週間後入力済み）</option>
+        </select>
       </div>
     </div>
     <div class="fg"><label class="fl">サムネイルURL（GoogleドライブのリンクなどをURL形式で）</label><input class="fi" id="sm-thumb" placeholder="https://drive.google.com/..."></div>
@@ -836,6 +844,28 @@ async function deleteCatItem(catId,catName){
   await loadAll();renderProject();
 }
 
+
+// ── 予約投稿済みを自動で投稿完了へ ──
+async function advanceSnsStatus(){
+  const now=new Date();
+  const targets=D.sns.filter(p=>p.post_status==='予約投稿済'&&p.scheduled_date);
+  const toUpdate=[];
+  for(const p of targets){
+    let cutoff;
+    if(p.scheduled_time){
+      cutoff=new Date(p.scheduled_date+'T'+p.scheduled_time);
+    }else{
+      cutoff=new Date(p.scheduled_date+'T23:59:59');
+    }
+    if(now>cutoff)toUpdate.push(p.id);
+  }
+  if(!toUpdate.length)return;
+  await sb.from('pm_sns_posts').update({post_status:'投稿完了'}).in('id',toUpdate);
+  toUpdate.forEach(id=>{
+    const p=D.sns.find(x=>x.id===id);if(p)p.post_status='投稿完了';
+  });
+}
+
 async function advanceRecurringTasks(){
   const today=new Date();today.setHours(0,0,0,0);
   const targets=D.tasks.filter(t=>t.is_recurring&&t.work_date&&new Date(t.work_date+'T00:00:00')<today);
@@ -879,6 +909,7 @@ async function showApp(){
   try{
     await loadAll();
     await advanceRecurringTasks(); // 定期タスクの予定日を自動更新
+    await advanceSnsStatus(); // 予約投稿済みを自動で投稿完了へ
     if(!D.links.length){try{await seedLinks();}catch(e){}await loadAll();}
     if(!D.contentEvents.length||D.contentEvents.every(e=>!e.status)||localStorage.getItem('cc_ver')!=='v15'){
       try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){}
@@ -1410,7 +1441,7 @@ function openSnsDetail(id){
   const p=D.sns.find(x=>x.id===id);if(!p)return;
   const col=CAT_COLORS[p.category]||'#9CA3AF';
   const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
-  const sc={'企画中':'sn','制作中':'sp','素材待ち':'sm','確認待ち':'sw','投稿準備完了':'se','投稿済み':'sd','予約投稿済':'se','投稿完了':'sd'};
+  const sc={'企画中':'sn','制作中':'sp','素材待ち':'sm','確認待ち':'sw','投稿準備完了':'se','投稿済み':'sd','予約投稿済':'se','投稿完了':'sd','インサイト集計（1日後入力済み）':'sd','インサイト集計（1週間後入力済み）':'sd'};
   document.getElementById('det-title').textContent=p.content_name;
   document.getElementById('det-del').onclick=()=>deleteSnsPost(id);
   document.getElementById('det-edit').onclick=()=>{closeDetail();openSnsModal(p.id);};
