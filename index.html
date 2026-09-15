@@ -544,19 +544,19 @@ textarea{resize:vertical;min-height:72px}
         </div>
         <div class="form-group" style="min-width:110px">
           <label>Instagram</label>
-          <input type="number" id="fol-ig" placeholder="0" min="0">
+          <input type="number" id="fol-ig" placeholder="0" min="0" style="border-left:3px solid #F59E0B">
         </div>
         <div class="form-group" style="min-width:110px">
           <label>TikTok</label>
-          <input type="number" id="fol-tt" placeholder="0" min="0">
+          <input type="number" id="fol-tt" placeholder="0" min="0" style="border-left:3px solid #8B5CF6">
         </div>
         <div class="form-group" style="min-width:110px">
           <label>YouTube</label>
-          <input type="number" id="fol-yt" placeholder="0" min="0">
+          <input type="number" id="fol-yt" placeholder="0" min="0" style="border-left:3px solid #EF4444">
         </div>
         <div class="form-group" style="min-width:110px">
           <label>X</label>
-          <input type="number" id="fol-x" placeholder="0" min="0">
+          <input type="number" id="fol-x" placeholder="0" min="0" style="border-left:3px solid #1D9BF0">
         </div>
         <div style="display:flex;align-items:flex-end">
           <button class="btn btn-primary" onclick="saveFollower()">保存</button>
@@ -1190,10 +1190,10 @@ function renderFollowerAllChart(){
   const fols=[...DB.followers].sort((a,b)=>a.date.localeCompare(b.date)).slice(-60);
   const labels=fols.map(f=>f.date.slice(5));
   const datasets=[
-    {label:'Instagram',data:fols.map(f=>f.instagram||null),borderColor:'#3B82F6',backgroundColor:'rgba(59,130,246,.08)',tension:.3,fill:false,pointRadius:2},
-    {label:'TikTok',data:fols.map(f=>f.tiktok||null),borderColor:'#F43F5E',backgroundColor:'rgba(244,63,94,.08)',tension:.3,fill:false,pointRadius:2},
-    {label:'YouTube',data:fols.map(f=>f.youtube||null),borderColor:'#EF4444',backgroundColor:'rgba(239,68,68,.08)',tension:.3,fill:false,pointRadius:2},
-    {label:'X',data:fols.map(f=>f.x||null),borderColor:'#8B5CF6',backgroundColor:'rgba(139,92,246,.08)',tension:.3,fill:false,pointRadius:2},
+    {label:'Instagram',data:fols.map(f=>f.instagram||null),borderColor:'#F59E0B',backgroundColor:'#F59E0B14',tension:.3,fill:false,pointRadius:2},
+    {label:'TikTok',data:fols.map(f=>f.tiktok||null),borderColor:'#8B5CF6',backgroundColor:'#8B5CF614',tension:.3,fill:false,pointRadius:2},
+    {label:'YouTube',data:fols.map(f=>f.youtube||null),borderColor:'#EF4444',backgroundColor:'#EF444414',tension:.3,fill:false,pointRadius:2},
+    {label:'X',data:fols.map(f=>f.x||null),borderColor:'#1D9BF0',backgroundColor:'#1D9BF014',tension:.3,fill:false,pointRadius:2},
   ];
   if(chartFollowerAll)chartFollowerAll.destroy();
   const ctx=document.getElementById('chart-follower-all').getContext('2d');
@@ -2200,13 +2200,13 @@ function renderFollowerChart(tab){
   let datasets;
   if(tab==='all'){
     datasets=[
-      {label:'Instagram',data:fols.map(f=>f.instagram||null),borderColor:'#3B82F6',tension:.3,fill:false,pointRadius:2},
-      {label:'TikTok',data:fols.map(f=>f.tiktok||null),borderColor:'#F43F5E',tension:.3,fill:false,pointRadius:2},
+      {label:'Instagram',data:fols.map(f=>f.instagram||null),borderColor:'#F59E0B',tension:.3,fill:false,pointRadius:2},
+      {label:'TikTok',data:fols.map(f=>f.tiktok||null),borderColor:'#8B5CF6',tension:.3,fill:false,pointRadius:2},
       {label:'YouTube',data:fols.map(f=>f.youtube||null),borderColor:'#EF4444',tension:.3,fill:false,pointRadius:2},
-      {label:'X',data:fols.map(f=>f.x||null),borderColor:'#8B5CF6',tension:.3,fill:false,pointRadius:2},
+      {label:'X',data:fols.map(f=>f.x||null),borderColor:'#1D9BF0',tension:.3,fill:false,pointRadius:2},
     ];
   } else {
-    const map={ig:['instagram','#3B82F6','Instagram'],tt:['tiktok','#F43F5E','TikTok'],yt:['youtube','#EF4444','YouTube'],xb:['x','#8B5CF6','X']};
+    const map={ig:['instagram','#F59E0B','Instagram'],tt:['tiktok','#8B5CF6','TikTok'],yt:['youtube','#EF4444','YouTube'],xb:['x','#1D9BF0','X']};
     const[field,color,name]=map[tab];
     datasets=[{label:name,data:fols.map(f=>f[field]||null),borderColor:color,backgroundColor:color+'18',tension:.3,fill:true,pointRadius:2}];
   }
