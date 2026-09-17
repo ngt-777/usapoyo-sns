@@ -151,9 +151,10 @@ textarea{resize:vertical;min-height:72px}
 .post-title{font-size:13px;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .post-meta{font-size:11px;color:var(--gray);margin-top:3px;display:flex;gap:10px;align-items:center}
 .post-cat{background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:2px 8px;font-size:10px;font-weight:600;color:var(--navy2)}
-.post-stats{display:flex;gap:20px;align-items:center}
+.post-stats{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .stat-col{text-align:right}
 .stat-num{font-size:13px;font-weight:700;color:var(--navy);font-variant-numeric:tabular-nums}
+.stat-col{min-width:52px}
 .stat-label{font-size:10px;color:var(--gray);margin-top:1px}
 
 /* POST DETAIL */
@@ -1571,8 +1572,11 @@ function renderPostList(){
       </div>
       <div class="post-stats">
         <div class="stat-col"><div class="stat-num">${ins?fmt(ins.plays):'—'}</div><div class="stat-label">再生数</div></div>
-        <div class="stat-col"><div class="stat-num">${ins&&rates.er!=null?rates.er.toFixed(2)+'%':'—'}</div><div class="stat-label">ER%</div></div>
+        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">いいね</div></div>
+        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.profile):'—'}</div><div class="stat-label">プロフアクセス</div></div>
         <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
+        <div class="stat-col"><div class="stat-num">${(()=>{const u=ins?.unique||ins?.plays;return u&&ins?.follows!=null?(ins.follows/u*100).toFixed(2)+'%':'—'})()}</div><div class="stat-label">フォロー転換率</div></div>
+        <div class="stat-col"><div class="stat-num">${ins&&rates.saveRate!=null?rates.saveRate.toFixed(1)+'%':'—'}</div><div class="stat-label">保存率</div></div>
       </div>
     </div>`;
   }).join('');
