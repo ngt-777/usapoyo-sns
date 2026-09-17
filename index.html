@@ -497,10 +497,14 @@ textarea{resize:vertical;min-height:72px}
             </div>
           </div>
         </div>
-        <div style="display:flex;gap:10px;margin-top:20px">
-          <button type="submit" class="btn btn-primary">登録する</button>
+        <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+          <button type="submit" class="btn btn-primary">登録する（1媒体）</button>
+          <button type="button" class="btn btn-primary" onclick="submitAllPlatforms(event)" style="background:linear-gradient(135deg,var(--ig),var(--tt),var(--yt),var(--xb));border:none">
+            ✦ 4媒体まとめて登録
+          </button>
           <button type="button" class="btn btn-secondary" onclick="resetPostForm()">クリア</button>
         </div>
+        <div id="bulk-register-status" style="margin-top:8px;font-size:12px;color:var(--gray)"></div>
       </form>
     </div>
   </div>
@@ -1359,6 +1363,79 @@ function removeThumb(){
   currentThumbData=null;
   currentThumbFile=null;
   renderThumbPreview();
+}
+
+async function submitAllPlatforms(e) {
+  e.preventDefault();
+  const title = document.getElementById('f-title').value.trim();
+  if(!title) { showToast('タイトルを入力してください','error'); return; }
+
+  const platforms = [
+    {platform:'Instagram', format:'リール'},
+    {platform:'TikTok',    format:'ショート'},
+    {platform:'YouTube',   format:'ショート'},
+    {platform:'X',         format:'動画'},
+  ];
+
+  const baseData = {
+    date:     document.getElementById('f-date').value,
+    time:     document.getElementById('f-time').value,
+    category: document.getElementById('f-category').value,
+    url:      document.getElementById('f-url').value,
+    memo:     document.getElementById('f-memo').value,
+    caption:  document.getElementById('f-caption').value,
+    musicTitle:  document.getElementById('f-music-title').value,
+    musicArtist: document.getElementById('f-music-artist').value,
+    hashtags: [...currentHashtags],
+    insight1d: null, insight7d: null,
+    status: 'waiting',
+    createdAt: new Date().toISOString(),
+  };
+
+  // サムネイルアップロード
+  let thumbUrl = null;
+  if(currentThumbFile) {
+    showToast('画像をアップロード中...','info');
+    thumbUrl = await uploadThumbToSupabase(currentThumbFile);
+  }
+
+  const statusEl = document.getElementById('bulk-register-status');
+  statusEl.textContent = '登録中...';
+
+  let successCount = 0;
+  const errors = [];
+
+  for(const {platform, format} of platforms) {
+    try {
+      const post = {
+        ...baseData,
+        id: genId(),
+        title: title,
+        platform,
+        format,
+        thumbnail: thumbUrl,
+      };
+      // キャプション長さ制限対応
+      await gasPost('addPost', post);
+      successCount++;
+      statusEl.textContent = `${successCount}/${platforms.length} 登録完了...`;
+    } catch(err) {
+      errors.push(platform);
+    }
+  }
+
+  await DB.init();
+  renderPostList();
+
+  if(errors.length === 0) {
+    showToast(`4媒体（IG/TT/YT/X）を登録しました`, 'success');
+    statusEl.textContent = '';
+    resetPostForm();
+    navigateTo('post-list');
+  } else {
+    showToast(`${successCount}件登録。失敗: ${errors.join(',')}`, 'error');
+    statusEl.textContent = `失敗した媒体: ${errors.join(', ')}`;
+  }
 }
 
 async function submitPost(e){
