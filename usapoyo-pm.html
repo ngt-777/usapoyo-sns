@@ -1993,13 +1993,25 @@ function selectCatTag(el,cat){
 function initHashtagChips(selectedTags){
   const sel=typeof selectedTags==='string'?JSON.parse(selectedTags||'[]'):selectedTags||[];
   const allTags=D.snsHashtags.length?D.snsHashtags.map(t=>t.tag):['#うさぽよ','#gyaru','#ギャル','#キャラクター','#アニメ','#ゆるキャラ','#イラスト','#LINEトーク','#うさぽよじゃんけん'];
-  // 選択済みでDBにないものも含める
   const extra=sel.filter(t=>!allTags.includes(t));
   const chips=[...allTags,...extra];
   document.getElementById('sm-hashtag-chips').innerHTML=chips.map(t=>{
     const on=sel.includes(t);
-    return`<div class="asgn-chip${on?' on':''}" data-tag="${t}" onclick="this.classList.toggle('on')" style="font-size:11px;padding:3px 10px">${t}</div>`;
+    const rec=D.snsHashtags.find(h=>h.tag===t);
+    const delBtn=rec
+      ?`<span onclick="event.stopPropagation();deleteHashtag('${rec.id}',this)" style="margin-left:3px;opacity:.35;font-size:9px;cursor:pointer;line-height:1" title="候補から削除">✕</span>`
+      :'';
+    return`<div class="asgn-chip${on?' on':''}" data-tag="${t}" onclick="this.classList.toggle('on')" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center">${t}${delBtn}</div>`;
   }).join('');
+}
+async function deleteHashtag(id,btn){
+  const chip=btn.parentElement;
+  const tag=chip.dataset.tag;
+  if(!confirm('「'+tag+'」を候補から削除しますか？'))return;
+  await sb.from('pm_sns_hashtags').delete().eq('id',id);
+  D.snsHashtags=D.snsHashtags.filter(h=>h.id!==id);
+  const selected=Array.from(document.querySelectorAll('#sm-hashtag-chips .asgn-chip.on')).map(c=>c.dataset.tag);
+  initHashtagChips(selected);
 }
 async function addSnsHashtag(){
   const input=document.getElementById('sm-hashtag-input');
