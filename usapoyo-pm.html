@@ -542,7 +542,32 @@ a{color:var(--accent)}
         </select>
       </div>
     </div>
-    <div class="fg"><label class="fl">サムネイルURL（GoogleドライブのリンクなどをURL形式で）</label><input class="fi" id="sm-thumb" placeholder="https://drive.google.com/..."></div>
+    <div class="fg">
+      <label class="fl">投稿画像・動画のURL（Googleドライブなどのリンク）</label>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--tm);min-width:70px;font-weight:600">全媒体共通</span>
+          <input class="fi" id="sm-url-all" placeholder="https://drive.google.com/..." style="flex:1">
+        </div>
+        <div style="font-size:10px;color:var(--tm);padding-left:78px">媒体ごとに異なる場合は下に入力（全媒体が優先）</div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--tm);min-width:70px">Instagram</span>
+          <input class="fi" id="sm-url-ig" placeholder="https://drive.google.com/..." style="flex:1">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--tm);min-width:70px">TikTok</span>
+          <input class="fi" id="sm-url-tt" placeholder="https://drive.google.com/..." style="flex:1">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--tm);min-width:70px">YouTube</span>
+          <input class="fi" id="sm-url-yt" placeholder="https://drive.google.com/..." style="flex:1">
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span style="font-size:11px;color:var(--tm);min-width:70px">X</span>
+          <input class="fi" id="sm-url-x" placeholder="https://drive.google.com/..." style="flex:1">
+        </div>
+      </div>
+    </div>
     <div class="sep"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn bs" onclick="closeSnsModal()">キャンセル</button>
@@ -1456,7 +1481,7 @@ function openSnsDetail(id){
     ${p.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">投稿概要</span><div style="margin-top:4px;font-size:13px">${p.description}</div></div>`:''}
     ${p.caption?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">キャプション</span><div style="margin-top:4px;font-size:13px;white-space:pre-wrap">${p.caption}</div></div>`:''}
     ${p.hashtags&&p.hashtags.length?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">ハッシュタグ</span><div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">${(typeof p.hashtags==='string'?JSON.parse(p.hashtags):p.hashtags).map(t=>`<span style="font-size:11px;padding:2px 8px;border-radius:100px;background:var(--purbg);color:var(--pur)">${t}</span>`).join('')}</div></div>`:''}
-    ${p.thumbnail_url?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">サムネイルURL</span><div style="margin-top:4px"><a href="${p.thumbnail_url}" target="_blank" style="font-size:12px;word-break:break-all">${p.thumbnail_url}</a></div></div>`:''}
+    ${(()=>{const mu=p.media_urls||{};const all=mu.all||p.thumbnail_url;const rows=[['全媒体共通',all],['Instagram',mu.ig],['TikTok',mu.tt],['YouTube',mu.yt],['X',mu.x]].filter(([,v])=>v);if(!rows.length)return'';return`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">投稿画像・動画URL</span>${rows.map(([label,url])=>`<div style="margin-top:6px;display:flex;gap:6px;align-items:flex-start"><span style="font-size:10px;color:var(--tm);min-width:70px;flex-shrink:0">${label}</span><a href="${url}" target="_blank" style="font-size:11px;word-break:break-all;color:var(--accent)">${url}</a></div>`).join('')}</div>`;})()}
     <div style="font-size:12px;color:var(--tm)">素材：${p.material_status||'—'}</div>`;
   document.getElementById('detail-modal').style.display='flex';
 }
@@ -2042,6 +2067,12 @@ function openSnsModal(id,preDate){
     document.getElementById('sm-asgn').value=p.assignee_id||'';document.getElementById('sm-desc').value=p.description||'';
     document.getElementById('sm-caption').value=p.caption||'';
     initHashtagChips(p.hashtags||[]);
+    const mu=p.media_urls||{};
+    document.getElementById('sm-url-all').value=mu.all||p.thumbnail_url||'';
+    document.getElementById('sm-url-ig').value=mu.ig||'';
+    document.getElementById('sm-url-tt').value=mu.tt||'';
+    document.getElementById('sm-url-yt').value=mu.yt||'';
+    document.getElementById('sm-url-x').value=mu.x||'';
     document.getElementById('sm-mat').value=p.material_status||'未着手';document.getElementById('sm-status').value=p.post_status||'制作中';
     document.getElementById('sm-thumb').value=p.thumbnail_url||'';
     document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=p.platforms&&p.platforms.includes(cb.value));
@@ -2050,6 +2081,7 @@ function openSnsModal(id,preDate){
     document.getElementById('sm-asgn').value=curMember?.id||'';
     document.getElementById('sm-caption').value='';
     initHashtagChips([]);
+    ['sm-url-all','sm-url-ig','sm-url-tt','sm-url-yt','sm-url-x'].forEach(x=>document.getElementById(x).value='');
     document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=false);}
   document.getElementById('sns-modal').style.display='flex';
 }
@@ -2062,6 +2094,8 @@ async function saveSns(){
     description:document.getElementById('sm-desc').value.trim()||null,
     caption:document.getElementById('sm-caption').value.trim()||null,
     hashtags:JSON.stringify(Array.from(document.querySelectorAll('#sm-hashtag-chips .asgn-chip.on')).map(c=>c.dataset.tag)),
+    thumbnail_url:document.getElementById('sm-url-all').value.trim()||null,
+    media_urls:(()=>{const u={};const a=document.getElementById('sm-url-all').value.trim();const ig=document.getElementById('sm-url-ig').value.trim();const tt=document.getElementById('sm-url-tt').value.trim();const yt=document.getElementById('sm-url-yt').value.trim();const x=document.getElementById('sm-url-x').value.trim();if(a)u.all=a;if(ig)u.ig=ig;if(tt)u.tt=tt;if(yt)u.yt=yt;if(x)u.x=x;return Object.keys(u).length?u:null;})(),
     material_status:document.getElementById('sm-mat').value,
     post_status:document.getElementById('sm-status').value,thumbnail_url:document.getElementById('sm-thumb').value.trim()||null};
   const{error}=id?await sb.from('pm_sns_posts').update(data).eq('id',id):await sb.from('pm_sns_posts').insert(data);
