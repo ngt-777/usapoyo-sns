@@ -1370,12 +1370,29 @@ async function submitAllPlatforms(e) {
   const title = document.getElementById('f-title').value.trim();
   if(!title) { showToast('タイトルを入力してください','error'); return; }
 
-  const platforms = [
-    {platform:'Instagram', format:'リール'},
-    {platform:'TikTok',    format:'ショート'},
-    {platform:'YouTube',   format:'ショート'},
-    {platform:'X',         format:'動画'},
-  ];
+  // Instagramの投稿形式を基準に他媒体の形式を決定
+  const igFormat = document.getElementById('f-format').value;
+  const isVideo = igFormat === 'リール' || igFormat === '動画' || igFormat === 'ショート';
+
+  const musicTitle  = document.getElementById('f-music-title').value;
+  const musicArtist = document.getElementById('f-music-artist').value;
+
+  // 動画の場合：IG=リール, TT=動画, YT=ショート, X=動画
+  // 画像の場合：IG=フィード, TT=フィード, YT=コミュニティ, X=フィード
+  // X・YouTubeコミュニティは音源なし
+  const platforms = isVideo
+    ? [
+        {platform:'Instagram', format:'リール',      music:true},
+        {platform:'TikTok',    format:'動画',         music:true},
+        {platform:'YouTube',   format:'ショート',     music:true},
+        {platform:'X',         format:'動画',         music:false},
+      ]
+    : [
+        {platform:'Instagram', format:'フィード',     music:true},
+        {platform:'TikTok',    format:'フィード',     music:false},
+        {platform:'YouTube',   format:'コミュニティ', music:false},
+        {platform:'X',         format:'テキストのみ', music:false},
+      ];
 
   const baseData = {
     date:     document.getElementById('f-date').value,
@@ -1384,8 +1401,6 @@ async function submitAllPlatforms(e) {
     url:      document.getElementById('f-url').value,
     memo:     document.getElementById('f-memo').value,
     caption:  document.getElementById('f-caption').value,
-    musicTitle:  document.getElementById('f-music-title').value,
-    musicArtist: document.getElementById('f-music-artist').value,
     hashtags: [...currentHashtags],
     insight1d: null, insight7d: null,
     status: 'waiting',
@@ -1405,7 +1420,7 @@ async function submitAllPlatforms(e) {
   let successCount = 0;
   const errors = [];
 
-  for(const {platform, format} of platforms) {
+  for(const {platform, format, music} of platforms) {
     try {
       const post = {
         ...baseData,
@@ -1414,6 +1429,8 @@ async function submitAllPlatforms(e) {
         platform,
         format,
         thumbnail: thumbUrl,
+        musicTitle:  music ? musicTitle  : '',
+        musicArtist: music ? musicArtist : '',
       };
       // キャプション長さ制限対応
       await gasPost('addPost', post);
