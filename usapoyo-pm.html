@@ -2074,9 +2074,9 @@ function openSnsModal(id,preDate){
     document.getElementById('sm-url-yt').value=mu.yt||'';
     document.getElementById('sm-url-x').value=mu.x||'';
     document.getElementById('sm-mat').value=p.material_status||'未着手';document.getElementById('sm-status').value=p.post_status||'制作中';
-    document.getElementById('sm-thumb').value=p.thumbnail_url||'';
+
     document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=p.platforms&&p.platforms.includes(cb.value));
-  }else{['sm-id','sm-time','sm-name','sm-desc','sm-thumb'].forEach(x=>document.getElementById(x).value='');
+  }else{['sm-id','sm-time','sm-name','sm-desc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('sm-date').value=preDate||'';initCatTags('');
     document.getElementById('sm-asgn').value=curMember?.id||'';
     document.getElementById('sm-caption').value='';
@@ -2097,7 +2097,7 @@ async function saveSns(){
     thumbnail_url:document.getElementById('sm-url-all').value.trim()||null,
     media_urls:(()=>{const u={};const a=document.getElementById('sm-url-all').value.trim();const ig=document.getElementById('sm-url-ig').value.trim();const tt=document.getElementById('sm-url-tt').value.trim();const yt=document.getElementById('sm-url-yt').value.trim();const x=document.getElementById('sm-url-x').value.trim();if(a)u.all=a;if(ig)u.ig=ig;if(tt)u.tt=tt;if(yt)u.yt=yt;if(x)u.x=x;return Object.keys(u).length?u:null;})(),
     material_status:document.getElementById('sm-mat').value,
-    post_status:document.getElementById('sm-status').value,thumbnail_url:document.getElementById('sm-thumb').value.trim()||null};
+    post_status:document.getElementById('sm-status').value};
   const{error}=id?await sb.from('pm_sns_posts').update(data).eq('id',id):await sb.from('pm_sns_posts').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
   closeSnsModal();await loadAll();renderSns();
