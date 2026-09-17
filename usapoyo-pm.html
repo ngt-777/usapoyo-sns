@@ -250,14 +250,18 @@ a{color:var(--accent)}
           <button class="btn bp bsm" onclick="openSnsModal()">＋ SNS投稿追加</button>
         </div>
       </div>
-      <div class="chips" id="sns-chips">
-        <div class="chip on" onclick="snsFilter(this,'all')">すべて</div>
-        <div class="chip" onclick="snsFilter(this,'event')">📌 イベント</div>
-        <div class="chip" onclick="snsFilter(this,'sns')">📱 SNS投稿</div>
-        <div class="chip" onclick="snsFilter(this,'Instagram')">Instagram</div>
-        <div class="chip" onclick="snsFilter(this,'TikTok')">TikTok</div>
-        <div class="chip" onclick="snsFilter(this,'YouTube')">YouTube</div>
-        <div class="chip" onclick="snsFilter(this,'X')">X</div>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+        <div class="chips" id="sns-chips" style="margin-bottom:0">
+          <div class="chip on" onclick="snsFilter(this,'all')">すべて</div>
+          <div class="chip" onclick="snsFilter(this,'event')">📌 イベント</div>
+          <div class="chip" onclick="snsFilter(this,'sns')">📱 SNS投稿</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ts)">
+          カテゴリ：
+          <select id="sns-cat-sel" class="fsel" style="font-size:12px;padding:4px 8px;min-width:120px" onchange="snsCatFilter(this.value)">
+            <option value="">すべて</option>
+          </select>
+        </div>
       </div>
       <div id="sns-body"><div class="ld">読み込み中...</div></div>
     </div>
@@ -766,7 +770,7 @@ let sb=null;
 const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[],monthlyHours:[],linkCats:[],snsHashtags:[],reqSources:[]};
 let ccFilter='all',ccStatusFilter='all',ccMonthView=null;
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
-let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all';curPage='teamtask';
+let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all',snsCatF='';curPage='teamtask';
 const expandedTasks=new Set(); // 展開中のタスクIDを管理（デフォルト折りたたみ）
 const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2025-12-30','2025-12-31','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-30','2026-12-31','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23','2027-12-30','2027-12-31']);
 function getCatColor(cat){
@@ -1410,6 +1414,7 @@ function renderCal(){
 }
 
 function snsFilter(el,p){document.querySelectorAll('#sns-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');snsF=p;renderSns();}
+function snsCatFilter(cat){snsCatF=cat;renderSns();}
 function snsMonthNav(dir){snsMonth+=dir;if(snsMonth>11){snsMonth=0;snsYear++;}if(snsMonth<0){snsMonth=11;snsYear--;}renderSns();}
 
 function renderSns(){
@@ -1417,11 +1422,17 @@ function renderSns(){
   const firstDay=new Date(year,month,1),lastDay=new Date(year,month+1,0);
   const startDow=firstDay.getDay(),daysInMonth=lastDay.getDate();
   const monthName=new Date(year,month,1).toLocaleDateString('ja-JP',{year:'numeric',month:'long'});
+  // カテゴリ選択肢を動的生成
+  const catSel=document.getElementById('sns-cat-sel');
+  if(catSel){const cats=[...new Set(D.sns.map(p=>p.category).filter(Boolean))].sort();catSel.innerHTML='<option value="">すべて</option>'+cats.map(c=>`<option value="${c}"${c===snsCatF?' selected':''}>${c}</option>`).join('');}
   let posts=[...D.sns];
-  const showPosts=snsF==='all'||snsF==='sns'||['Instagram','TikTok','YouTube','X'].includes(snsF);
+  const showPosts=snsF==='all'||snsF==='sns';
   const showEvents=snsF==='all'||snsF==='event';
-  if(['Instagram','TikTok','YouTube','X'].includes(snsF))posts=posts.filter(p=>p.platforms&&p.platforms.includes(snsF));
-  else if(snsF==='event')posts=[];
+  if(snsF==='event')posts=[];
+  // カテゴリフィルター
+  if(snsCatF&&showPosts)posts=posts.filter(p=>p.category===snsCatF);
+  // 時系列ソート
+  posts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
   let cells=[];
   for(let i=0;i<startDow;i++)cells.push(null);
   for(let d=1;d<=daysInMonth;d++){
@@ -2171,7 +2182,7 @@ function showDayDetail(ds){
   const title=date.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'long'});
   document.getElementById('day-modal-title').textContent=title+'の予定';
   const dayEvts=D.events.filter(e=>e.event_date<=ds&&(!e.event_date_end||e.event_date_end>=ds)||e.event_date===ds);
-  const dayPosts=D.sns.filter(p=>p.scheduled_date===ds);
+  const dayPosts=D.sns.filter(p=>p.scheduled_date===ds).sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
   const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
   let h='';
   if(dayEvts.length===0&&dayPosts.length===0){
@@ -2198,7 +2209,7 @@ function showDayDetail(ds){
           <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
           <div style="flex:1;min-width:0">
             <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.content_name}</div>
-            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px">${plats}<span style="font-size:10px;color:${col};background:${col}18;padding:1px 6px;border-radius:100px">${p.category||''}</span></div>
+            <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;align-items:center">${p.scheduled_time?`<span style="font-size:11px;font-weight:600;color:var(--tp)">${p.scheduled_time.slice(0,5)}</span>`:''} ${plats}<span style="font-size:10px;color:${col};background:${col}18;padding:1px 6px;border-radius:100px">${p.category||''}</span></div>
           </div>
           <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
         </div>`;
