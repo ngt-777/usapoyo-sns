@@ -2192,7 +2192,14 @@ function showDayDetail(ds){
   const title=date.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'long'});
   document.getElementById('day-modal-title').textContent=title+'の予定';
   const dayEvts=D.events.filter(e=>e.event_date<=ds&&(!e.event_date_end||e.event_date_end>=ds)||e.event_date===ds);
-  const dayPosts=D.sns.filter(p=>p.scheduled_date===ds).sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
+  const RESERVED_STATUS_D=['予約投稿済','投稿完了','インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'];
+  let dayPosts=D.sns.filter(p=>p.scheduled_date===ds);
+  // カレンダーと同じフィルターを適用
+  if(snsF==='sns'||snsF==='all'){}else if(snsF==='event')dayPosts=[];
+  if(snsCatF)dayPosts=dayPosts.filter(p=>p.category===snsCatF);
+  if(snsStatusF==='reserved')dayPosts=dayPosts.filter(p=>RESERVED_STATUS_D.includes(p.post_status));
+  else if(snsStatusF==='unreserved')dayPosts=dayPosts.filter(p=>!RESERVED_STATUS_D.includes(p.post_status));
+  dayPosts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
   const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
   let h='';
   if(dayEvts.length===0&&dayPosts.length===0){
