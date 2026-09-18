@@ -1451,17 +1451,17 @@ function renderSns(){
     <div style="display:grid;grid-template-columns:repeat(7,1fr);border-bottom:1px solid var(--border)">
       ${dow.map((d,i)=>`<div style="text-align:center;padding:7px 0;font-size:11px;font-weight:700;color:${i===0?'var(--red)':i===6?'var(--blu)':'var(--ts)'}">${d}</div>`).join('')}
     </div>
-    <div style="display:grid;grid-template-columns:repeat(7,1fr)">
+    <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));width:100%;table-layout:fixed">
       ${cells.map(cell=>{
-        if(!cell)return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#FAFAFA"></div>`;
+        if(!cell)return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#FAFAFA;min-width:0;width:100%;box-sizing:border-box"></div>`;
         const dow2=new Date(cell.ds+'T00:00:00').getDay();
         const it=isToday(cell.ds),isHol=JP_HOL.has(cell.ds);
         const dcol=it?'#fff':(dow2===0||isHol)?'var(--red)':dow2===6?'var(--blu)':'var(--tp)';
         const maxPosts=cell.evts.length>0?2:3;
-        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer" onclick="showDayDetail('${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
+        return`<div style="min-height:115px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;cursor:pointer;min-width:0;overflow:hidden;width:100%;box-sizing:border-box" onclick="showDayDetail('${cell.ds}')" onmouseover="this.style.background='#F5F3FF'" onmouseout="this.style.background=''">
           <div style="margin-bottom:3px"><span style="font-size:12px;font-weight:700;color:${dcol};${it?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}"> ${cell.day}</span></div>
-          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}33;color:#1A1A2E;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid ${e.color}" onclick="event.stopPropagation();showEvtDetail('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
-          ${cell.posts.slice(0,maxPosts).map(p=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${getCatColor(p.category)}28;color:${getCatColor(p.category)};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
+          ${cell.evts.map(e=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${e.color}33;color:#1A1A2E;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid ${e.color};max-width:100%" onclick="event.stopPropagation();showEvtDetail('${e.id}')" title="${e.name}">📌 ${e.name}</div>`).join('')}
+          ${cell.posts.slice(0,maxPosts).map(p=>`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${getCatColor(p.category)}28;color:${getCatColor(p.category)};font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%" onclick="event.stopPropagation();openSnsDetail('${p.id}')" title="${p.content_name}">${p.content_name}</div>`).join('')}
           ${cell.posts.length>maxPosts?`<div style="font-size:9px;color:var(--accent);cursor:pointer;font-weight:600" onclick="event.stopPropagation();showDayDetail('${cell.ds}')">+${cell.posts.length-maxPosts}件 →</div>`:''}
         </div>`;
       }).join('')}
