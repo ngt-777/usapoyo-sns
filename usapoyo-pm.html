@@ -262,6 +262,11 @@ a{color:var(--accent)}
             <option value="">すべて</option>
           </select>
         </div>
+        <div class="chips" id="sns-status-chips" style="margin-bottom:0">
+          <div class="chip on" onclick="snsStatusFilter(this,'')">全ステータス</div>
+          <div class="chip" onclick="snsStatusFilter(this,'unreserved')" style="color:var(--org)">📋 予約前</div>
+          <div class="chip" onclick="snsStatusFilter(this,'reserved')" style="color:var(--grn)">🟠 予約済み</div>
+        </div>
       </div>
       <div id="sns-body"><div class="ld">読み込み中...</div></div>
     </div>
@@ -770,7 +775,7 @@ let sb=null;
 const D={members:[],categories:[],projects:[],tasks:[],milestones:[],sns:[],meetings:[],requests:[],links:[],events:[],contentEvents:[],monthlyHours:[],linkCats:[],snsHashtags:[],reqSources:[]};
 let ccFilter='all',ccStatusFilter='all',ccMonthView=null;
 let curMember=null,curPage='dashboard',calF='all',snsF='all',projF='all';
-let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all',snsCatF='';curPage='teamtask';
+let snsYear=new Date().getFullYear(),snsMonth=new Date().getMonth(),tbFilter='all',snsCatF='',snsStatusF='';curPage='teamtask';
 const expandedTasks=new Set(); // 展開中のタスクIDを管理（デフォルト折りたたみ）
 const JP_HOL=new Set(['2025-01-01','2025-01-13','2025-02-11','2025-02-23','2025-02-24','2025-03-20','2025-04-29','2025-05-03','2025-05-04','2025-05-05','2025-05-06','2025-07-21','2025-08-11','2025-09-15','2025-09-23','2025-10-13','2025-11-03','2025-11-23','2025-11-24','2025-12-30','2025-12-31','2026-01-01','2026-01-12','2026-02-11','2026-02-23','2026-03-20','2026-04-29','2026-05-03','2026-05-04','2026-05-05','2026-05-06','2026-07-20','2026-08-11','2026-09-21','2026-09-22','2026-09-23','2026-10-12','2026-11-03','2026-11-23','2026-12-30','2026-12-31','2027-01-01','2027-01-11','2027-02-11','2027-02-23','2027-03-21','2027-03-22','2027-04-29','2027-05-03','2027-05-04','2027-05-05','2027-07-19','2027-08-11','2027-09-20','2027-09-23','2027-10-11','2027-11-03','2027-11-23','2027-12-30','2027-12-31']);
 function getCatColor(cat){
@@ -1415,6 +1420,7 @@ function renderCal(){
 
 function snsFilter(el,p){document.querySelectorAll('#sns-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');snsF=p;renderSns();}
 function snsCatFilter(cat){snsCatF=cat;renderSns();}
+function snsStatusFilter(el,status){document.querySelectorAll('#sns-status-chips .chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');snsStatusF=status;renderSns();}
 function snsMonthNav(dir){snsMonth+=dir;if(snsMonth>11){snsMonth=0;snsYear++;}if(snsMonth<0){snsMonth=11;snsYear--;}renderSns();}
 
 function renderSns(){
@@ -1431,6 +1437,10 @@ function renderSns(){
   if(snsF==='event')posts=[];
   // カテゴリフィルター
   if(snsCatF&&showPosts)posts=posts.filter(p=>p.category===snsCatF);
+  // 予約ステータスフィルター
+  const RESERVED_STATUS=['予約投稿済','投稿完了','インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'];
+  if(snsStatusF==='reserved')posts=posts.filter(p=>RESERVED_STATUS.includes(p.post_status));
+  else if(snsStatusF==='unreserved')posts=posts.filter(p=>!RESERVED_STATUS.includes(p.post_status));
   // 時系列ソート
   posts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
   let cells=[];
