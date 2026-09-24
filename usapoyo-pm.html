@@ -2220,24 +2220,6 @@ function showDayDetail(ds){
           <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
           <div><div style="font-size:13px;font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--tm)">${e.category||'イベント'}</div></div>
           <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
-        </div>
-        <div style="padding:6px 0 4px 14px;border-bottom:1px solid var(--border)">
-          <div style="font-size:10px;color:var(--tm);margin-bottom:4px">インサイト集計</div>
-          <div style="display:flex;gap:12px;flex-wrap:wrap">
-            ${['Instagram','TikTok','YouTube','X'].map(pl=>{
-              const ins=(p.insights||{});
-              const k1=pl+'_1d',k7=pl+'_7d';
-              return`<div style="display:flex;flex-direction:column;gap:2px;min-width:80px">
-                <span style="font-size:10px;font-weight:600;color:var(--ts)">${pl}</span>
-                <label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer">
-                  <input type="checkbox" ${ins[k1]?'checked':''} onchange="saveInsight('${p.id}','${pl+'_1d'}',this.checked)" style="cursor:pointer"> 1日後
-                </label>
-                <label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer">
-                  <input type="checkbox" ${ins[k7]?'checked':''} onchange="saveInsight('${p.id}','${pl+'_7d'}',this.checked)" style="cursor:pointer"> 1週間後
-                </label>
-              </div>`;
-            }).join('')}
-          </div>
         </div>`;
       });
     }
