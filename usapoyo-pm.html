@@ -1442,7 +1442,7 @@ function renderSns(){
   const RESERVED_STATUS=['予約投稿済','投稿完了','インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'];
   if(snsStatusF==='reserved')posts=posts.filter(p=>RESERVED_STATUS.includes(p.post_status));
   else if(snsStatusF==='unreserved')posts=posts.filter(p=>!RESERVED_STATUS.includes(p.post_status)&&p.category!=='他媒体共同投稿');
-  else if(snsStatusF==='insight')posts=posts.filter(p=>['インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'].includes(p.post_status)||Object.values(p.insights||{}).some(v=>v));
+  else if(snsStatusF==='insight')posts=posts.filter(p=>p.category!=='他媒体共同投稿'&&!p.content_name.includes('ストーリーズ'));
   else if(snsStatusF==='nother')posts=posts.filter(p=>p.category!=='他媒体共同投稿');
   // 時系列ソート
   posts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
@@ -2191,6 +2191,7 @@ async function deleteEvt2(id){
 
 // ── DAY DETAIL ──
 function showDayDetail(ds){
+  try{
   const date=new Date(ds+'T00:00:00');
   const title=date.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'long'});
   document.getElementById('day-modal-title').textContent=title+'の予定';
@@ -2202,7 +2203,7 @@ function showDayDetail(ds){
   if(snsCatF)dayPosts=dayPosts.filter(p=>p.category===snsCatF);
   if(snsStatusF==='reserved')dayPosts=dayPosts.filter(p=>RESERVED_STATUS_D.includes(p.post_status));
   else if(snsStatusF==='unreserved')dayPosts=dayPosts.filter(p=>!RESERVED_STATUS_D.includes(p.post_status)&&p.category!=='他媒体共同投稿');
-  else if(snsStatusF==='insight')dayPosts=dayPosts.filter(p=>['インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'].includes(p.post_status)||Object.values(p.insights||{}).some(v=>v));
+  else if(snsStatusF==='insight')dayPosts=dayPosts.filter(p=>p.category!=='他媒体共同投稿'&&!p.content_name.includes('ストーリーズ'));
   else if(snsStatusF==='nother')dayPosts=dayPosts.filter(p=>p.category!=='他媒体共同投稿');
   dayPosts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
   const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
@@ -2245,7 +2246,7 @@ function showDayDetail(ds){
       dayPosts.forEach(p=>{
         const col=getCatColor(p.category);
         const plats=(p.platforms||[]).map(pl=>`<span class="tag ${pc[pl]||''}" style="font-size:10px">${pl}</span>`).join('');
-        const ins=p.insights||{};
+        const ins=(p.insights&&typeof p.insights==='object')?p.insights:{};
         h+=`<div style="border-bottom:1px solid var(--border);padding:8px 0">
           <div style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:6px" onclick="closeDayModal();openSnsDetail('${p.id}')">
             <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
@@ -2255,8 +2256,7 @@ function showDayDetail(ds){
             </div>
             <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
           </div>
-          <div style="padding-left:14px">
-            <div style="font-size:10px;color:var(--tm);margin-bottom:5px;font-weight:600">📊 インサイト集計チェック</div>
+          ${(()=>{const skipInsight=p.category==='他媒体共同投稿'||p.content_name.includes('ストーリーズ');if(skipInsight)return'';return`<div style="padding-left:14px"><div style="font-size:10px;color:var(--tm);margin-bottom:5px;font-weight:600">📊 インサイト集計チェック</div>
             <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
               ${['Instagram','TikTok','YouTube','X'].map(pl=>`<div style="background:var(--bg);border-radius:6px;padding:5px 7px">
                 <div style="font-size:10px;font-weight:600;color:var(--ts);margin-bottom:4px">${pl}</div>
@@ -2267,8 +2267,7 @@ function showDayDetail(ds){
                   <input type="checkbox" ${ins[pl+'_7d']?'checked':''} onchange="saveInsight('${p.id}','${pl}_7d',this.checked)"> 1週間後
                 </label>
               </div>`).join('')}
-            </div>
-          </div>
+            </div></div>`;})()}
         </div>`;
       });
     }
@@ -2276,6 +2275,7 @@ function showDayDetail(ds){
   }
   document.getElementById('day-modal-body').innerHTML=h;
   document.getElementById('day-modal').style.display='flex';
+  }catch(e){console.error('showDayDetail error:',e,ds);alert('表示エラーが発生しました。コンソールを確認してください。');}
 }
 async function saveInsight(postId,key,val){
   const p=D.sns.find(x=>x.id===postId);if(!p)return;
