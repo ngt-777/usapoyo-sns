@@ -250,22 +250,21 @@ a{color:var(--accent)}
           <button class="btn bp bsm" onclick="openSnsModal()">＋ SNS投稿追加</button>
         </div>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:8px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
         <div class="chips" id="sns-chips" style="margin-bottom:0">
           <div class="chip on" onclick="snsFilter(this,'all')">すべて</div>
           <div class="chip" onclick="snsFilter(this,'event')">📌 イベント</div>
           <div class="chip" onclick="snsFilter(this,'sns')">📱 SNS投稿</div>
         </div>
-        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ts)">
-          カテゴリ：
-          <select id="sns-cat-sel" class="fsel" style="font-size:12px;padding:4px 8px;min-width:120px" onchange="snsCatFilter(this.value)">
-            <option value="">すべて</option>
-          </select>
-        </div>
         <div class="chips" id="sns-status-chips" style="margin-bottom:0">
           <div class="chip on" onclick="snsStatusFilter(this,'')">全ステータス</div>
-          <div class="chip" onclick="snsStatusFilter(this,'unreserved')" style="color:var(--org)">📋 予約前</div>
-          <div class="chip" onclick="snsStatusFilter(this,'reserved')" style="color:var(--grn)">🟠 予約済み</div>
+          <div class="chip" onclick="snsStatusFilter(this,'unreserved')">📋 予約前</div>
+          <div class="chip" onclick="snsStatusFilter(this,'reserved')">🟠 予約済み</div>
+          <div class="chip" onclick="snsStatusFilter(this,'insight')">📊 インサイト集計</div>
+          <div class="chip" onclick="snsStatusFilter(this,'nother')">🚫 他媒体省く</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--ts)">
+          カテゴリ：<select id="sns-cat-sel" class="fsel" style="font-size:12px;padding:4px 8px;min-width:110px" onchange="snsCatFilter(this.value)"><option value="">すべて</option></select>
         </div>
       </div>
       <div id="sns-body"><div class="ld">読み込み中...</div></div>
@@ -548,6 +547,8 @@ a{color:var(--accent)}
           <option value="投稿完了">🟢 投稿完了</option>
           <option value="インサイト集計（1日後入力済み）">📊 インサイト集計（1日後入力済み）</option>
           <option value="インサイト集計（1週間後入力済み）">📈 インサイト集計（1週間後入力済み）</option>
+          <option value="投稿依頼">📨 投稿依頼</option>
+          <option value="投稿済">✅ 投稿済</option>
         </select>
       </div>
     </div>
@@ -1440,7 +1441,9 @@ function renderSns(){
   // 予約ステータスフィルター
   const RESERVED_STATUS=['予約投稿済','投稿完了','インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'];
   if(snsStatusF==='reserved')posts=posts.filter(p=>RESERVED_STATUS.includes(p.post_status));
-  else if(snsStatusF==='unreserved')posts=posts.filter(p=>!RESERVED_STATUS.includes(p.post_status));
+  else if(snsStatusF==='unreserved')posts=posts.filter(p=>!RESERVED_STATUS.includes(p.post_status)&&p.category!=='他媒体共同投稿');
+  else if(snsStatusF==='insight')posts=posts.filter(p=>['インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'].includes(p.post_status)||Object.values(p.insights||{}).some(v=>v));
+  else if(snsStatusF==='nother')posts=posts.filter(p=>p.category!=='他媒体共同投稿');
   // 時系列ソート
   posts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
   let cells=[];
@@ -2198,7 +2201,9 @@ function showDayDetail(ds){
   if(snsF==='sns'||snsF==='all'){}else if(snsF==='event')dayPosts=[];
   if(snsCatF)dayPosts=dayPosts.filter(p=>p.category===snsCatF);
   if(snsStatusF==='reserved')dayPosts=dayPosts.filter(p=>RESERVED_STATUS_D.includes(p.post_status));
-  else if(snsStatusF==='unreserved')dayPosts=dayPosts.filter(p=>!RESERVED_STATUS_D.includes(p.post_status));
+  else if(snsStatusF==='unreserved')dayPosts=dayPosts.filter(p=>!RESERVED_STATUS_D.includes(p.post_status)&&p.category!=='他媒体共同投稿');
+  else if(snsStatusF==='insight')dayPosts=dayPosts.filter(p=>['インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'].includes(p.post_status)||Object.values(p.insights||{}).some(v=>v));
+  else if(snsStatusF==='nother')dayPosts=dayPosts.filter(p=>p.category!=='他媒体共同投稿');
   dayPosts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
   const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
   let h='';
@@ -2214,6 +2219,24 @@ function showDayDetail(ds){
           <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
           <div><div style="font-size:13px;font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--tm)">${e.category||'イベント'}</div></div>
           <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
+        </div>
+        <div style="padding:6px 0 4px 14px;border-bottom:1px solid var(--border)">
+          <div style="font-size:10px;color:var(--tm);margin-bottom:4px">インサイト集計</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap">
+            ${['Instagram','TikTok','YouTube','X'].map(pl=>{
+              const ins=(p.insights||{});
+              const k1=pl+'_1d',k7=pl+'_7d';
+              return`<div style="display:flex;flex-direction:column;gap:2px;min-width:80px">
+                <span style="font-size:10px;font-weight:600;color:var(--ts)">${pl}</span>
+                <label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer">
+                  <input type="checkbox" ${ins[k1]?'checked':''} onchange="saveInsight('${p.id}','${pl+'_1d'}',this.checked)" style="cursor:pointer"> 1日後
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer">
+                  <input type="checkbox" ${ins[k7]?'checked':''} onchange="saveInsight('${p.id}','${pl+'_7d'}',this.checked)" style="cursor:pointer"> 1週間後
+                </label>
+              </div>`;
+            }).join('')}
+          </div>
         </div>`;
       });
     }
@@ -2236,6 +2259,13 @@ function showDayDetail(ds){
   }
   document.getElementById('day-modal-body').innerHTML=h;
   document.getElementById('day-modal').style.display='flex';
+}
+async function saveInsight(postId,key,val){
+  const p=D.sns.find(x=>x.id===postId);if(!p)return;
+  const ins=Object.assign({},p.insights||{});
+  ins[key]=val;
+  p.insights=ins;
+  await sb.from('pm_sns_posts').update({insights:ins}).eq('id',postId);
 }
 function closeDayModal(){document.getElementById('day-modal').style.display='none';}
 
