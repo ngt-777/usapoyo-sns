@@ -788,6 +788,15 @@ textarea{resize:vertical;min-height:72px}
       </div>
       <div class="form-group full">
         <label>ハッシュタグ</label>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('うさぽよ')">#うさぽよ</button>
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('gyaru')">#gyaru</button>
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('ギャル')">#ギャル</button>
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('キャラクター')">#キャラクター</button>
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('アニメ')">#アニメ</button>
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('ゆるキャラ')">#ゆるキャラ</button>
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('イラスト')">#イラスト</button>
+        </div>
         <div id="edit-hashtag-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
         <div style="display:flex;gap:8px">
           <input type="text" id="edit-hashtag-input" placeholder="#タグを入力してEnter" style="flex:1" onkeydown="onEditHashtagKey(event)">
@@ -1782,6 +1791,24 @@ let editThumbData=null;
 let editThumbFile = null;
 let editHashtags = [];
 
+function addEditPresetTag(tag){
+  const t = '#' + tag.replace(/^#/, '');
+  if(editHashtags.includes(t)){
+    editHashtags.splice(editHashtags.indexOf(t), 1);
+  } else {
+    editHashtags.push(t);
+  }
+  renderEditHashtagChips();
+  updateEditPresetButtons();
+}
+
+function updateEditPresetButtons(){
+  document.querySelectorAll('#edit-post-modal .preset-tag').forEach(btn=>{
+    const tag = '#' + btn.textContent.trim().replace(/^#/, '');
+    btn.classList.toggle('selected', editHashtags.includes(tag));
+  });
+}
+
 function renderEditHashtagChips(){
   const el=document.getElementById('edit-hashtag-chips');
   if(!el)return;
@@ -1832,6 +1859,7 @@ function startEditPost(id){
   // ハッシュタグをセット
   editHashtags=[...(post.hashtags||[])];
   renderEditHashtagChips();
+  setTimeout(updateEditPresetButtons, 50);
   const prev=document.getElementById('edit-thumb-preview');
   if(prev)prev.innerHTML=post.thumbnail?`<img src="${post.thumbnail}" style="width:80px;height:80px;object-fit:cover;border-radius:8px;border:1px solid var(--border)">`:''
   document.getElementById('edit-post-modal').style.display='flex';
@@ -2071,7 +2099,14 @@ function buildInsightForm(platform, ins){
       const opts = SRC_OPTIONS.map(o=>`<option${v===o?' selected':''}>${o}</option>`).join('');
       return`<div class="form-group"><label>${f.label}</label><select id="${f.id}"><option value="">未入力</option>${opts}</select></div>`;
     }
-    return`<div class="form-group"><label>${f.label}</label><input type="number" id="${f.id}" min="0" ${f.step?`step="${f.step}"`:''}  placeholder="0" value="${v}"></div>`;
+    // 自動補完ペア定義
+    const autoPairs={
+      'i-fol-rate':'i-nonfol-rate','i-nonfol-rate':'i-fol-rate',
+      'i-male-pct':'i-female-pct','i-female-pct':'i-male-pct',
+    };
+    const pairId=autoPairs[f.id];
+    const oninput=pairId?`oninput="const v=parseFloat(this.value);const el=document.getElementById('${pairId}');if(el&&!isNaN(v))el.value=Math.max(0,100-v).toFixed(1)"`:'';
+    return`<div class="form-group"><label>${f.label}</label><input type="number" id="${f.id}" min="0" ${f.step?`step="${f.step}"`:''}  placeholder="0" value="${v}" ${oninput}></div>`;
   }).join('');
 }
 
