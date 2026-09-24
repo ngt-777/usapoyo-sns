@@ -523,9 +523,12 @@ textarea{resize:vertical;min-height:72px}
       </select>
       <select id="filter-status" onchange="renderPostList()" style="width:160px">
         <option value="">すべてのステータス</option>
-        <option value="waiting">翌日入力待ち</option>
-        <option value="day1">1日後入力済</option>
-        <option value="week1">1週間後待ち</option>
+        <option value="day1-wait">投稿後〜24時間</option>
+        <option value="day1-input">1日後入力待ち</option>
+        <option value="skip1d">1日後スキップ済</option>
+        <option value="week1-wait">1週間後待ち</option>
+        <option value="week1-input">1週間後入力待ち</option>
+        <option value="done">完了</option>
         <option value="done">集計完了</option>
       </select>
       <span style="margin-left:auto;font-size:12px;color:var(--gray)" id="post-count-label"></span>
@@ -2103,6 +2106,7 @@ function buildInsightForm(platform, ins){
     const autoPairs={
       'i-fol-rate':'i-nonfol-rate','i-nonfol-rate':'i-fol-rate',
       'i-male-pct':'i-female-pct','i-female-pct':'i-male-pct',
+      'i-new-viewer':'i-return-viewer','i-return-viewer':'i-new-viewer',
     };
     const pairId=autoPairs[f.id];
     const oninput=pairId?`oninput="const v=parseFloat(this.value);const el=document.getElementById('${pairId}');if(el&&!isNaN(v))el.value=Math.max(0,100-v).toFixed(1)"`:'';
