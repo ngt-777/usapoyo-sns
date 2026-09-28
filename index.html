@@ -1241,7 +1241,7 @@ function renderRanking(elId,metric,label,fmtFn,isRate=false){
   const posts=DB.posts.filter(p=>p.insight1d&&p.date>=cutoffStr);
   let sorted;
   if(isRate){
-    sorted=posts.map(p=>{const r=calcInsightRates(p.insight1d);return{post:p,val:r[metric]||0}}).sort((a,b)=>b.val-a.val).slice(0,5);
+    sorted=posts.map(p=>{const r=calcInsightRates(p.insight1d);return{post:p,val:r[metric]||0}}).sort((a,b)=>b.val-a.val).slice(0,15);
   } else {
     sorted=posts.map(p=>({post:p,val:p.insight1d[metric]||0})).sort((a,b)=>b.val-a.val).slice(0,5);
   }
@@ -2597,14 +2597,31 @@ function renderDailyReport(){
 
   if(recentPosts.length){
     lines.push('【直近の投稿インサイト】');
+
+    // 同じタイトルの投稿をグループ化（日付も同じものを同一投稿とみなす）
+    const groups={};
     recentPosts.forEach(p=>{
-      const ins=p.insight7d||p.insight1d;
-      const period=p.insight7d?'1週間後':'1日後';
+      const key=`${p.title}__${p.date}`;
+      if(!groups[key]) groups[key]={title:p.title,date:p.date,posts:[]};
+      groups[key].posts.push(p);
+    });
+
+    const platOrder=['Instagram','TikTok','YouTube','X'];
+    const platLabel={Instagram:'Instagram',TikTok:'TikTok',YouTube:'YouTube',X:'X'};
+
+    Object.values(groups).forEach(g=>{
       lines.push('');
-      lines.push(`  ■ ${p.title}(${p.platform} / ${p.date})[${period}]`);
-      lines.push(`    再生数：${ins.plays!=null?fmt(ins.plays):'—'}`);
-      lines.push(`    いいね：${ins.likes!=null?fmt(ins.likes):'—'}`);
-      lines.push(`    フォロー獲得：${ins.follows!=null?fmt(ins.follows):'—'}`);
+      lines.push(`  ■ ${g.title}（${g.date}）`);
+      // 媒体順でソート
+      const sorted=g.posts.sort((a,b)=>platOrder.indexOf(a.platform)-platOrder.indexOf(b.platform));
+      sorted.forEach(p=>{
+        const ins=p.insight7d||p.insight1d;
+        const plays=ins.plays!=null?fmt(ins.plays):'—';
+        const likes=ins.likes!=null?fmt(ins.likes):'—';
+        const follows=ins.follows!=null?fmt(ins.follows):'—';
+        const label=platLabel[p.platform]||p.platform;
+        lines.push(`    ${label}▶︎ 再生数：${plays}　いいね：${likes}　フォロー獲得：${follows}`);
+      });
     });
   } else {
     lines.push('【直近の投稿インサイト】');
