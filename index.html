@@ -1583,12 +1583,20 @@ function renderPostList(){
         </div>
       </div>
       <div class="post-stats">
-        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.plays):'—'}</div><div class="stat-label">再生数</div></div>
-        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">いいね</div></div>
-        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.profile):'—'}</div><div class="stat-label">プロフアクセス</div></div>
-        <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
-        <div class="stat-col"><div class="stat-num">${(()=>{const u=ins?.unique||ins?.plays;return u&&ins?.follows!=null?(ins.follows/u*100).toFixed(2)+'%':'—'})()}</div><div class="stat-label">フォロー転換率</div></div>
-        <div class="stat-col"><div class="stat-num">${ins&&rates.saveRate!=null?rates.saveRate.toFixed(1)+'%':'—'}</div><div class="stat-label">保存率</div></div>
+        ${p.platform==='X'?`
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.impressions):'—'}</div><div class="stat-label">インプレッション</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">いいね</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.shares):'—'}</div><div class="stat-label">リツイート</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.engagement):'—'}</div><div class="stat-label">エンゲージメント</div></div>
+        `:`
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.plays):'—'}</div><div class="stat-label">再生数</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">いいね</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.profile):'—'}</div><div class="stat-label">プロフアクセス</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
+          <div class="stat-col"><div class="stat-num">${(()=>{const u=ins?.unique||ins?.plays;return u&&ins?.follows!=null?(ins.follows/u*100).toFixed(2)+'%':'—'})()}</div><div class="stat-label">フォロー転換率</div></div>
+          <div class="stat-col"><div class="stat-num">${ins&&rates.saveRate!=null?rates.saveRate.toFixed(1)+'%':'—'}</div><div class="stat-label">保存率</div></div>
+        `}
       </div>
     </div>`;
   }).join('');
@@ -2054,6 +2062,7 @@ const INSIGHT_FIELDS = {
     {id:'i-detail-clicks',label:'詳細のクリック数',            type:'number'},
     {id:'i-profile',      label:'プロフィールアクセス数',        type:'number'},
     {type:'section', label:'任意'},
+    {id:'i-follows',      label:'フォロー獲得数',              type:'number'},
     {id:'i-link-clicks',  label:'リンククリック数',             type:'number'},
   ],
 };
@@ -2663,30 +2672,60 @@ function renderWeeklyReport(){
   folHtml+='</tbody></table></div>';
   document.getElementById('weekly-follower-summary').innerHTML=folHtml;
 
-  // Monthly top posts by likes + follows
-  const monthWithIns=monthPosts.filter(p=>p.insight1d);
-  const topByLikes=[...monthWithIns].sort((a,b)=>(b.insight1d.likes||0)-(a.insight1d.likes||0)).slice(0,3);
-  const topByFollows=[...monthWithIns].sort((a,b)=>(b.insight1d.follows||0)-(a.insight1d.follows||0)).slice(0,3);
+  // Monthly top posts
+  const monthWithIns=monthPosts.filter(p=>p.insight1d||p.insight7d);
+  const getIns=p=>p.insight7d||p.insight1d;
 
-  const postRow=p=>`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+  // Instagram限定TOP3
+  const igWithIns=monthWithIns.filter(p=>p.platform==='Instagram');
+  const igTopLikes=[...igWithIns].sort((a,b)=>(getIns(b).likes||0)-(getIns(a).likes||0)).slice(0,3);
+  const igTopFollows=[...igWithIns].sort((a,b)=>(getIns(b).follows||0)-(getIns(a).follows||0)).slice(0,3);
+
+  // 全媒体TOP3（いいね率＝いいね÷再生数が高い順）
+  const likeRate=p=>{const ins=getIns(p);const plays=ins.plays||ins.unique||0;return plays>0&&ins.likes!=null?ins.likes/plays:0;};
+  const allTopLikes=[...monthWithIns].filter(p=>likeRate(p)>0).sort((a,b)=>likeRate(b)-likeRate(a)).slice(0,3);
+
+  const postRowIG=p=>{
+    const ins=getIns(p);
+    return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
     ${p.thumbnail?`<img src="${p.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">`:`<div style="width:40px;height:40px;border-radius:6px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center"><span class="kpi-badge ${platClass(p.platform)}">${platAbbr(p.platform)}</span></div>`}
     <div style="flex:1;min-width:0">
       <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
       <div style="font-size:11px;color:var(--gray)">${p.date}</div>
     </div>
     <div style="text-align:right;flex-shrink:0">
-      <div style="font-size:14px;font-weight:700;font-variant-numeric:tabular-nums">${fmt(p.insight1d.likes||0)} ❤</div>
-      <div style="font-size:11px;color:var(--green);font-weight:600">+${fmt(p.insight1d.follows||0)} フォロー</div>
+      <div style="font-size:14px;font-weight:700">${fmt(ins.likes||0)} ❤</div>
+      <div style="font-size:11px;color:var(--green);font-weight:600">+${fmt(ins.follows||0)} フォロー</div>
     </div>
-  </div>`;
+  </div>`;};
+
+  const postRowAll=p=>{
+    const ins=getIns(p);
+    return`<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)">
+    ${p.thumbnail?`<img src="${p.thumbnail}" style="width:40px;height:40px;object-fit:cover;border-radius:6px;flex-shrink:0">`:`<div style="width:40px;height:40px;border-radius:6px;background:var(--bg);flex-shrink:0;display:flex;align-items:center;justify-content:center"><span class="kpi-badge ${platClass(p.platform)}">${platAbbr(p.platform)}</span></div>`}
+    <div style="flex:1;min-width:0">
+      <div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.title}</div>
+      <div style="font-size:11px;color:var(--gray)">${p.date} · <span class="kpi-badge ${platClass(p.platform)}" style="font-size:9px;padding:1px 5px">${platAbbr(p.platform)}</span></div>
+    </div>
+    <div style="text-align:right;flex-shrink:0">
+      <div style="font-size:14px;font-weight:700">${(likeRate(p)*100).toFixed(2)}% ❤率</div>
+      <div style="font-size:11px;color:var(--gray)">${fmt(ins.likes||0)}いいね / ${fmt(ins.plays||ins.unique||0)}再生</div>
+    </div>
+  </div>`;};
 
   document.getElementById('monthly-top-posts').innerHTML=monthWithIns.length
-    ?`<div class="grid-2" style="gap:16px">
-        <div><div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">いいね TOP3</div>${topByLikes.map(postRow).join('')||'<div style="color:var(--gray);font-size:12px;padding:12px 0">データなし</div>'}</div>
-        <div><div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">フォロー獲得 TOP3</div>${topByFollows.map(postRow).join('')||'<div style="color:var(--gray);font-size:12px;padding:12px 0">データなし</div>'}</div>
+    ?`<div class="grid-2" style="gap:16px;margin-bottom:16px">
+        <div><div style="font-size:11px;font-weight:700;color:var(--ig);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">IG いいね TOP3</div>${igTopLikes.map(postRowIG).join('')||'<div style="color:var(--gray);font-size:12px;padding:12px 0">データなし</div>'}</div>
+        <div><div style="font-size:11px;font-weight:700;color:var(--ig);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">IG フォロー獲得 TOP3</div>${igTopFollows.map(postRowIG).join('')||'<div style="color:var(--gray);font-size:12px;padding:12px 0">データなし</div>'}</div>
+      </div>
+      <div style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:11px;font-weight:700;color:var(--gray);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">全媒体 いいね率 TOP3（いいね÷再生数）</div>
+        ${allTopLikes.map(postRowAll).join('')||'<div style="color:var(--gray);font-size:12px;padding:12px 0">データなし</div>'}
       </div>`
     :'<div class="empty"><div class="empty-sub">今月はまだインサイトデータがありません</div></div>';
 
+  const topByLikes=igTopLikes;
+  const topByFollows=igTopFollows;
   // Generate text report
   buildTextReport(month, monthPosts, topByLikes, topByFollows, weeks, goal, platFields);
 }
