@@ -2064,6 +2064,10 @@ const INSIGHT_FIELDS = {
     {type:'section', label:'任意'},
     {id:'i-follows',      label:'フォロー獲得数',              type:'number'},
     {id:'i-link-clicks',  label:'リンククリック数',             type:'number'},
+    {type:'section', label:'動画の場合（任意）'},
+    {id:'i-unique-plays', label:'ユニーク再生数',               type:'number'},
+    {id:'i-plays',        label:'再生数',                     type:'number'},
+    {id:'i-3sec-rate',    label:'開始3秒の視聴維持率 (%)',      type:'number', step:'0.1'},
   ],
 };
 const AGE_OPTIONS = ['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
@@ -2741,40 +2745,60 @@ async function saveGoal(){
 function buildTextReport(month, monthPosts, topLikes, topFollows, weeks, goal, platFields){
   const now=new Date();
   const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));
+  const getIns=p=>p.insight7d||p.insight1d||{};
   const lines=[];
   lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   lines.push(`うさぽよ SNS週次レポート`);
   lines.push(`${monday.toLocaleDateString('ja-JP')} 時点`);
   lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   lines.push('');
-  lines.push('【フォロワー数（今週）】');
-  const thisWeek=weeks[weeks.length-1];const prevWeek=weeks[weeks.length-2];
-  platFields.forEach(p=>{
-    const cur=thisWeek.data?.[p.key];
-    const prev=prevWeek?.data?.[p.key];
+
+  // 1. フォロワー数の増減
+  lines.push('【フォロワー数の増減】');
+  const thisWeek=weeks[weeks.length-1];
+  const prevWeek=weeks[weeks.length-2];
+  platFields.forEach(f=>{
+    const cur=thisWeek?.data?.[f.key];
+    const prev=prevWeek?.data?.[f.key];
     const diff=cur!=null&&prev!=null?cur-prev:null;
     const sign=diff!=null?(diff>=0?'+':'')+diff:'±?';
-    lines.push(`  ${p.label}：${cur!=null?cur.toLocaleString():'—'} （前週比 ${sign}）`);
+    lines.push(`  ${f.label}：${cur!=null?cur.toLocaleString():'—'} （前週比 ${sign}）`);
   });
   lines.push('');
-  lines.push(`【${month} 投稿進捗】`);
-  const rptUniq=new Set(monthPosts.map(p=>(p.title||'').trim().toLowerCase()).filter(Boolean)).size;
-  const rptDup=monthPosts.length-rptUniq;
-  lines.push(`  投稿数：${rptUniq}本${goal?' / 目標 '+goal+'本 ('+Math.round(rptUniq/goal*100)+'%)':('{目標未設定}')}${rptDup?' ※重複タイトル '+rptDup+'本除く':''}`);
+
+  // 2. 注目投稿（IG いいね TOP3 / フォロー獲得 TOP3）
+  lines.push('【今月の注目投稿 IG いいね TOP3】');
+  if(topLikes.length){
+    topLikes.forEach((p,i)=>{
+      const ins=getIns(p);
+      lines.push(`  ${i+1}. ${p.title}（${p.date}）`);
+      lines.push(`     ❤ いいね ${fmt(ins.likes||0)}　／　フォロー獲得 +${fmt(ins.follows||0)}`);
+    });
+  } else { lines.push('  データなし'); }
   lines.push('');
-  lines.push(`【今月の注目投稿（いいね TOP3）】`);
-  topLikes.forEach((p,i)=>{
-    lines.push(`  ${i+1}. ${p.title}`);
-    lines.push(`     いいね ${fmt(p.insight1d.likes||0)} / フォロー獲得 +${fmt(p.insight1d.follows||0)}`);
-  });
-  if(!topLikes.length)lines.push('  データなし');
+  lines.push('【今月の注目投稿 IG フォロー獲得 TOP3】');
+  if(topFollows.length){
+    topFollows.forEach((p,i)=>{
+      const ins=getIns(p);
+      lines.push(`  ${i+1}. ${p.title}（${p.date}）`);
+      lines.push(`     フォロー獲得 +${fmt(ins.follows||0)}　／　❤ いいね ${fmt(ins.likes||0)}`);
+    });
+  } else { lines.push('  データなし'); }
   lines.push('');
-  lines.push(`【今月の注目投稿（フォロー獲得 TOP3）】`);
-  topFollows.forEach((p,i)=>{
-    lines.push(`  ${i+1}. ${p.title}`);
-    lines.push(`     フォロー獲得 +${fmt(p.insight1d.follows||0)} / いいね ${fmt(p.insight1d.likes||0)}`);
+
+  // 3. 全体的な再生数（今月の全投稿インサイトから集計）
+  lines.push('【今月の再生数（全媒体）】');
+  const monthWithIns=monthPosts.filter(p=>p.insight1d||p.insight7d);
+  const platKeys=['Instagram','TikTok','YouTube','X'];
+  platKeys.forEach(plat=>{
+    const posts=monthWithIns.filter(p=>p.platform===plat);
+    const totalPlays=posts.reduce((s,p)=>{const ins=getIns(p);return s+(ins.plays||ins.impressions||0);},0);
+    const totalLikes=posts.reduce((s,p)=>s+(getIns(p).likes||0),0);
+    if(posts.length>0){
+      lines.push(`  ${plat}：再生 ${fmt(totalPlays)}　いいね ${fmt(totalLikes)}　（${posts.length}投稿集計）`);
+    }
   });
-  if(!topFollows.length)lines.push('  データなし');
+  if(!monthWithIns.length)lines.push('  データなし');
   lines.push('');
   lines.push(`━━━━━━━━━━━━━━━━━━━━━━━━━━`);
   document.getElementById('report-preview').textContent=lines.join('\n');
