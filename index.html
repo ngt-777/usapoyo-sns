@@ -2025,34 +2025,44 @@ const INSIGHT_FIELDS = {
     {id:'i-src3-name',  label:'3位ソース',                 type:'src-select'},
     {id:'i-src3-pct',   label:'3位 割合 (%)',              type:'number', step:'0.1'},
   ],
+  // YouTubeショート/動画
   YouTube: [
-    {type:'section', label:'基本指標'},
-    {id:'i-plays',      label:'エンゲージ ビュー',           type:'number'},
-    {id:'i-unique',     label:'ユニーク視聴者数',             type:'number'},
-    {id:'i-watch-time', label:'総再生時間（時間）',           type:'number', step:'0.1'},
-    {id:'i-avg-view',   label:'平均視聴時間（秒）',           type:'number'},
-    {type:'section', label:'インタラクション'},
-    {id:'i-likes',      label:'いいね',                   type:'number'},
-    {id:'i-comments',   label:'コメント数',                 type:'number'},
-    {id:'i-follows',    label:'チャンネル登録増加数',          type:'number'},
-    {type:'section', label:'視聴者'},
-    {id:'i-fol-rate',   label:'登録者の視聴割合 (%)',        type:'number', step:'0.1'},
-    {id:'i-nonfol-rate',label:'未登録の視聴割合 (%)',        type:'number', step:'0.1'},
-    {id:'i-age-group',  label:'主年齢層',                  type:'select'},
-    {id:'i-age-pct',    label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
-    {id:'i-male-pct',   label:'男性の割合 (%)',             type:'number', step:'0.1'},
-    {id:'i-female-pct', label:'女性の割合 (%)',             type:'number', step:'0.1'},
-    {type:'section', label:'動画指標（任意）'},
-    {id:'i-avg-play-time', label:'平均再生時間（秒）',        type:'number'},
-    {id:'i-skip-rate',     label:'スキップ率 (%)',            type:'number', step:'0.1'},
-    {id:'i-3sec-rate',     label:'冒頭3秒視聴率 (%)',         type:'number', step:'0.1'},
-    {type:'section', label:'閲覧数上位のソース（任意）'},
-    {id:'i-src1-name',  label:'1位ソース',                 type:'src-select'},
-    {id:'i-src1-pct',   label:'1位 割合 (%)',              type:'number', step:'0.1'},
-    {id:'i-src2-name',  label:'2位ソース',                 type:'src-select'},
-    {id:'i-src2-pct',   label:'2位 割合 (%)',              type:'number', step:'0.1'},
-    {id:'i-src3-name',  label:'3位ソース',                 type:'src-select'},
-    {id:'i-src3-pct',   label:'3位 割合 (%)',              type:'number', step:'0.1'},
+    {type:'section', label:'基本指標（視聴）'},
+    {id:'i-plays',        label:'視聴回数（エンゲージビュー）',   type:'number'},
+    {id:'i-unique',       label:'ユニーク視聴者数',             type:'number'},
+    {id:'i-watch-time',   label:'総再生時間（時間）',           type:'number', step:'0.1'},
+    {id:'i-avg-view',     label:'平均視聴時間（秒）',           type:'number'},
+    {id:'i-follows',      label:'チャンネル登録増加数',          type:'number'},
+    {type:'section', label:'視聴エンゲージメント'},
+    {id:'i-retain-pct',   label:'視聴継続率 (%)',              type:'number', step:'0.1'},
+    {id:'i-skip-rate',    label:'スワイプして消去 (%)',          type:'number', step:'0.1'},
+    {type:'section', label:'視聴者の種類'},
+    {id:'i-new-viewer',   label:'新しい視聴者 (%)',            type:'number', step:'0.1'},
+    {id:'i-light-viewer', label:'ライトな視聴者 (%)',          type:'number', step:'0.1'},
+    {id:'i-core-viewer',  label:'コアな視聴者 (%)',            type:'number', step:'0.1'},
+    {type:'section', label:'登録者別再生割合'},
+    {id:'i-fol-rate',     label:'チャンネル登録済みの総再生時間割合 (%)', type:'number', step:'0.1'},
+    {id:'i-nonfol-rate',  label:'未登録の総再生時間割合 (%)',   type:'number', step:'0.1'},
+    {type:'section', label:'年齢・性別（任意）'},
+    {id:'i-age-group',    label:'主年齢層',                  type:'select'},
+    {id:'i-age-pct',      label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
+    {id:'i-male-pct',     label:'男性の割合 (%)',             type:'number', step:'0.1'},
+    {id:'i-female-pct',   label:'女性の割合 (%)',             type:'number', step:'0.1'},
+    {type:'section', label:'流入元（任意）'},
+    {id:'i-src1-name',    label:'1位ソース',                 type:'src-select'},
+    {id:'i-src1-pct',     label:'1位 割合 (%)',              type:'number', step:'0.1'},
+    {id:'i-src2-name',    label:'2位ソース',                 type:'src-select'},
+    {id:'i-src2-pct',     label:'2位 割合 (%)',              type:'number', step:'0.1'},
+    {id:'i-src3-name',    label:'3位ソース',                 type:'src-select'},
+    {id:'i-src3-pct',     label:'3位 割合 (%)',              type:'number', step:'0.1'},
+  ],
+  // YouTubeコミュニティ投稿
+  YouTubeCommunity: [
+    {type:'section', label:'基本'},
+    {id:'i-likes',    label:'高評価数',    type:'number'},
+    {id:'i-comments', label:'コメント数',  type:'number'},
+    {type:'section', label:'任意'},
+    {id:'i-plays',    label:'視聴回数（インプレッション）', type:'number'},
   ],
   X: [
     {type:'section', label:'基本指標'},
@@ -2093,8 +2103,10 @@ const KEY_MAP = {
   'i-link-clicks':'linkClicks',
 };
 
-function buildInsightForm(platform, ins){
-  const fields = INSIGHT_FIELDS[platform] || INSIGHT_FIELDS.Instagram;
+function buildInsightForm(platform, ins, format){
+  let key = platform;
+  if(platform==='YouTube' && format==='コミュニティ') key='YouTubeCommunity';
+  const fields = INSIGHT_FIELDS[key] || INSIGHT_FIELDS.Instagram;
   return fields.map(f=>{
     if(f.type==='section'){
       return`<div class="form-section-title" style="grid-column:1/-1">${f.label}</div>`;
@@ -2105,7 +2117,7 @@ function buildInsightForm(platform, ins){
       return`<div class="form-group"><label>${f.label}</label><select id="${f.id}"><option value="">未入力</option>${opts}</select></div>`;
     }
     if(f.type==='src-select'){
-      const SRC_OPTIONS=['フィード','発見タブ','リールタブ','おすすめ','フォロー中','プロフィール','ハッシュタグ・検索','ストーリーズ','おすすめ動画','検索','外部','チャンネルページ','その他'];
+      const SRC_OPTIONS=['フィード','発見タブ','リールタブ','ショートフィード','おすすめ','フォロー中','プロフィール','ハッシュタグ・検索','ストーリーズ','おすすめ動画','YouTube検索','ブラウジング機能','外部','チャンネルページ','再生リスト','通知','その他'];
       const opts = SRC_OPTIONS.map(o=>`<option${v===o?' selected':''}>${o}</option>`).join('');
       return`<div class="form-group"><label>${f.label}</label><select id="${f.id}"><option value="">未入力</option>${opts}</select></div>`;
     }
@@ -2131,7 +2143,7 @@ function openInsightModal(postId,period){
   document.getElementById('insight-post-id').value=postId;
   document.getElementById('insight-period').value=period;
   document.getElementById('insight-platform').value=post.platform;
-  document.getElementById('insight-form-fields').innerHTML=buildInsightForm(post.platform,ins);
+  document.getElementById('insight-form-fields').innerHTML=buildInsightForm(post.platform,ins,post.format);
   document.getElementById('insight-modal').style.display='flex';
 }
 
