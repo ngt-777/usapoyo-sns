@@ -523,13 +523,11 @@ textarea{resize:vertical;min-height:72px}
       </select>
       <select id="filter-status" onchange="renderPostList()" style="width:160px">
         <option value="">すべてのステータス</option>
-        <option value="day1-wait">投稿後〜24時間</option>
+        <option value="scheduled">投稿予定</option>
         <option value="day1-input">1日後入力待ち</option>
-        <option value="skip1d">1日後スキップ済</option>
-        <option value="week1-wait">1週間後待ち</option>
         <option value="week1-input">1週間後入力待ち</option>
+        <option value="any-input">入力待ち（全部）</option>
         <option value="done">完了</option>
-        <option value="done">集計完了</option>
       </select>
       <span style="margin-left:auto;font-size:12px;color:var(--gray)" id="post-count-label"></span>
     </div>
@@ -1555,7 +1553,13 @@ function renderPostList(){
   let filtered=[...posts].sort((a,b)=>postDateTime(b).localeCompare(postDateTime(a)));
   if(pf)filtered=filtered.filter(p=>p.platform===pf);
   if(cf)filtered=filtered.filter(p=>p.category===cf);
-  if(sf)filtered=filtered.filter(p=>getPostStatus(p)===sf);
+  if(sf){
+    if(sf==='any-input'){
+      filtered=filtered.filter(p=>['day1-input','week1-input'].includes(getPostStatus(p)));
+    } else {
+      filtered=filtered.filter(p=>getPostStatus(p)===sf);
+    }
+  }
   document.getElementById('post-count-label').textContent=`${filtered.length}件`;
   const container=document.getElementById('post-list-container');
   if(!filtered.length){
