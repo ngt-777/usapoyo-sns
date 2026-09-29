@@ -432,7 +432,7 @@ textarea{resize:vertical;min-height:72px}
           </div>
           <div class="form-group">
             <label>コンテンツカテゴリー</label>
-            <select id="f-category">
+            <select id="f-category" onchange="onCategoryChange(this.value,'f-category-other')">
               <option value="">選択してください</option>
               <option>イベント系</option>
               <option>LINEスタンプ関連</option>
@@ -447,6 +447,7 @@ textarea{resize:vertical;min-height:72px}
               <option>一言フィード</option>
               <option>その他（書き込み）</option>
             </select>
+            <input type="text" id="f-category-other" placeholder="カテゴリーを入力" style="display:none;margin-top:6px">
           </div>
           <div class="form-group">
             <label>投稿URL</label>
@@ -479,6 +480,7 @@ textarea{resize:vertical;min-height:72px}
               <button type="button" class="preset-tag" onclick="addPresetTag('アニメ')">#アニメ</button>
               <button type="button" class="preset-tag" onclick="addPresetTag('ゆるキャラ')">#ゆるキャラ</button>
               <button type="button" class="preset-tag" onclick="addPresetTag('イラスト')">#イラスト</button>
+          <button type="button" class="preset-tag" onclick="addPresetTag('ゆるっとうさぽよ')">#ゆるっとうさぽよ</button>
               <button type="button" class="preset-tag" onclick="addPresetTag('LINEトーク')">#LINEトーク</button>
             </div>
             <div class="tag-input-wrap" id="hashtag-wrap" onclick="document.getElementById('hashtag-field').focus()">
@@ -797,6 +799,7 @@ textarea{resize:vertical;min-height:72px}
           <button type="button" class="preset-tag" onclick="addEditPresetTag('アニメ')">#アニメ</button>
           <button type="button" class="preset-tag" onclick="addEditPresetTag('ゆるキャラ')">#ゆるキャラ</button>
           <button type="button" class="preset-tag" onclick="addEditPresetTag('イラスト')">#イラスト</button>
+          <button type="button" class="preset-tag" onclick="addEditPresetTag('ゆるっとうさぽよ')">#ゆるっとうさぽよ</button>
         </div>
         <div id="edit-hashtag-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
         <div style="display:flex;gap:8px">
@@ -879,6 +882,13 @@ async function uploadThumbToSupabase(file) {
     return null;
   }
   return `${SB_URL}/storage/v1/object/public/thumbnails/${fileName}`;
+}
+
+function onCategoryChange(val, otherId){
+  const el=document.getElementById(otherId);
+  if(!el)return;
+  el.style.display=val==='その他（書き込み）'?'block':'none';
+  if(val!=='その他（書き込み）')el.value='';
 }
 
 const GAS_URL = 'https://script.google.com/macros/s/AKfycbwWvcVxuNOZMvFaAylkbv1zjJopyxFsP87EY3R1lzyUESwfudLyEybE1h68_6sn9lMD/exec';
@@ -1485,7 +1495,7 @@ async function submitPost(e){
     platform:document.getElementById('f-platform').value,
     format:document.getElementById('f-format').value,
     title,
-    category:document.getElementById('f-category').value,
+    category:(()=>{const v=document.getElementById('f-category').value;if(v==='その他（書き込み）'){const o=document.getElementById('f-category-other').value.trim();return o?o:v;}return v;})(),
     url:document.getElementById('f-url').value,
     musicTitle:document.getElementById('f-music-title').value,
     musicArtist:document.getElementById('f-music-artist').value,
