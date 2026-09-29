@@ -752,13 +752,14 @@ textarea{resize:vertical;min-height:72px}
       </div>
       <div class="form-group full">
         <label>コンテンツカテゴリー</label>
-        <select id="edit-category">
+        <select id="edit-category" onchange="onCategoryChange(this.value,'edit-category-other')">
           <option value="">選択してください</option>
           <option>イベント系</option><option>LINEスタンプ関連</option><option>楽曲/MV</option>
           <option>グッズ関連</option><option>質問コーナー</option><option>会話劇</option>
           <option>漫画</option><option>企業タイアップ関連</option><option>日常イラスト</option>
           <option>ギャル間違い探し</option><option>一言フィード</option><option>その他（書き込み）</option>
         </select>
+        <input type="text" id="edit-category-other" placeholder="カテゴリーを入力" style="display:none;margin-top:6px">
       </div>
       <div class="form-group full">
         <label>サムネイル画像</label>
@@ -1885,7 +1886,17 @@ function startEditPost(id){
   document.getElementById('edit-time').value=post.time||'';
   document.getElementById('edit-platform').value=post.platform||'Instagram';
   document.getElementById('edit-format').value=post.format||'';
-  document.getElementById('edit-category').value=post.category||'';
+  const CAT_LIST=['イベント系','LINEスタンプ関連','楽曲/MV','グッズ関連','質問コーナー','会話劇','漫画','企業タイアップ関連','日常イラスト','ギャル間違い探し','一言フィード','その他（書き込み）'];
+  const catVal=post.category||'';
+  const catEl=document.getElementById('edit-category');
+  const catOtherEl=document.getElementById('edit-category-other');
+  if(CAT_LIST.includes(catVal)||catVal===''){
+    catEl.value=catVal;
+    if(catOtherEl){catOtherEl.style.display='none';catOtherEl.value='';}
+  } else {
+    catEl.value='その他（書き込み）';
+    if(catOtherEl){catOtherEl.style.display='block';catOtherEl.value=catVal;}
+  }
   document.getElementById('edit-url').value=post.url||'';
   document.getElementById('edit-music-title').value=post.musicTitle||'';
   document.getElementById('edit-music-artist').value=post.musicArtist||'';
@@ -1916,7 +1927,7 @@ async function saveEditPost(){
     time:document.getElementById('edit-time').value,
     platform:document.getElementById('edit-platform').value,
     format:document.getElementById('edit-format').value,
-    category:document.getElementById('edit-category').value,
+    category:(()=>{const v=document.getElementById('edit-category').value;if(v==='その他（書き込み）'){const o=document.getElementById('edit-category-other').value.trim();return o?o:v;}return v;})(),
     url:document.getElementById('edit-url').value,
     memo:document.getElementById('edit-memo').value,
     caption:document.getElementById('edit-caption').value,
