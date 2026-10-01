@@ -89,6 +89,7 @@ nav{padding:12px 0;flex:1}
 .status.waiting{background:#FEF9C3;color:#854D0E}.status.waiting .status-dot{background:#EAB308}
 .status.day1{background:#DBEAFE;color:#1E40AF}.status.day1 .status-dot{background:#3B82F6}
 .status.week1{background:#FCE7F3;color:#9D174D}.status.week1 .status-dot{background:#EC4899}
+.status.scheduled{background:#F1F5F9;color:#64748B}.status.scheduled .status-dot{background:#94A3B8}
 .status.done{background:var(--green-bg);color:#065F46}.status.done .status-dot{background:var(--green)}
 
 /* GRID LAYOUTS */
@@ -1076,13 +1077,13 @@ function getPostStatus(post){
 function statusBadge(post){
   const s=getPostStatus(post);
   const map={
-    scheduled:   ['投稿予定','scheduled'],
-    'day1-wait': ['1日後待ち','waiting'],
-    'day1-input':['1日後入力','waiting'],
-    skip1d:      ['1日後スキップ','day1'],
-    'week1-wait':['1週間後待ち','week1'],
-    'week1-input':['1週間後入力','week1'],
-    done:        ['完了','done'],
+    scheduled:    ['投稿予定','scheduled'],
+    'day1-wait':  ['1日後待ち','scheduled'],    // まだOK→投稿予定と同じグレー
+    'day1-input': ['1日後入力待ち','waiting'],  // 要入力→アンバー
+    skip1d:       ['1日後スキップ','scheduled'],
+    'week1-wait': ['1週間後待ち','scheduled'],  // まだOK→グレー
+    'week1-input':['1週間後入力待ち','waiting'],// 要入力→アンバー
+    done:         ['完了','done'],
   };
   const[txt,cls]=map[s]||['—',''];
   return`<span class="status ${cls}"><span class="status-dot"></span>${txt}</span>`;
