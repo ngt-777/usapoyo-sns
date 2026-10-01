@@ -2268,17 +2268,61 @@ function fileToBase64(file){
 
 function applyParsedInsight(parsed){
   const setVal=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=='')el.value=v};
-  setVal('i-plays',parsed.plays);setVal('i-likes',parsed.likes);
-  setVal('i-comments',parsed.comments);setVal('i-saves',parsed.saves);
-  setVal('i-shares',parsed.shares);setVal('i-follows',parsed.follows);
-  setVal('i-profile',parsed.profile);setVal('i-unique',parsed.unique);
-  setVal('i-fol-rate',parsed.folRate);setVal('i-nonfol-rate',parsed.nonFolRate);
-  setVal('i-age-pct',parsed.agePct);setVal('i-watch-time',parsed.watchTime);
+  // 共通
+  setVal('i-plays',parsed.plays);
+  setVal('i-likes',parsed.likes);
+  setVal('i-comments',parsed.comments);
+  setVal('i-saves',parsed.saves);
+  setVal('i-shares',parsed.shares);
+  setVal('i-follows',parsed.follows);
+  setVal('i-profile',parsed.profile);
+  setVal('i-unique',parsed.unique);
+  setVal('i-fol-rate',parsed.folRate);
+  setVal('i-nonfol-rate',parsed.nonFolRate);
+  setVal('i-age-pct',parsed.agePct);
+  setVal('i-watch-time',parsed.watchTime);
   setVal('i-avg-view',parsed.avgView);
-  setVal('i-impressions',parsed.impressions);setVal('i-engagement',parsed.engagement);
-  setVal('i-unique-plays',parsed.uniquePlays);setVal('i-detail-clicks',parsed.detailClicks);
+  // X専用
+  setVal('i-impressions',parsed.impressions);
+  setVal('i-engagement',parsed.engagement);
+  setVal('i-unique-plays',parsed.uniquePlays);
+  setVal('i-detail-clicks',parsed.detailClicks);
+  // YouTube専用
+  setVal('i-retain-sec',parsed.retainSec);   // 視聴維持率の秒数
+  setVal('i-retain-pct',parsed.retainPct);   // 視聴継続率%
+  setVal('i-retain-continue',parsed.retainContinue); // 視聴を継続%
+  setVal('i-skip-rate',parsed.skipRate);     // スワイプして消去%
+  setVal('i-new-viewer',parsed.newViewer);
+  setVal('i-light-viewer',parsed.lightViewer);
+  setVal('i-core-viewer',parsed.coreViewer);
+  setVal('i-src1-pct',parsed.src1Pct);
+  setVal('i-src2-pct',parsed.src2Pct);
+  setVal('i-src3-pct',parsed.src3Pct);
+  // 性別
+  setVal('i-male-pct',parsed.malePct);
+  setVal('i-female-pct',parsed.femalePct);
+  // 年齢層（selectなので別途処理）
   const ageEl=document.getElementById('i-age-group');
-  if(ageEl&&parsed.ageGroup)ageEl.value=parsed.ageGroup;
+  if(ageEl&&parsed.ageGroup){
+    // 年齢層の表記を正規化（"25-34" → "25-34歳"）
+    let ag=String(parsed.ageGroup);
+    if(!ag.includes('歳'))ag=ag+'歳';
+    ageEl.value=ag;
+  }
+  // ソース名（selectなので別途処理）
+  const setSrc=(id,v)=>{
+    if(!v)return;
+    const el=document.getElementById(id);
+    if(!el)return;
+    // 選択肢の中に一致するものを探す
+    const opts=[...el.options].map(o=>o.value);
+    const match=opts.find(o=>o&&(v.includes(o)||o.includes(v)));
+    if(match)el.value=match;
+    else el.value='その他';
+  };
+  setSrc('i-src1-name',parsed.src1Name);
+  setSrc('i-src2-name',parsed.src2Name);
+  setSrc('i-src3-name',parsed.src3Name);
 }
 
 async function analyzeScreenshot(e){
@@ -2294,30 +2338,49 @@ async function analyzeScreenshot(e){
   statusEl.textContent=`⏳ ${files.length}枚を順番に解析中...`;
   statusEl.style.color='var(--amber)';
 
-  const prompt=`これは${platform}の投稿インサイト画面のスクリーンショットです。
-画像から以下の数値を読み取り、JSON形式のみで返してください（説明文不要）。
-存在しない・見えない項目はnullにしてください。
+  const prompt=`これは${platform}の投稿インサイット画面のスクリーンショットです。
+画像から以下の数値を正確に読み取り、JSONのみで返してください（説明文不要、マークダウン不要）。
+見えない・存在しない項目はnullにしてください。
 
-{
-  "plays": 再生数または視聴数（数値）,
-  "likes": いいね数（数値）,
-  "comments": コメント数（数値）,
-  "saves": 保存数（数値）,
-  "shares": シェアまたは再投稿数（数値）,
-  "follows": フォロー獲得数またはチャンネル登録増加数（数値）,
-  "profile": プロフィールアクセス数（数値）,
-  "unique": ユニーク視聴者数または閲覧者数（数値）,
-  "folRate": フォロワーまたは登録者の閲覧割合（%の数値のみ、例:56.4）,
-  "nonFolRate": 非フォロワーまたは未登録の閲覧割合（%の数値のみ）,
-  "ageGroup": 最も多い年齢層（例:"25-34歳"）,
-  "agePct": その年齢層の割合（%の数値のみ）,
-  "watchTime": 総再生時間（数値、YouTubeは時間単位、TikTokは分単位）,
-  "avgView": 平均視聴時間（秒数）,
-  "impressions": インプレッション数（Xのみ）,
-  "engagement": エンゲージメント数（Xのみ）,
-  "uniquePlays": ユニーク再生数（Xの動画のみ）,
-  "detailClicks": 詳細のクリック数（Xのみ）
-}`;
+【共通】
+"plays": 再生数・視聴回数・エンゲージビュー（数値）
+"likes": いいね数・高評価数（数値）
+"comments": コメント数（数値）
+"saves": 保存数（数値）
+"shares": シェア・再投稿・共有数（数値）
+"follows": フォロー獲得・チャンネル登録増加数（数値）
+"profile": プロフィールアクセス数（数値）
+"unique": ユニーク視聴者数・閲覧者数（数値）
+"folRate": フォロワー・登録者の閲覧割合（数値のみ、例:56.4）
+"nonFolRate": 非フォロワー・未登録の閲覧割合（数値のみ）
+"ageGroup": グラフや棒グラフで最もパーセンテージが高い年齢層（文字列、例:"25-34歳"）※必ず一番高いバーの年齢層を返す
+"agePct": その年齢層の割合（数値のみ）
+"malePct": 男性の割合（数値のみ）
+"femalePct": 女性の割合（数値のみ）
+
+【YouTube専用】
+"retainSec": 平均視聴時間（「0:18」→18、「1:05」→65のように秒数に変換した数値）
+"retainContinue": 「視聴を継続」の%（数値のみ）
+"skipRate": 「スワイプして消去」の%（数値のみ）
+"newViewer": 新しい視聴者の%（数値のみ）
+"lightViewer": ライトな視聴者の%（数値のみ）
+"coreViewer": コアな視聴者の%（数値のみ）
+"src1Name": 「視聴者がこの動画を見つけた方法」で1位のソース名（文字列）
+"src1Pct": 1位ソースの%（数値のみ）
+"src2Name": 2位ソース名（文字列）
+"src2Pct": 2位の%（数値のみ）
+"src3Name": 3位ソース名（文字列）
+"src3Pct": 3位の%（数値のみ）
+"watchTime": 総再生時間（時間単位の数値）
+"avgView": 平均視聴時間（秒数）
+
+【X専用】
+"impressions": インプレッション数（数値）
+"engagement": エンゲージメント数（数値）
+"uniquePlays": ユニーク再生数（数値）
+"detailClicks": 詳細クリック数（数値）
+
+JSONのみ返してください:`;
 
   let merged={};
   let successCount=0;
