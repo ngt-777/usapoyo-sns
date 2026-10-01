@@ -2271,8 +2271,22 @@ async function saveInsight(){
 function fileToBase64(file){
   return new Promise((res,rej)=>{
     const r=new FileReader();
-    r.onload=ev=>res({b64:ev.target.result.split(',')[1],mediaType:file.type||'image/jpeg'});
     r.onerror=rej;
+    r.onload=ev=>{
+      const img=new Image();
+      img.onload=()=>{
+        // 最大幅1024pxに縮小（コスト削減）
+        const MAX=1024;
+        let w=img.width, h=img.height;
+        if(w>MAX){h=Math.round(h*MAX/w);w=MAX;}
+        const canvas=document.createElement('canvas');
+        canvas.width=w;canvas.height=h;
+        canvas.getContext('2d').drawImage(img,0,0,w,h);
+        const dataUrl=canvas.toDataURL('image/jpeg',0.8); // 品質80%
+        res({b64:dataUrl.split(',')[1],mediaType:'image/jpeg'});
+      };
+      img.src=ev.target.result;
+    };
     r.readAsDataURL(file);
   });
 }
