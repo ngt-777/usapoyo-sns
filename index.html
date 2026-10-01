@@ -2101,7 +2101,7 @@ const INSIGHT_FIELDS = {
     {id:'i-unique',       label:'ユニーク視聴者数',             type:'number'},
     {id:'i-watch-time',   label:'総再生時間（時間）',           type:'number', step:'0.1'},
     {id:'i-avg-view',     label:'平均視聴時間（秒）',           type:'number'},
-    {id:'i-shares',       label:'共有数',                     type:'number'},
+    {id:'i-engage-view',  label:'エンゲージビュー',             type:'number'},
     {type:'section', label:'⑤ 視聴エンゲージメント（片方入力で自動補完）'},
     {id:'i-retain-continue', label:'視聴を継続 (%)',           type:'number', step:'0.1'},
     {id:'i-skip-rate',       label:'スワイプして消去 (%)',      type:'number', step:'0.1'},
@@ -2154,7 +2154,7 @@ const KEY_MAP = {
   'i-fol-rate':'folRate','i-nonfol-rate':'nonFolRate','i-age-group':'ageGroup',
   'i-age-pct':'agePct','i-watch-time':'watchTime','i-avg-view':'avgView',
   'i-impressions':'impressions','i-engagement':'engagement',
-  'i-unique-plays':'uniquePlays','i-detail-clicks':'detailClicks',
+  'i-unique-plays':'uniquePlays','i-detail-clicks':'detailClicks','i-engage-view':'engageView',
   'i-watch-h':'watchH','i-watch-m':'watchM','i-watch-s':'watchS',
   'i-full-view-pct':'fullViewPct','i-new-viewer':'newViewer','i-return-viewer':'returnViewer',
   'i-male-pct':'malePct','i-female-pct':'femalePct',
@@ -2295,6 +2295,7 @@ function applyParsedInsight(parsed){
   const setVal=(id,v)=>{const el=document.getElementById(id);if(el&&v!=null&&v!=='')el.value=v};
   // 共通
   setVal('i-plays',parsed.plays);
+  setVal('i-engage-view',parsed.engageView);
   setVal('i-likes',parsed.likes);
   setVal('i-comments',parsed.comments);
   setVal('i-saves',parsed.saves);
@@ -2381,7 +2382,8 @@ async function analyzeScreenshot(e){
 見えない・存在しない項目はnullにしてください。
 
 【共通】
-"plays": 再生数・視聴回数・エンゲージビュー（数値）
+"plays": 「視聴回数」という表記の数値のみ（エンゲージビューは別フィールド）
+"engageView": 「エンゲージビュー」という表記の数値（YouTubeショートのみ）
 "likes": いいね数・高評価数（数値）
 "comments": コメント数（数値）
 "saves": 保存数（数値）
