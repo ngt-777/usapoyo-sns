@@ -2304,10 +2304,15 @@ function applyParsedInsight(parsed){
   // 年齢層（selectなので別途処理）
   const ageEl=document.getElementById('i-age-group');
   if(ageEl&&parsed.ageGroup){
-    // 年齢層の表記を正規化（"25-34" → "25-34歳"）
-    let ag=String(parsed.ageGroup);
-    if(!ag.includes('歳'))ag=ag+'歳';
-    ageEl.value=ag;
+    const ag=String(parsed.ageGroup).replace(/〜/g,'-').replace(/[歳才]/g,'').trim();
+    // AGE_OPTIONSの中から数字部分が一致するものを探す
+    const AGE_OPTS=['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
+    const matched=AGE_OPTS.find(o=>{
+      const nums=o.replace('歳以上','以上').replace('歳','');
+      return nums===ag||o.includes(ag)||ag.includes(nums.replace('-','〜'));
+    });
+    if(matched)ageEl.value=matched;
+    else if(!ag.includes('歳')&&ageEl.querySelector(`option[value="${ag}歳"]`))ageEl.value=ag+'歳';
   }
   // ソース名（selectなので別途処理）
   const setSrc=(id,v)=>{
@@ -2353,7 +2358,7 @@ async function analyzeScreenshot(e){
 "unique": ユニーク視聴者数・閲覧者数（数値）
 "folRate": フォロワー・登録者の閲覧割合（数値のみ、例:56.4）
 "nonFolRate": 非フォロワー・未登録の閲覧割合（数値のみ）
-"ageGroup": グラフや棒グラフで最もパーセンテージが高い年齢層（文字列、例:"25-34歳"）※必ず一番高いバーの年齢層を返す
+"ageGroup": 年齢層グラフで【数値が最も大きい（バーが最も長い）】年齢層（文字列、例:"25-34歳"）。年齢が大きい層ではなく、%の数字が一番大きい層を選ぶこと。例えば25-34歳が27.3%、45-54歳が12%なら"25-34歳"を返す
 "agePct": その年齢層の割合（数値のみ）
 "malePct": 男性の割合（数値のみ）
 "femalePct": 女性の割合（数値のみ）
