@@ -900,6 +900,16 @@ async function uploadThumbToSupabase(file) {
   return `${SB_URL}/storage/v1/object/public/thumbnails/${fileName}`;
 }
 
+// 年齢層パーセンテージの記憶（スクショ解析結果を保持）
+let _ageBreakdown={};
+
+function onAgeGroupChange(val){
+  const pctEl=document.getElementById('i-age-pct');
+  if(pctEl&&_ageBreakdown[val]!=null){
+    pctEl.value=_ageBreakdown[val];
+  }
+}
+
 function onCategoryChange(val, otherId){
   const el=document.getElementById(otherId);
   if(!el)return;
@@ -2079,7 +2089,7 @@ const INSIGHT_FIELDS = {
     {id:'i-comments',     label:'コメント数',                 type:'number'},
     {type:'section', label:'② 視聴維持率'},
     {id:'i-retain-continue', label:'視聴を継続 (%)',           type:'number', step:'0.1'},
-    {id:'i-retain-time',     label:'平均視聴時間（例: 0:19）', type:'text'},
+    {id:'i-retain-sec',      label:'平均視聴時間（秒）',        type:'number'},
     {type:'section', label:'③ 流入元 上位3位（任意）'},
     {id:'i-src1-name',    label:'1位ソース',                 type:'src-select'},
     {id:'i-src1-pct',     label:'1位 割合 (%)',              type:'number', step:'0.1'},
@@ -2093,6 +2103,7 @@ const INSIGHT_FIELDS = {
     {id:'i-avg-view',     label:'平均視聴時間（秒）',           type:'number'},
     {id:'i-shares',       label:'共有数',                     type:'number'},
     {type:'section', label:'⑤ 視聴エンゲージメント（片方入力で自動補完）'},
+    {id:'i-retain-continue', label:'視聴を継続 (%)',           type:'number', step:'0.1'},
     {id:'i-skip-rate',       label:'スワイプして消去 (%)',      type:'number', step:'0.1'},
     {type:'section', label:'⑥ 視聴行動別の視聴者（コアは自動補完）'},
     {id:'i-new-viewer',   label:'新しい視聴者 (%)',            type:'number', step:'0.1'},
@@ -2165,7 +2176,9 @@ function buildInsightForm(platform, ins, format){
     const v = ins?.[KEY_MAP[f.id]]??'';
     if(f.type==='select'){
       const opts = AGE_OPTIONS.map(o=>`<option${v===o?' selected':''}>${o}</option>`).join('');
-      return`<div class="form-group"><label>${f.label}</label><select id="${f.id}"><option value="">未入力</option>${opts}</select></div>`;
+      // 年齢層の場合：選択時に保存済みパーセンテージを自動入力
+      const onchange=f.id==='i-age-group'?`onchange="onAgeGroupChange(this.value)"`:''
+      return`<div class="form-group"><label>${f.label}</label><select id="${f.id}" ${onchange}><option value="">未入力</option>${opts}</select></div>`;
     }
     if(f.type==='src-select'){
       const SRC_OPTIONS=['フィード','発見タブ','リールタブ','ショートフィード','おすすめ','フォロー中','プロフィール','ハッシュタグ・検索','ストーリーズ','おすすめ動画','YouTube検索','ブラウジング機能','外部','チャンネルページ','再生リスト','通知','その他'];
@@ -2287,15 +2300,7 @@ function applyParsedInsight(parsed){
   setVal('i-detail-clicks',parsed.detailClicks);
   // YouTube専用
   setVal('i-retain-continue',parsed.retainContinue); // 視聴を継続%
-  // 平均視聴時間：秒数から「0:XX」形式に変換してセット
-  if(parsed.retainSec!=null){
-    const s=Math.round(parsed.retainSec);
-    const m2=Math.floor(s/60);
-    const sec=s%60;
-    const timeStr=m2+':'+(sec<10?'0':'')+sec;
-    const retainTimeEl=document.getElementById('i-retain-time');
-    if(retainTimeEl)retainTimeEl.value=timeStr;
-  }
+  setVal('i-retain-sec',parsed.retainSec); // 平均視聴時間（秒）
   setVal('i-skip-rate',parsed.skipRate);     // スワイプして消去%
   setVal('i-new-viewer',parsed.newViewer);
   setVal('i-light-viewer',parsed.lightViewer);
@@ -2307,25 +2312,26 @@ function applyParsedInsight(parsed){
   setVal('i-male-pct',parsed.malePct);
   setVal('i-female-pct',parsed.femalePct);
   // 年齢層（selectなので別途処理）
-  // 年齢層：breakdownから最大%を選択
+  // 年齢層：breakdownを記憶してプルダウン選択時に自動入力
   const ageEl=document.getElementById('i-age-group');
   const agePctEl=document.getElementById('i-age-pct');
-  if(ageEl&&parsed.ageBreakdown&&Array.isArray(parsed.ageBreakdown)&&parsed.ageBreakdown.length>0){
-    // 最大パーセンテージの年齢層を選ぶ
-    const best=parsed.ageBreakdown.reduce((a,b)=>(b.pct||0)>(a.pct||0)?b:a,parsed.ageBreakdown[0]);
-    if(best&&best.age){
-      const ag=String(best.age).replace(/〜/g,'-');
-      const AGE_OPTS=['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
-      const matched=AGE_OPTS.find(o=>o.replace('歳','').includes(ag.replace('歳',''))||ag.includes(o.replace('歳','')));
-      if(matched)ageEl.value=matched;
-      if(agePctEl&&best.pct!=null)agePctEl.value=best.pct;
-    }
-  } else if(ageEl&&parsed.ageGroup){
+  const AGE_OPTS=['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
+  _ageBreakdown={};
+  if(parsed.ageBreakdown&&Array.isArray(parsed.ageBreakdown)){
+    // 全年齢層のパーセンテージを記憶
+    parsed.ageBreakdown.forEach(({age,pct})=>{
+      if(!age||pct==null)return;
+      const ag=String(age).replace(/〜/g,'-');
+      const matched=AGE_OPTS.find(o=>o.replace('歳以上','以上').replace(/歳/g,'').includes(ag.replace(/歳/g,''))||ag.includes(o.replace(/歳/g,'')));
+      if(matched)_ageBreakdown[matched]=pct;
+    });
+    // 最大パーセンテージの年齢層を自動選択
+    const best=Object.entries(_ageBreakdown).reduce((a,b)=>b[1]>a[1]?b:a,['',0]);
+    if(best[0]&&ageEl){ageEl.value=best[0];if(agePctEl)agePctEl.value=best[1];}
+  } else if(parsed.ageGroup&&ageEl){
     const ag=String(parsed.ageGroup).replace(/〜/g,'-');
-    const AGE_OPTS=['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
-    const matched=AGE_OPTS.find(o=>o.includes(ag)||ag.includes(o.replace('歳','')));
-    if(matched)ageEl.value=matched;
-    if(agePctEl&&parsed.agePct!=null)agePctEl.value=parsed.agePct;
+    const matched=AGE_OPTS.find(o=>o.includes(ag)||ag.includes(o.replace(/歳/g,'')));
+    if(matched){ageEl.value=matched;if(agePctEl&&parsed.agePct!=null)agePctEl.value=parsed.agePct;}
   }
   // ソース名（selectなので別途処理）
   const setSrc=(id,v)=>{
