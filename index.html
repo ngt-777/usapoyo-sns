@@ -2284,7 +2284,7 @@ function applyParsedInsight(parsed){
 async function analyzeScreenshot(e){
   const files=[...e.target.files];
   if(!files.length)return;
-  const apiKey='ANTHROPIC_API_KEY_HERE';
+  const apiKey='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';
   if(!apiKey||apiKey==='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'){showToast('APIキーが設定されていません','error');return}
   const platform=document.getElementById('insight-platform').value;
   const statusEl=document.getElementById('analyze-status'); if(!statusEl)return;
