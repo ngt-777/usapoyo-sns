@@ -2284,8 +2284,6 @@ function applyParsedInsight(parsed){
 async function analyzeScreenshot(e){
   const files=[...e.target.files];
   if(!files.length)return;
-  const apiKey='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';
-  if(!apiKey||apiKey==='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'){showToast('APIキーが設定されていません','error');return}
   const platform=document.getElementById('insight-platform').value;
   const statusEl=document.getElementById('analyze-status'); if(!statusEl)return;
   const previewEl=document.getElementById('screenshot-previews');
@@ -2329,21 +2327,31 @@ async function analyzeScreenshot(e){
     statusEl.textContent=`⏳ ${i+1} / ${files.length}枚目を解析中...`;
     try{
       const {b64,mediaType}=await fileToBase64(files[i]);
-      const resp=await fetch('https://api.anthropic.com/v1/messages',{
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-        body:JSON.stringify({
-          model:'claude-sonnet-4-6',max_tokens:512,
-          messages:[{role:'user',content:[
-            {type:'image',source:{type:'base64',media_type:mediaType,data:b64}},
-            {type:'text',text:prompt}
-          ]}]
-        })
-      });
-      const data=await resp.json();
-      if(data.error)throw new Error(data.error.message);
-      const text=data.content[0].text.replace(/```json|```/g,'').trim();
-      const parsed=JSON.parse(text);
+      const resp = await fetch(
+  'https://szujllotgyaomxkkdkgv.supabase.co/functions/v1/analyze-screenshot',
+  {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': 'sb_publishable_TgE2Y9ar97DwAXMWMwTBww_LEHP5z3b',
+      'Authorization': 'Bearer sb_publishable_TgE2Y9ar97DwAXMWMwTBww_LEHP5z3b'
+    },
+    body: JSON.stringify({
+      image: b64,
+      mediaType: mediaType,
+      prompt: prompt
+    })
+  }
+);
+
+const data = await resp.json();
+
+if (!resp.ok || data.error) {
+  throw new Error(data.error || '画像解析に失敗しました');
+}
+
+const parsed = data.result;
+
       Object.entries(parsed).forEach(([k,v])=>{if(v!=null)merged[k]=v});
       successCount++;
       if(prevBox)prevBox.style.borderColor='var(--green)';
