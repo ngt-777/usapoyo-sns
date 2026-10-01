@@ -2078,9 +2078,8 @@ const INSIGHT_FIELDS = {
     {id:'i-likes',        label:'高評価数',                   type:'number'},
     {id:'i-comments',     label:'コメント数',                 type:'number'},
     {type:'section', label:'② 視聴維持率'},
-    {id:'i-retain-min',   label:'視聴維持 分（例: 0）',        type:'number'},
-    {id:'i-retain-sec',   label:'視聴維持 秒（例: 18）',       type:'number'},
-    {id:'i-retain-pct',   label:'視聴継続率 (%)',              type:'number', step:'0.1'},
+    {id:'i-retain-continue', label:'視聴を継続 (%)',           type:'number', step:'0.1'},
+    {id:'i-retain-time',     label:'平均視聴時間（例: 0:19）', type:'text'},
     {type:'section', label:'③ 流入元 上位3位（任意）'},
     {id:'i-src1-name',    label:'1位ソース',                 type:'src-select'},
     {id:'i-src1-pct',     label:'1位 割合 (%)',              type:'number', step:'0.1'},
@@ -2094,7 +2093,6 @@ const INSIGHT_FIELDS = {
     {id:'i-avg-view',     label:'平均視聴時間（秒）',           type:'number'},
     {id:'i-shares',       label:'共有数',                     type:'number'},
     {type:'section', label:'⑤ 視聴エンゲージメント（片方入力で自動補完）'},
-    {id:'i-retain-continue', label:'視聴を継続 (%)',           type:'number', step:'0.1'},
     {id:'i-skip-rate',       label:'スワイプして消去 (%)',      type:'number', step:'0.1'},
     {type:'section', label:'⑥ 視聴行動別の視聴者（コアは自動補完）'},
     {id:'i-new-viewer',   label:'新しい視聴者 (%)',            type:'number', step:'0.1'},
@@ -2288,9 +2286,16 @@ function applyParsedInsight(parsed){
   setVal('i-unique-plays',parsed.uniquePlays);
   setVal('i-detail-clicks',parsed.detailClicks);
   // YouTube専用
-  setVal('i-retain-sec',parsed.retainSec);   // 視聴維持率の秒数
-  setVal('i-retain-pct',parsed.retainPct);   // 視聴継続率%
   setVal('i-retain-continue',parsed.retainContinue); // 視聴を継続%
+  // 平均視聴時間：秒数から「0:XX」形式に変換してセット
+  if(parsed.retainSec!=null){
+    const s=Math.round(parsed.retainSec);
+    const m2=Math.floor(s/60);
+    const sec=s%60;
+    const timeStr=m2+':'+(sec<10?'0':'')+sec;
+    const retainTimeEl=document.getElementById('i-retain-time');
+    if(retainTimeEl)retainTimeEl.value=timeStr;
+  }
   setVal('i-skip-rate',parsed.skipRate);     // スワイプして消去%
   setVal('i-new-viewer',parsed.newViewer);
   setVal('i-light-viewer',parsed.lightViewer);
@@ -2302,17 +2307,25 @@ function applyParsedInsight(parsed){
   setVal('i-male-pct',parsed.malePct);
   setVal('i-female-pct',parsed.femalePct);
   // 年齢層（selectなので別途処理）
+  // 年齢層：breakdownから最大%を選択
   const ageEl=document.getElementById('i-age-group');
-  if(ageEl&&parsed.ageGroup){
-    const ag=String(parsed.ageGroup).replace(/〜/g,'-').replace(/[歳才]/g,'').trim();
-    // AGE_OPTIONSの中から数字部分が一致するものを探す
+  const agePctEl=document.getElementById('i-age-pct');
+  if(ageEl&&parsed.ageBreakdown&&Array.isArray(parsed.ageBreakdown)&&parsed.ageBreakdown.length>0){
+    // 最大パーセンテージの年齢層を選ぶ
+    const best=parsed.ageBreakdown.reduce((a,b)=>(b.pct||0)>(a.pct||0)?b:a,parsed.ageBreakdown[0]);
+    if(best&&best.age){
+      const ag=String(best.age).replace(/〜/g,'-');
+      const AGE_OPTS=['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
+      const matched=AGE_OPTS.find(o=>o.replace('歳','').includes(ag.replace('歳',''))||ag.includes(o.replace('歳','')));
+      if(matched)ageEl.value=matched;
+      if(agePctEl&&best.pct!=null)agePctEl.value=best.pct;
+    }
+  } else if(ageEl&&parsed.ageGroup){
+    const ag=String(parsed.ageGroup).replace(/〜/g,'-');
     const AGE_OPTS=['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
-    const matched=AGE_OPTS.find(o=>{
-      const nums=o.replace('歳以上','以上').replace('歳','');
-      return nums===ag||o.includes(ag)||ag.includes(nums.replace('-','〜'));
-    });
+    const matched=AGE_OPTS.find(o=>o.includes(ag)||ag.includes(o.replace('歳','')));
     if(matched)ageEl.value=matched;
-    else if(!ag.includes('歳')&&ageEl.querySelector(`option[value="${ag}歳"]`))ageEl.value=ag+'歳';
+    if(agePctEl&&parsed.agePct!=null)agePctEl.value=parsed.agePct;
   }
   // ソース名（selectなので別途処理）
   const setSrc=(id,v)=>{
@@ -2358,7 +2371,9 @@ async function analyzeScreenshot(e){
 "unique": ユニーク視聴者数・閲覧者数（数値）
 "folRate": フォロワー・登録者の閲覧割合（数値のみ、例:56.4）
 "nonFolRate": 非フォロワー・未登録の閲覧割合（数値のみ）
-"ageGroup": 年齢層グラフで【数値が最も大きい（バーが最も長い）】年齢層（文字列、例:"25-34歳"）。年齢が大きい層ではなく、%の数字が一番大きい層を選ぶこと。例えば25-34歳が27.3%、45-54歳が12%なら"25-34歳"を返す
+"ageBreakdown": 年齢層グラフの全データを配列で返す（例:[{"age":"13-17歳","pct":5.2},{"age":"18-24歳","pct":18.1},{"age":"25-34歳","pct":27.3}]）。見えない年齢層はスキップ。必ず全ての年齢層を含めること
+"ageGroup": null（ageBreakdownから自動計算するためnullでよい）
+"agePct": null（同上）
 "agePct": その年齢層の割合（数値のみ）
 "malePct": 男性の割合（数値のみ）
 "femalePct": 女性の割合（数値のみ）
