@@ -2056,40 +2056,44 @@ const INSIGHT_FIELDS = {
     {id:'i-src3-name',  label:'3位ソース',                 type:'src-select'},
     {id:'i-src3-pct',   label:'3位 割合 (%)',              type:'number', step:'0.1'},
   ],
-  // YouTubeショート/動画
+  // YouTubeショート/動画（入力しやすい順番に整理）
   YouTube: [
-    {type:'section', label:'基本指標（視聴）'},
-    {id:'i-plays',        label:'視聴回数（エンゲージビュー）',   type:'number'},
-    {id:'i-unique',       label:'ユニーク視聴者数',             type:'number'},
-    {id:'i-watch-time',   label:'総再生時間（時間）',           type:'number', step:'0.1'},
-    {id:'i-avg-view',     label:'平均視聴時間（秒）',           type:'number'},
+    {type:'section', label:'① 基本（必須）'},
+    {id:'i-plays',        label:'視聴回数',                   type:'number'},
     {id:'i-follows',      label:'チャンネル登録増加数',          type:'number'},
-    {type:'section', label:'インタラクション'},
     {id:'i-likes',        label:'高評価数',                   type:'number'},
-    {id:'i-shares',       label:'共有数',                     type:'number'},
     {id:'i-comments',     label:'コメント数',                 type:'number'},
-    {type:'section', label:'視聴エンゲージメント'},
+    {type:'section', label:'② 視聴維持率'},
+    {id:'i-retain-min',   label:'視聴維持 分（例: 0）',        type:'number'},
+    {id:'i-retain-sec',   label:'視聴維持 秒（例: 18）',       type:'number'},
     {id:'i-retain-pct',   label:'視聴継続率 (%)',              type:'number', step:'0.1'},
-    {id:'i-skip-rate',    label:'スワイプして消去 (%)',          type:'number', step:'0.1'},
-    {type:'section', label:'視聴者の種類'},
-    {id:'i-new-viewer',   label:'新しい視聴者 (%)',            type:'number', step:'0.1'},
-    {id:'i-light-viewer', label:'ライトな視聴者 (%)',          type:'number', step:'0.1'},
-    {id:'i-core-viewer',  label:'コアな視聴者 (%)',            type:'number', step:'0.1'},
-    {type:'section', label:'登録者別再生割合'},
-    {id:'i-fol-rate',     label:'チャンネル登録済みの総再生時間割合 (%)', type:'number', step:'0.1'},
-    {id:'i-nonfol-rate',  label:'未登録の総再生時間割合 (%)',   type:'number', step:'0.1'},
-    {type:'section', label:'年齢・性別（任意）'},
-    {id:'i-age-group',    label:'主年齢層',                  type:'select'},
-    {id:'i-age-pct',      label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
-    {id:'i-male-pct',     label:'男性の割合 (%)',             type:'number', step:'0.1'},
-    {id:'i-female-pct',   label:'女性の割合 (%)',             type:'number', step:'0.1'},
-    {type:'section', label:'流入元（任意）'},
+    {type:'section', label:'③ 流入元 上位3位（任意）'},
     {id:'i-src1-name',    label:'1位ソース',                 type:'src-select'},
     {id:'i-src1-pct',     label:'1位 割合 (%)',              type:'number', step:'0.1'},
     {id:'i-src2-name',    label:'2位ソース',                 type:'src-select'},
     {id:'i-src2-pct',     label:'2位 割合 (%)',              type:'number', step:'0.1'},
     {id:'i-src3-name',    label:'3位ソース',                 type:'src-select'},
     {id:'i-src3-pct',     label:'3位 割合 (%)',              type:'number', step:'0.1'},
+    {type:'section', label:'④ 詳細指標'},
+    {id:'i-unique',       label:'ユニーク視聴者数',             type:'number'},
+    {id:'i-watch-time',   label:'総再生時間（時間）',           type:'number', step:'0.1'},
+    {id:'i-avg-view',     label:'平均視聴時間（秒）',           type:'number'},
+    {id:'i-shares',       label:'共有数',                     type:'number'},
+    {type:'section', label:'⑤ 視聴エンゲージメント（片方入力で自動補完）'},
+    {id:'i-retain-continue', label:'視聴を継続 (%)',           type:'number', step:'0.1'},
+    {id:'i-skip-rate',       label:'スワイプして消去 (%)',      type:'number', step:'0.1'},
+    {type:'section', label:'⑥ 視聴行動別の視聴者（コアは自動補完）'},
+    {id:'i-new-viewer',   label:'新しい視聴者 (%)',            type:'number', step:'0.1'},
+    {id:'i-light-viewer', label:'ライトな視聴者 (%)',          type:'number', step:'0.1'},
+    {id:'i-core-viewer',  label:'コアな視聴者 (%)',            type:'number', step:'0.1'},
+    {type:'section', label:'⑦ 年齢層（任意）'},
+    {id:'i-age-group',    label:'主年齢層',                  type:'select'},
+    {id:'i-age-pct',      label:'主年齢層の割合 (%)',          type:'number', step:'0.1'},
+    {id:'i-fol-rate',     label:'登録者の視聴割合 (%)',        type:'number', step:'0.1'},
+    {id:'i-nonfol-rate',  label:'未登録の視聴割合 (%)',        type:'number', step:'0.1'},
+    {type:'section', label:'⑧ 性別（片方入力で自動補完）'},
+    {id:'i-male-pct',     label:'男性の割合 (%)',             type:'number', step:'0.1'},
+    {id:'i-female-pct',   label:'女性の割合 (%)',             type:'number', step:'0.1'},
   ],
   // YouTubeコミュニティ投稿
   YouTubeCommunity: [
@@ -2161,9 +2165,14 @@ function buildInsightForm(platform, ins, format){
       'i-fol-rate':'i-nonfol-rate','i-nonfol-rate':'i-fol-rate',
       'i-male-pct':'i-female-pct','i-female-pct':'i-male-pct',
       'i-new-viewer':'i-return-viewer','i-return-viewer':'i-new-viewer',
+      'i-retain-continue':'i-skip-rate','i-skip-rate':'i-retain-continue',
     };
     const pairId=autoPairs[f.id];
-    const oninput=pairId?`oninput="const v=parseFloat(this.value);const el=document.getElementById('${pairId}');if(el&&!isNaN(v))el.value=Math.max(0,100-v).toFixed(1)"`:'';
+    let oninput=pairId?`oninput="const v=parseFloat(this.value);const el=document.getElementById('${pairId}');if(el&&!isNaN(v))el.value=Math.max(0,100-v).toFixed(1)"`:'';
+    // コアな視聴者：新しい+ライトの合計から自動計算
+    if(f.id==='i-new-viewer'||f.id==='i-light-viewer'){
+      oninput=`oninput="(function(){const nv=parseFloat(document.getElementById('i-new-viewer').value)||0;const lv=parseFloat(document.getElementById('i-light-viewer').value)||0;const cv=document.getElementById('i-core-viewer');if(cv)cv.value=Math.max(0,100-nv-lv).toFixed(1);})()"`;
+    }
     return`<div class="form-group"><label>${f.label}</label><input type="number" id="${f.id}" min="0" ${f.step?`step="${f.step}"`:''}  placeholder="0" value="${v}" ${oninput}></div>`;
   }).join('');
 }
