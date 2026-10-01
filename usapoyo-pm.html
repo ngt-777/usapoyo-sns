@@ -1737,3 +1737,568 @@ function renderContent(){
     document.getElementById('content-body').innerHTML=h;return;
   }
 
+
+  // 年間ビュー（春夏秋冬順）
+  const seasons=[
+    {name:'🌸 春',months:[3,4,5],color:'#EC4899'},
+    {name:'☀️ 夏',months:[6,7,8],color:'#F97316'},
+    {name:'🍂 秋',months:[9,10,11],color:'#8B5CF6'},
+    {name:'❄️ 冬',months:[12,1,2],color:'#3B82F6'},
+  ];
+  const mNameMap2={1:'1月',2:'2月',3:'3月',4:'4月',5:'5月',6:'6月',7:'7月',8:'8月',9:'9月',10:'10月',11:'11月',12:'12月'};
+  let h2='';
+  seasons.forEach(season=>{
+    h2+=`<div style="margin-bottom:6px;padding:6px 12px;background:${season.color}18;border-left:3px solid ${season.color};border-radius:4px;font-size:13px;font-weight:700;color:${season.color}">${season.name}</div>`;
+    h2+='<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px">';
+    season.months.forEach(mNum=>{
+      let evts2=D.contentEvents.filter(e=>e.month===mNum);
+      if(ccFilter!=='all')evts2=evts2.filter(e=>{try{return JSON.parse(e.categories||'[]').includes(ccFilter);}catch(er){return false;}});
+      if(ccStatusFilter!=='all')evts2=evts2.filter(e=>(e.status||'未設定')===ccStatusFilter);
+      evts2.sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
+      const nowM=new Date().getMonth()+1;
+      h2+=`<div class="card" style="cursor:pointer" onclick="ccMonthView=${mNum};renderContent()">
+        <div style="font-size:15px;font-weight:800;margin-bottom:10px;padding-bottom:8px;border-bottom:2px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <span style="color:${mNum===nowM?'var(--red)':'inherit'}">${mNameMap2[mNum]}</span><span style="font-size:11px;color:var(--tm);font-weight:400">${evts2.length}件 →</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px">
+          ${evts2.map(e=>{const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';const st=e.status||'未設定';const stCol=CC_STATUS[st]?.col||'#9CA3AF';
+            return`<div style="display:inline-flex;padding:2px 8px;border-radius:100px;font-size:11px;font-weight:600;background:${col}18;color:${col};border:1px solid ${col}44;position:relative" title="${cats.join('・')} | ${st}">${e.name}${st==='採用'?'<span style="position:absolute;top:-3px;right:-3px;width:7px;height:7px;border-radius:50%;background:'+stCol+'"></span>':''}</div>`;}).join('')}
+          ${evts2.length===0?'<div style="font-size:11px;color:var(--tm)">—</div>':''}
+        </div>
+      </div>`;
+    });
+    h2+='</div>';
+  });
+  document.getElementById('content-body').innerHTML=h2;
+}
+function toggleCCat(el){el.classList.toggle('on');}
+function openContentModal(id,preMonth){
+  document.getElementById('ccm-title').textContent=id?'イベントを編集':'イベントを追加';
+  document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>c.classList.remove('on'));
+  document.getElementById('ccm-del').style.display=id?'inline-flex':'none';
+  if(id){const e=D.contentEvents.find(x=>x.id===id);if(!e)return;
+    document.getElementById('ccm-id').value=e.id;document.getElementById('ccm-name').value=e.name||'';
+    document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';
+    document.getElementById('ccm-desc').value=e.description||'';
+    try{const cats=JSON.parse(e.categories||'[]');document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>{if(cats.includes(c.dataset.val))c.classList.add('on');});}catch(er){}
+    const st=e.status||'未設定';document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===st));
+  }else{['ccm-id','ccm-name','ccm-day','ccm-desc'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('ccm-month').value=preMonth||new Date().getMonth()+1;
+    document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val==='未設定'));}
+  document.getElementById('content-modal').style.display='flex';
+}
+function closeContentModal(){document.getElementById('content-modal').style.display='none';}
+async function saveContent(){
+  const name=document.getElementById('ccm-name').value.trim();if(!name){alert('イベント名を入力してください');return;}
+  const id=document.getElementById('ccm-id').value;
+  const cats=Array.from(document.querySelectorAll('#ccm-cats .asgn-chip.on')).map(c=>c.dataset.val);
+  const stEl=document.querySelector('#ccm-status-chips .asgn-chip.on');
+  const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null,status:stEl?stEl.dataset.val:'未設定'};
+  const{error}=id?await sb.from('pm_content_events').update(data).eq('id',id):await sb.from('pm_content_events').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeContentModal();await loadAll();renderContent();
+}
+async function deleteContent(){if(!confirm('このイベントを削除しますか？'))return;const id=document.getElementById('ccm-id').value;await sb.from('pm_content_events').delete().eq('id',id);closeContentModal();await loadAll();renderContent();}
+async function forceReseedContent(){if(!confirm('コンテンツカレンダーのデータを最新版に更新しますか？'))return;try{await seedContentEvents();localStorage.setItem('cc_ver','v15');}catch(e){alert('エラー: '+e.message);return;}await loadAll();renderContent();alert('更新完了しました！');}
+
+function openCatModal(){['cm-icon','cm-name'].forEach(x=>document.getElementById(x).value='');document.getElementById('cm-color').value='#7C6FCD';document.getElementById('cat-modal').style.display='flex';}
+function closeCatModal(){document.getElementById('cat-modal').style.display='none';}
+async function saveCat(){
+  const name=document.getElementById('cm-name').value.trim();if(!name){alert('カテゴリ名を入力してください');return;}
+  const data={name,icon:document.getElementById('cm-icon').value.trim()||'📁',color:document.getElementById('cm-color').value,sort_order:D.categories.length+1};
+  const{error}=await sb.from('pm_categories').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeCatModal();await loadAll();renderTeamTask();
+}
+function openProjModal(catId,projId){
+  document.getElementById('pm-cat-id').value=catId||'';document.getElementById('pm-proj-id').value=projId||'';
+  if(projId){const p=D.projects.find(x=>x.id===projId);if(!p)return;document.getElementById('pm-name').value=p.name||'';document.getElementById('pm-desc').value=p.description||'';document.querySelector('#proj-modal .mtitle').textContent='プロジェクトを編集';}
+  else{['pm-name','pm-desc'].forEach(x=>document.getElementById(x).value='');document.querySelector('#proj-modal .mtitle').textContent='プロジェクトを追加';}
+  document.getElementById('proj-modal').style.display='flex';
+}
+function closeProjModal(){document.getElementById('proj-modal').style.display='none';}
+async function saveProj(){
+  const name=document.getElementById('pm-name').value.trim();if(!name){alert('プロジェクト名を入力してください');return;}
+  const projId=document.getElementById('pm-proj-id').value;
+  const data={category_id:document.getElementById('pm-cat-id').value||null,name,description:document.getElementById('pm-desc').value.trim()||null};
+  const{error}=projId?await sb.from('pm_projects').update(data).eq('id',projId):await sb.from('pm_projects').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeProjModal();await loadAll();renderProject();
+}
+
+function openTaskModal(id,preProj,parentId,requestId){
+  const par=parentId?D.tasks.find(t=>t.id===parentId):null;
+  if(parentId&&!preProj&&par)preProj=par.project_id;
+  document.getElementById('tm-title').textContent=id?'タスクを編集':par?`「${par.name.slice(0,15)}」のサブタスクを追加`:'タスクを追加';
+  const pl=document.getElementById('tm-parent-label');if(pl)pl.style.display=parentId?'block':'none';
+  document.getElementById('tm-cat').innerHTML='<option value="">カテゴリ</option>'+D.categories.map(c=>`<option value="${c.id}">${c.name}</option>`).join('');
+  document.getElementById('tm-asgn-checks').innerHTML=D.members.filter(m=>['長田','小森','西村'].includes(m.name)).map(m=>`<div class="asgn-chip" data-id="${m.id}" data-checked="0" onclick="toggleAsgn(this)">${m.name}</div>`).join('');
+  const tmRev=document.getElementById('tm-rev');if(tmRev)tmRev.innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  if(id){
+    const t=D.tasks.find(x=>x.id===id);if(!t)return;
+    document.getElementById('tm-id').value=t.id;
+    const p=D.projects.find(x=>x.id===t.project_id);
+    document.getElementById('tm-cat').value=p?.category_id||'';updateProjByCat();
+    document.getElementById('tm-proj').value=t.project_id||'';document.getElementById('tm-name').value=t.name||'';document.getElementById('tm-desc').value=t.description||'';
+    const savedIds=(t.co_assignees?JSON.parse(t.co_assignees):[t.assignee_id]).filter(Boolean);
+    document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=savedIds.includes(chip.dataset.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
+    const otherVals=savedIds.filter(x=>x&&x.startsWith('other:')).map(x=>x.slice(6));
+    if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value=otherVals.join('・');
+    const tmRev2=document.getElementById('tm-rev');if(tmRev2)tmRev2.value=t.reviewer_id||'';
+    document.getElementById('tm-parent').value=t.parent_task_id||'';
+    document.getElementById('tm-status').value=t.status||'未着手';
+    document.getElementById('tm-dl').value=t.deadline||'';
+    document.getElementById('tm-work-date').value=t.work_date||'';
+    document.getElementById('tm-work-hours').value=t.work_hours||'';
+    document.getElementById('tm-recurring').checked=!!t.is_recurring;
+    const savedFreq=t.recurring_freq||'毎週';
+    if(savedFreq.startsWith('曜日:')){
+      document.getElementById('tm-freq').value='曜日指定';
+      document.getElementById('tm-days').style.display='block';
+      const selDays=savedFreq.slice(3).split(',');
+      document.querySelectorAll('#tm-days .asgn-chip').forEach(c=>c.classList.toggle('on',selDays.includes(c.dataset.day)));
+    }else{
+      document.getElementById('tm-freq').value=savedFreq;
+      document.getElementById('tm-days').style.display='none';
+    }
+    document.getElementById('tm-freq').style.display=t.is_recurring?'block':'none';
+    document.getElementById('tm-na').value=t.next_action||'';document.getElementById('tm-url').value=(t.related_urls&&t.related_urls[0])||'';
+  }else{
+    document.getElementById('tm-id').value='';
+    ['tm-name','tm-desc','tm-na','tm-url','tm-dl','tm-work-date','tm-work-hours'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('tm-recurring').checked=false;document.getElementById('tm-freq').style.display='none';
+    document.getElementById('tm-days').style.display='none';
+    document.querySelectorAll('#tm-days .asgn-chip').forEach(c=>c.classList.remove('on'));
+    document.getElementById('tm-parent').value='';
+    document.querySelectorAll('.asgn-chip').forEach(chip=>{const on=!!(curMember?.id&&chip.dataset.id===curMember.id);chip.classList.toggle('on',on);chip.dataset.checked=on?'1':'0';});
+    if(document.getElementById('tm-asgn-other'))document.getElementById('tm-asgn-other').value='';
+    const tmRev3=document.getElementById('tm-rev');if(tmRev3)tmRev3.value='';
+    document.getElementById('tm-status').value='未着手';
+    if(preProj){updateProjByCat();document.getElementById('tm-proj').value=preProj;const p=D.projects.find(x=>x.id===preProj);if(p)document.getElementById('tm-cat').value=p.category_id||'';}
+  }
+  if(parentId!==undefined)document.getElementById('tm-parent').value=parentId||'';
+  document.getElementById('tm-request-id').value=requestId||'';
+  document.getElementById('task-modal').style.display='flex';
+}
+function updateProjByCat(){const cid=document.getElementById('tm-cat').value;const fp=cid?D.projects.filter(p=>p.category_id===cid):D.projects;document.getElementById('tm-proj').innerHTML='<option value="">プロジェクト</option>'+fp.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');}
+function closeTaskModal(){document.getElementById('task-modal').style.display='none';}
+async function saveTask(){
+  const name=document.getElementById('tm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
+  const id=document.getElementById('tm-id').value,url=document.getElementById('tm-url').value.trim(),status=document.getElementById('tm-status').value;
+  const parentVal=document.getElementById('tm-parent').value||null;
+  const selIds=Array.from(document.querySelectorAll('.asgn-chip.on')).map(el=>el.dataset.id);
+  const otherName=document.getElementById('tm-asgn-other')?.value.trim();
+  if(otherName)selIds.push('other:'+otherName);
+  const fv=document.getElementById('tm-freq').value;
+  let recurFreq=fv;
+  if(fv==='曜日指定'){const sd=Array.from(document.querySelectorAll('#tm-days .asgn-chip.on')).map(c=>c.dataset.day);recurFreq=sd.length?'曜日:'+sd.join(','):'毎週';}
+  const data={project_id:document.getElementById('tm-proj').value||null,parent_task_id:parentVal,name,
+    description:document.getElementById('tm-desc').value.trim()||null,
+    assignee_id:selIds.find(x=>!x.startsWith('other:'))||null,co_assignees:selIds.length?JSON.stringify(selIds):null,
+    status,deadline:document.getElementById('tm-dl').value||null,
+    work_date:document.getElementById('tm-work-date').value||null,
+    work_hours:parseFloat(document.getElementById('tm-work-hours').value)||null,
+    is_recurring:document.getElementById('tm-recurring').checked,
+    recurring_freq:document.getElementById('tm-recurring').checked?recurFreq:null,
+    next_action:document.getElementById('tm-na').value.trim()||null,related_urls:url?[url]:[],
+    request_id:document.getElementById('tm-request-id').value||null,
+    updated_at:new Date().toISOString()};
+  if(status==='完了')data.completed_at=new Date().toISOString();
+  const{error}=id?await sb.from('pm_tasks').update(data).eq('id',id):await sb.from('pm_tasks').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeTaskModal();await loadAll();
+  if(document.getElementById('proj-body'))renderProject();
+  if(document.getElementById('tb-body'))renderTaskboard();
+}
+async function toggleTask(id){
+  const t=D.tasks.find(x=>x.id===id);if(!t)return;
+  const ns=t.status==='完了'?'未着手':'完了';
+  t.status=ns;t.updated_at=new Date().toISOString();
+  if(ns==='完了'){t.completed_at=t.updated_at;}else{t.completed_at=null;}
+  if(document.getElementById('proj-body'))renderProject();
+  if(document.getElementById('tb-body'))renderTaskboard();
+  const{error}=await sb.from('pm_tasks').update({status:ns,updated_at:t.updated_at,completed_at:t.completed_at||null}).eq('id',id);
+  if(error){t.status=ns==='完了'?'未着手':'完了';t.completed_at=null;if(document.getElementById('proj-body'))renderProject();if(document.getElementById('tb-body'))renderTaskboard();alert('保存エラー: '+error.message);}
+}
+function showDetail(id){
+  const t=D.tasks.find(x=>x.id===id);if(!t)return;
+  document.getElementById('det-title').textContent=t.name;
+  document.getElementById('det-del').onclick=()=>deleteTaskSafe(id);
+  document.getElementById('det-edit').onclick=()=>{closeDetail();openTaskModal(id);};
+  document.getElementById('det-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">ステータス</span><div style="margin-top:4px">${badge(t.status)}</div></div>
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">担当者</span><div style="margin-top:4px;font-weight:600">${mnMulti(t)}</div></div>
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">期限</span><div style="margin-top:4px;font-weight:600;color:${isOv(t.deadline)?'var(--red)':isSn(t.deadline)?'var(--yel)':'inherit'}">${fd(t.deadline)}</div></div>
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">作業予定日</span><div style="margin-top:4px;font-weight:600">${fd(t.work_date)}${t.work_hours?' / '+t.work_hours+'h':''}</div></div>
+      ${t.is_recurring?`<div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">定期タスク</span><div style="margin-top:4px"><span style="font-size:12px;background:var(--purbg);color:var(--pur);padding:2px 8px;border-radius:4px">定期・${t.recurring_freq||'毎月'}</span></div></div>`:''}
+    </div>
+    ${t.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">説明</span><div style="margin-top:4px;font-size:13px">${t.description}</div></div>`:''}
+    ${t.next_action?`<div class="bn bn-blu" style="margin-bottom:12px"><span>→</span><div><strong>次のアクション：</strong>${t.next_action}</div></div>`:''}
+    ${t.related_urls&&t.related_urls.length?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">関連URL</span><div style="margin-top:4px">${t.related_urls.map(u=>`<a href="${u}" target="_blank" style="font-size:12px;display:block;word-break:break-all">${u}</a>`).join('')}</div></div>`:''}`;
+  document.getElementById('detail-modal').style.display='flex';
+}
+function closeDetail(){document.getElementById('detail-modal').style.display='none';}
+async function deleteTaskRecursive(id){const children=D.tasks.filter(t=>t.parent_task_id===id);for(const c of children)await deleteTaskRecursive(c.id);await sb.from('pm_tasks').delete().eq('id',id);}
+async function deleteTaskSafe(id){
+  const subs=D.tasks.filter(t=>t.parent_task_id===id);
+  const msg=subs.length>0?`このタスクには${subs.length}件のサブタスクが含まれています。\n本当に削除しますか？`:'このタスクを削除しますか？\nこの操作は取り消せません。';
+  if(!confirm(msg))return;
+  await deleteTaskRecursive(id);
+  closeDetail();await loadAll();
+  if(curPage==='teamtask')renderTeamTask();else if(curPage==='meeting')renderMeeting();
+}
+async function deleteTask(id){await deleteTaskSafe(id);}
+
+function setReqPreset(text){document.getElementById('rm-content').value=text;document.getElementById('rm-content').focus();}
+function openReqModal(id){
+  document.getElementById('rm-title').textContent=id?'他部署依頼を編集':'他部署依頼を追加';
+  document.getElementById('rm-asgn').innerHTML='<option value="">要確認</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  const srcSel=document.getElementById('rm-req-sel');
+  if(srcSel){const srcs=D.reqSources.length?D.reqSources.map(s=>s.name):['KOGYARU','nuts','egg','Natuul','ひめらぶ','ミラきゅる'];srcSel.innerHTML='<option value="">候補から選ぶ</option>'+srcs.map(s=>`<option value="${s}">${s}</option>`).join('');}
+  if(id){const r=D.requests.find(x=>x.id===id);if(!r)return;
+    document.getElementById('rm-id').value=r.id;
+    const existingName=r.name||'';
+    const RTYPES=['【LINEスタンプ】','【ロゴ制作】','【ジャケット制作】','【ジャケットイラスト制作】','【グッズデザイン】','【入稿データ制作】'];
+    const typeMatch=RTYPES.find(t=>existingName.startsWith(t));
+    const rmTypeSel=document.getElementById('rm-type-sel');const rmTypeInp=document.getElementById('rm-type');
+    if(typeMatch&&rmTypeSel){rmTypeSel.value=typeMatch==='【ジャケットイラスト制作】'?'【ジャケット制作】':typeMatch;if(rmTypeInp)rmTypeInp.value=typeMatch==='【ジャケットイラスト制作】'?'【ジャケット制作】':typeMatch;document.getElementById('rm-name').value=existingName.slice(typeMatch.length).trim();}
+    else{if(rmTypeSel)rmTypeSel.value='';if(rmTypeInp)rmTypeInp.value='';document.getElementById('rm-name').value=existingName;}
+    const rmTypeSelSel=document.getElementById('rm-type-sel');if(rmTypeSelSel)rmTypeSelSel.value=typeMatch&&typeMatch!=='【ジャケットイラスト制作】'?typeMatch:'';
+    document.getElementById('rm-req').value=r.requester||'';document.getElementById('rm-content').value=r.content||'';
+    document.getElementById('rm-asgn').value=r.assignee_id||'';document.getElementById('rm-resdl').value=r.response_deadline||'';document.getElementById('rm-deldl').value=r.delivery_deadline||'';
+    document.getElementById('rm-fee').value=r.fee||30000;document.getElementById('rm-status').value=r.status||'未着手';document.getElementById('rm-notes').value=r.notes||'';document.getElementById('rm-aff').checked=!!r.affects_usapoyo;
+    const rwdEl=document.getElementById('rm-work-date');if(rwdEl)rwdEl.value=r.work_date||'';
+    const rwhEl=document.getElementById('rm-work-hours');if(rwhEl)rwhEl.value=r.work_hours||'';
+  }else{['rm-id','rm-name','rm-req','rm-content','rm-notes','rm-resdl','rm-deldl'].forEach(x=>document.getElementById(x).value='');
+    const rmTypeSelR=document.getElementById('rm-type');if(rmTypeSelR)rmTypeSelR.value='';
+    const rmTypeSelEl=document.getElementById('rm-type-sel');if(rmTypeSelEl)rmTypeSelEl.value='';
+    document.getElementById('rm-asgn').value='';document.getElementById('rm-fee').value=30000;document.getElementById('rm-status').value='未着手';document.getElementById('rm-aff').checked=false;
+    const rwdEl2=document.getElementById('rm-work-date');if(rwdEl2)rwdEl2.value='';
+    const rwhEl2=document.getElementById('rm-work-hours');if(rwhEl2)rwhEl2.value='';}
+  document.getElementById('req-modal').style.display='flex';
+}
+function closeReqModal(){document.getElementById('req-modal').style.display='none';}
+async function saveReq(){
+  const rmType=document.getElementById('rm-type')?.value||'';
+  const rmDetail=document.getElementById('rm-name').value.trim();
+  const name=(rmType+rmDetail).trim()||(rmType||rmDetail);
+  if(!name){alert('依頼名を入力してください');return;}
+  const id=document.getElementById('rm-id').value;
+  const data={name,requester:document.getElementById('rm-req').value.trim(),content:document.getElementById('rm-content').value.trim()||null,
+    assignee_id:document.getElementById('rm-asgn').value||null,response_deadline:document.getElementById('rm-resdl').value||null,
+    delivery_deadline:document.getElementById('rm-deldl').value||null,fee:parseInt(document.getElementById('rm-fee').value)||30000,
+    status:document.getElementById('rm-status').value,notes:document.getElementById('rm-notes').value.trim()||null,affects_usapoyo:document.getElementById('rm-aff').checked,
+    work_date:document.getElementById('rm-work-date')?.value||null,
+    work_hours:parseFloat(document.getElementById('rm-work-hours')?.value)||null};
+  const{error}=id?await sb.from('pm_other_requests').update(data).eq('id',id):await sb.from('pm_other_requests').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  const reqName=document.getElementById('rm-req').value.trim();
+  if(reqName&&!D.reqSources.find(s=>s.name===reqName)){try{await sb.from('pm_req_sources').insert({name:reqName,sort_order:D.reqSources.length+100});}catch(e){}}
+  closeReqModal();await loadAll();renderProject();
+}
+
+function initHashtagChips(selectedTags){
+  const sel=typeof selectedTags==='string'?JSON.parse(selectedTags||'[]'):selectedTags||[];
+  const allTags=D.snsHashtags.length?D.snsHashtags.map(t=>t.tag):['#うさぽよ','#gyaru','#ギャル','#キャラクター','#アニメ','#ゆるキャラ','#イラスト','#LINEトーク','#うさぽよじゃんけん'];
+  const extra=sel.filter(t=>!allTags.includes(t));
+  const chips=[...allTags,...extra];
+  document.getElementById('sm-hashtag-chips').innerHTML=chips.map(t=>{
+    const on=sel.includes(t);const rec=D.snsHashtags.find(h=>h.tag===t);
+    const delBtn=rec?`<span onclick="event.stopPropagation();deleteHashtag('${rec.id}',this)" style="margin-left:3px;opacity:.35;font-size:9px;cursor:pointer;line-height:1" title="候補から削除">✕</span>`:'';
+    return`<div class="asgn-chip${on?' on':''}" data-tag="${t}" onclick="this.classList.toggle('on')" style="font-size:11px;padding:3px 10px;display:inline-flex;align-items:center">${t}${delBtn}</div>`;
+  }).join('');
+}
+async function deleteHashtag(id,btn){const chip=btn.parentElement;const tag=chip.dataset.tag;if(!confirm('「'+tag+'」を候補から削除しますか？'))return;await sb.from('pm_sns_hashtags').delete().eq('id',id);D.snsHashtags=D.snsHashtags.filter(h=>h.id!==id);const selected=Array.from(document.querySelectorAll('#sm-hashtag-chips .asgn-chip.on')).map(c=>c.dataset.tag);initHashtagChips(selected);}
+async function addSnsHashtag(){
+  const input=document.getElementById('sm-hashtag-input');let tag=input.value.trim();if(!tag)return;if(!tag.startsWith('#'))tag='#'+tag;
+  const chips=document.getElementById('sm-hashtag-chips');const existing=chips.querySelector(`[data-tag="${tag}"]`);
+  if(existing){existing.classList.add('on');input.value='';return;}
+  const chip=document.createElement('div');chip.className='asgn-chip on';chip.dataset.tag=tag;chip.textContent=tag;chip.style.cssText='font-size:11px;padding:3px 10px';chip.onclick=()=>chip.classList.toggle('on');chips.appendChild(chip);input.value='';
+  if(!D.snsHashtags.find(h=>h.tag===tag)){try{await sb.from('pm_sns_hashtags').insert({tag,sort_order:D.snsHashtags.length+100});}catch(e){}D.snsHashtags.push({tag});}
+}
+function initCatTags(selected){
+  const cats=['イベント系','LINEスタンプ関連','楽曲/MV','グッズ関連','質問コーナー','会話劇','漫画','企業タイアップ関連','日常イラスト','ギャル間違い探し','一言フィード','他媒体共同投稿','その他（書き込み）'];
+  const isCustom=selected&&!cats.includes(selected);const dispSel=isCustom?'その他（書き込み）':selected;
+  const el=document.getElementById('sm-cat-tags');if(!el)return;
+  el.innerHTML=cats.map(c=>`<div class="cat-tag${c===dispSel?' on':''}" style="--cc:${CAT_COLORS[c]||'#9CA3AF'}" onclick="selectCatTag(this,'${c}')">${c}</div>`).join('');
+  document.getElementById('sm-cat').value=selected||'';
+  const cust=document.getElementById('sm-cat-custom');
+  if(cust){cust.style.display=isCustom?'block':'none';if(isCustom&&document.getElementById('sm-cat-input'))document.getElementById('sm-cat-input').value=selected;}
+}
+function selectCatTag(el,cat){
+  document.querySelectorAll('#sm-cat-tags .cat-tag').forEach(t=>t.classList.remove('on'));el.classList.add('on');
+  const cust=document.getElementById('sm-cat-custom');
+  if(cat==='その他（書き込み）'){cust.style.display='block';const v=document.getElementById('sm-cat-input').value.trim();document.getElementById('sm-cat').value=v||'その他（書き込み）';setTimeout(()=>document.getElementById('sm-cat-input').focus(),50);}
+  else{cust.style.display='none';document.getElementById('sm-cat').value=cat;}
+}
+function openSnsModal(id,preDate){
+  document.getElementById('sm-asgn').innerHTML='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  if(id){const p=D.sns.find(x=>x.id===id);if(!p)return;
+    document.getElementById('sm-id').value=p.id;document.getElementById('sm-date').value=p.scheduled_date||'';document.getElementById('sm-time').value=p.scheduled_time||'';
+    document.getElementById('sm-name').value=p.content_name||'';initCatTags(p.category||'イベント系');
+    document.getElementById('sm-asgn').value=p.assignee_id||'';document.getElementById('sm-desc').value=p.description||'';
+    document.getElementById('sm-caption').value=p.caption||'';
+    initHashtagChips(p.hashtags||[]);
+    document.getElementById('sm-mat').value=p.material_status||'未着手';document.getElementById('sm-status').value=p.post_status||'制作中';
+    const mu=p.media_urls||{};
+    document.getElementById('sm-url-all').value=mu.all||p.thumbnail_url||'';
+    document.getElementById('sm-url-ig').value=mu.ig||'';document.getElementById('sm-url-tt').value=mu.tt||'';
+    document.getElementById('sm-url-yt').value=mu.yt||'';document.getElementById('sm-url-x').value=mu.x||'';
+    document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=p.platforms&&p.platforms.includes(cb.value));
+  }else{['sm-id','sm-time','sm-name','sm-desc','sm-caption'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('sm-date').value=preDate||'';initCatTags('');
+    document.getElementById('sm-asgn').value=curMember?.id||'';
+    initHashtagChips([]);
+    ['sm-url-all','sm-url-ig','sm-url-tt','sm-url-yt','sm-url-x'].forEach(x=>document.getElementById(x).value='');
+    document.querySelectorAll('[name="sm-plat"]').forEach(cb=>cb.checked=false);}
+  document.getElementById('sns-modal').style.display='flex';
+}
+function closeSnsModal(){document.getElementById('sns-modal').style.display='none';}
+async function saveSns(){
+  const name=document.getElementById('sm-name').value.trim();if(!name){alert('コンテンツ名を入力してください');return;}
+  const id=document.getElementById('sm-id').value,platforms=Array.from(document.querySelectorAll('[name="sm-plat"]:checked')).map(c=>c.value);
+  const data={scheduled_date:document.getElementById('sm-date').value||null,scheduled_time:document.getElementById('sm-time').value||null,platforms,content_name:name,
+    category:document.getElementById('sm-cat').value,assignee_id:document.getElementById('sm-asgn').value||null,
+    description:document.getElementById('sm-desc').value.trim()||null,
+    caption:document.getElementById('sm-caption').value.trim()||null,
+    hashtags:JSON.stringify(Array.from(document.querySelectorAll('#sm-hashtag-chips .asgn-chip.on')).map(c=>c.dataset.tag)),
+    thumbnail_url:document.getElementById('sm-url-all').value.trim()||null,
+    media_urls:(()=>{const u={};const a=document.getElementById('sm-url-all').value.trim();const ig=document.getElementById('sm-url-ig').value.trim();const tt=document.getElementById('sm-url-tt').value.trim();const yt=document.getElementById('sm-url-yt').value.trim();const x=document.getElementById('sm-url-x').value.trim();if(a)u.all=a;if(ig)u.ig=ig;if(tt)u.tt=tt;if(yt)u.yt=yt;if(x)u.x=x;return Object.keys(u).length?u:null;})(),
+    material_status:document.getElementById('sm-mat').value,
+    post_status:document.getElementById('sm-status').value};
+  const{error}=id?await sb.from('pm_sns_posts').update(data).eq('id',id):await sb.from('pm_sns_posts').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeSnsModal();await loadAll();renderSns();
+}
+
+function openMeetingModal(){document.getElementById('mtg-modal').style.display='flex';}
+function closeMtgModal(){document.getElementById('mtg-modal').style.display='none';}
+async function saveMtg(){
+  const title=document.getElementById('mm-title').value.trim();if(!title){alert('タイトルを入力してください');return;}
+  const data={title,scheduled_date:document.getElementById('mm-date').value||null,scheduled_time:document.getElementById('mm-time').value||null};
+  const{error}=await sb.from('pm_meetings').insert(data);if(error){alert('保存エラー: '+error.message);return;}
+  closeMtgModal();await loadAll();renderMeeting();
+}
+
+function openQuickModal(memberId){
+  const mSel='<option value="">未設定</option>'+D.members.map(m=>`<option value="${m.id}">${m.name}</option>`).join('');
+  document.getElementById('qm-asgn').innerHTML=mSel;
+  if(memberId)document.getElementById('qm-asgn').value=memberId;
+  else if(curMember&&curMember.id)document.getElementById('qm-asgn').value=curMember.id;
+  ['qm-name','qm-desc','qm-dl','qm-est','qm-na','qm-url'].forEach(x=>document.getElementById(x).value='');
+  document.getElementById('qm-status').value='未着手';
+  document.getElementById('quick-modal').style.display='flex';
+}
+function closeQuickModal(){document.getElementById('quick-modal').style.display='none';}
+async function saveQuickTask(){
+  const name=document.getElementById('qm-name').value.trim();if(!name){alert('タスク名を入力してください');return;}
+  const status=document.getElementById('qm-status').value;
+  const qurl=document.getElementById('qm-url').value.trim();
+  const data={name,description:document.getElementById('qm-desc').value.trim()||null,
+    assignee_id:document.getElementById('qm-asgn').value||null,status,
+    deadline:document.getElementById('qm-dl').value||null,
+    next_action:document.getElementById('qm-na').value.trim()||null,
+    related_urls:qurl?[qurl]:[],updated_at:new Date().toISOString()};
+  if(status==='完了')data.completed_at=new Date().toISOString();
+  const{error}=await sb.from('pm_tasks').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeQuickModal();await loadAll();renderTaskboard();
+}
+
+function showEvtDetail(id){
+  const e=D.events.find(x=>x.id===id);if(!e)return;
+  const col=e.color||'#7C6FCD';
+  document.getElementById('det-title').textContent=e.name;
+  document.getElementById('det-del').onclick=()=>{closeDetail();deleteEvt2(id);};
+  document.getElementById('det-edit').onclick=()=>{closeDetail();openEvtModal(id);};
+  document.getElementById('det-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">日付</span>
+        <div style="margin-top:4px;font-weight:600">${fdl(e.event_date)}${e.event_date_end&&e.event_date_end!==e.event_date?' 〜 '+fdl(e.event_date_end):''}</div></div>
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">カテゴリ</span>
+        <div style="margin-top:4px"><span style="font-size:12px;font-weight:600;color:${col};background:${col}22;padding:2px 8px;border-radius:100px">${e.category||'その他'}</span></div></div>
+    </div>
+    ${e.description?`<div style="margin-bottom:12px"><span style="font-size:11px;color:var(--tm)">説明・メモ</span><div style="margin-top:4px;font-size:13px;white-space:pre-wrap">${e.description}</div></div>`:'<div style="font-size:12px;color:var(--tm)">説明なし</div>'}`;
+  document.getElementById('detail-modal').style.display='flex';
+}
+async function deleteEvt2(id){if(!confirm('このイベントを削除しますか？'))return;await sb.from('pm_calendar_events').delete().eq('id',id);await loadAll();renderSns();}
+function openEvtModal(id){
+  document.getElementById('em-title').textContent=id?'イベントを編集':'イベントを追加';
+  const delBtn=document.getElementById('em-del-btn');
+  if(id){const e=D.events.find(x=>x.id===id);if(!e)return;
+    document.getElementById('em-id').value=e.id;document.getElementById('em-name').value=e.name||'';
+    document.getElementById('em-date').value=e.event_date||'';document.getElementById('em-date-end').value=e.event_date_end||'';
+    document.getElementById('em-cat').value=e.category||'その他';document.getElementById('em-color').value=e.color||'#7C6FCD';
+    document.getElementById('em-desc').value=e.description||'';delBtn.style.display='inline-flex';
+  }else{['em-id','em-name','em-date','em-date-end','em-desc'].forEach(x=>document.getElementById(x).value='');
+    document.getElementById('em-cat').value='その他';document.getElementById('em-color').value='#F97316';delBtn.style.display='none';}
+  document.getElementById('evt-modal').style.display='flex';
+}
+function closeEvtModal(){document.getElementById('evt-modal').style.display='none';}
+async function saveEvt(){
+  const name=document.getElementById('em-name').value.trim(),date=document.getElementById('em-date').value;
+  if(!name||!date){alert('イベント名と日付は必須です');return;}
+  const id=document.getElementById('em-id').value;
+  const data={name,event_date:date,event_date_end:document.getElementById('em-date-end').value||null,
+    category:document.getElementById('em-cat').value,color:document.getElementById('em-color').value,
+    description:document.getElementById('em-desc').value.trim()||null};
+  const{error}=id?await sb.from('pm_calendar_events').update(data).eq('id',id):await sb.from('pm_calendar_events').insert(data);
+  if(error){alert('保存エラー: '+error.message);return;}
+  closeEvtModal();await loadAll();renderSns();
+}
+async function deleteEvt(){if(!confirm('このイベントを削除しますか？'))return;const id=document.getElementById('em-id').value;await sb.from('pm_calendar_events').delete().eq('id',id);closeEvtModal();await loadAll();renderSns();}
+
+async function saveInsight(postId,key,val){
+  const p=D.sns.find(x=>x.id===postId);if(!p)return;
+  const ins=Object.assign({},p.insights||{});ins[key]=val;p.insights=ins;
+  await sb.from('pm_sns_posts').update({insights:ins}).eq('id',postId);
+}
+function showDayDetail(ds){
+  try{
+  const date=new Date(ds+'T00:00:00');
+  const title=date.toLocaleDateString('ja-JP',{month:'long',day:'numeric',weekday:'long'});
+  document.getElementById('day-modal-title').textContent=title+'の予定';
+  const dayEvts=D.events.filter(e=>e.event_date<=ds&&(!e.event_date_end||e.event_date_end>=ds)||e.event_date===ds);
+  const RESERVED_STATUS_D=['予約投稿済','投稿完了','インサイト集計（1日後入力済み）','インサイト集計（1週間後入力済み）'];
+  let dayPosts=D.sns.filter(p=>p.scheduled_date===ds);
+  if(snsF==='sns'||snsF==='all'){}else if(snsF==='event')dayPosts=[];
+  if(snsCatF)dayPosts=dayPosts.filter(p=>p.category===snsCatF);
+  if(snsStatusF==='reserved')dayPosts=dayPosts.filter(p=>RESERVED_STATUS_D.includes(p.post_status));
+  else if(snsStatusF==='unreserved')dayPosts=dayPosts.filter(p=>!RESERVED_STATUS_D.includes(p.post_status)&&p.category!=='他媒体共同投稿');
+  else if(snsStatusF==='insight')dayPosts=dayPosts.filter(p=>p.category!=='他媒体共同投稿'&&!p.content_name.includes('ストーリーズ'));
+  else if(snsStatusF==='nother')dayPosts=dayPosts.filter(p=>p.category!=='他媒体共同投稿');
+  dayPosts.sort((a,b)=>(a.scheduled_time||'99:99').localeCompare(b.scheduled_time||'99:99'));
+  const pc={Instagram:'tag-ig',TikTok:'tag-tt',YouTube:'tag-yt',X:'tag-x'};
+  let h='';
+  if(dayEvts.length===0&&dayPosts.length===0){
+    h='<div style="text-align:center;padding:16px;color:var(--tm)">この日の予定はありません</div>';
+    h+=`<div style="text-align:center;padding-top:4px"><button class="btn bp bsm" onclick="closeDayModal();openSnsModal(null,'${ds}')">＋ SNS投稿を追加</button> <button class="btn bs bsm" onclick="closeDayModal();openEvtModal()">＋ イベントを追加</button></div>`;
+  }else{
+    if(dayEvts.length>0){
+      h+=`<div style="font-size:11px;font-weight:700;color:var(--ts);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em">📌 イベント（${dayEvts.length}件）</div>`;
+      dayEvts.forEach(e=>{
+        const col=e.color||'#7C6FCD';
+        h+=`<div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);cursor:pointer" onclick="closeDayModal();showEvtDetail('${e.id}')">
+          <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
+          <div><div style="font-size:13px;font-weight:600">${e.name}</div><div style="font-size:11px;color:var(--tm)">${e.category||'イベント'}</div></div>
+          <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
+        </div>`;
+      });
+    }
+    if(dayPosts.length>0){
+      h+=`<div style="font-size:11px;font-weight:700;color:var(--ts);margin:${dayEvts.length?'12px':'0'} 0 6px;text-transform:uppercase;letter-spacing:.04em">📱 SNS投稿（${dayPosts.length}件）</div>`;
+      dayPosts.forEach(p=>{
+        const col=getCatColor(p.category);
+        const plats=(p.platforms||[]).map(pl=>`<span class="tag ${pc[pl]||''}" style="font-size:10px">${pl}</span>`).join('');
+        const ins=(p.insights&&typeof p.insights==='object')?p.insights:{};
+        h+=`<div style="border-bottom:1px solid var(--border);padding:8px 0">
+          <div style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:6px" onclick="closeDayModal();openSnsDetail('${p.id}')">
+            <div style="width:4px;height:36px;background:${col};border-radius:2px;flex-shrink:0"></div>
+            <div style="flex:1;min-width:0">
+              <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${p.content_name}</div>
+              <div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;align-items:center">${p.scheduled_time?`<span style="font-size:11px;font-weight:600;color:var(--tp)">${p.scheduled_time.slice(0,5)}</span>`:''} ${plats}<span style="font-size:10px;color:${col};background:${col}18;padding:1px 6px;border-radius:100px">${p.category||''}</span></div>
+            </div>
+            <div style="margin-left:auto;font-size:11px;color:var(--accent)">詳細 →</div>
+          </div>
+          ${(()=>{const skipInsight=p.category==='他媒体共同投稿'||p.content_name.includes('ストーリーズ');if(skipInsight)return'';return`<div style="padding-left:14px"><div style="font-size:10px;color:var(--tm);margin-bottom:5px;font-weight:600">📊 インサイト集計チェック</div>
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px">
+              ${['Instagram','TikTok','YouTube','X'].map(pl=>`<div style="background:var(--bg);border-radius:6px;padding:5px 7px">
+                <div style="font-size:10px;font-weight:600;color:var(--ts);margin-bottom:4px">${pl}</div>
+                <label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer;margin-bottom:3px">
+                  <input type="checkbox" ${ins[pl+'_1d']?'checked':''} onchange="saveInsight('${p.id}','${pl}_1d',this.checked)"> 1日後
+                </label>
+                <label style="display:flex;align-items:center;gap:4px;font-size:10px;cursor:pointer">
+                  <input type="checkbox" ${ins[pl+'_7d']?'checked':''} onchange="saveInsight('${p.id}','${pl}_7d',this.checked)"> 1週間後
+                </label>
+              </div>`).join('')}
+            </div></div>`;})()}
+        </div>`;
+      });
+    }
+    h+=`<div style="margin-top:12px;display:flex;gap:8px"><button class="btn bp bsm" onclick="closeDayModal();openSnsModal(null,'${ds}')">＋ SNS投稿を追加</button><button class="btn bs bsm" onclick="closeDayModal();openEvtModal()">＋ イベントを追加</button></div>`;
+  }
+  document.getElementById('day-modal-body').innerHTML=h;
+  document.getElementById('day-modal').style.display='flex';
+  }catch(e){console.error('showDayDetail error:',e,ds);}
+}
+function closeDayModal(){document.getElementById('day-modal').style.display='none';}
+
+async function seedContentEvents(){
+  await sb.from('pm_content_events').delete().neq('id','00000000-0000-0000-0000-000000000000');
+  const seeds=[
+    {name:'元旦・正月',month:1,day:1,categories:'["祝日","文化行事"]',sort_order:1,status:'未設定'},{name:'成人の日',month:1,categories:'["祝日"]',sort_order:2,status:'未設定'},
+    {name:'福袋争奪',month:1,categories:'["ギャル","ビジネス"]',sort_order:3,status:'未設定'},{name:'初詣コーデ',month:1,categories:'["ギャル","文化行事"]',sort_order:4,status:'未設定'},
+    {name:'干支',month:1,categories:'["文化行事","キャラ"]',sort_order:5,status:'未設定'},{name:'箱根駅伝',month:1,day:2,categories:'["文化行事"]',sort_order:6,status:'未設定'},
+    {name:'節分',month:2,day:3,categories:'["文化行事","季節"]',sort_order:1,status:'未設定'},{name:'バレンタインデー',month:2,day:14,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
+    {name:'バレンタインネイル',month:2,categories:'["ギャル"]',sort_order:3,status:'未設定'},{name:'猫の日',month:2,day:22,categories:'["キャラ","日別テーマ"]',sort_order:4,status:'未設定'},
+    {name:'ひな祭り',month:3,day:3,categories:'["文化行事"]',sort_order:1,status:'未設定'},{name:'卒業式',month:3,categories:'["文化行事"]',sort_order:2,status:'未設定'},
+    {name:'花見',month:3,categories:'["文化行事","季節"]',sort_order:3,status:'未設定'},{name:'春ネイル',month:3,categories:'["ギャル","季節"]',sort_order:4,status:'未設定'},
+    {name:'ブタの日',month:3,day:3,categories:'["キャラ","日別テーマ"]',sort_order:5,status:'未設定'},{name:'耳の日',month:3,day:3,categories:'["キャラ","日別テーマ"]',sort_order:6,status:'未設定'},
+    {name:'春分の日',month:3,day:20,categories:'["祝日","季節"]',sort_order:7,status:'未設定'},
+    {name:'桜',month:4,categories:'["季節"]',sort_order:1,status:'未設定'},{name:'エイプリルフール',month:4,day:1,categories:'["文化行事"]',sort_order:2,status:'未設定'},
+    {name:'入学式・入社式',month:4,day:1,categories:'["文化行事"]',sort_order:3,status:'未設定'},{name:'イースター',month:4,categories:'["文化行事"]',sort_order:4,status:'未設定'},
+    {name:'SSコレクション',month:4,categories:'["ギャル","ビジネス"]',sort_order:5,status:'未設定'},
+    {name:'ゴールデンウィーク',month:5,day:3,categories:'["祝日"]',sort_order:1,status:'未設定'},{name:'こどもの日',month:5,day:5,categories:'["祝日"]',sort_order:2,status:'未設定'},
+    {name:'母の日',month:5,categories:'["文化行事"]',sort_order:3,status:'未設定'},{name:'体育祭',month:5,categories:'["文化行事"]',sort_order:4,status:'未設定'},
+    {name:'梅雨入り',month:6,categories:'["季節"]',sort_order:1,status:'未設定'},{name:'衣替え',month:6,day:1,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
+    {name:'夏休み',month:6,categories:'["文化行事","季節"]',sort_order:3,status:'未設定'},{name:'プール',month:6,categories:'["文化行事","季節","ギャル"]',sort_order:4,status:'未設定'},
+    {name:'梅雨映えヘア',month:6,categories:'["ギャル","季節"]',sort_order:5,status:'未設定'},
+    {name:'七夕',month:7,day:7,categories:'["文化行事"]',sort_order:1,status:'未設定'},{name:'花火大会',month:7,categories:'["季節","文化行事"]',sort_order:2,status:'未設定'},
+    {name:'海の日・海開き',month:7,day:20,categories:'["祝日","季節"]',sort_order:3,status:'未設定'},{name:'海ギャル',month:7,categories:'["ギャル","季節"]',sort_order:4,status:'未設定'},
+    {name:'祭り',month:7,categories:'["文化行事","季節"]',sort_order:5,status:'未設定'},{name:'夏フェス',month:7,categories:'["ギャル","文化行事"]',sort_order:6,status:'未設定'},
+    {name:'お盆',month:8,day:13,categories:'["文化行事"]',sort_order:1,status:'未設定'},{name:'祭り',month:8,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
+    {name:'ひまわり',month:8,categories:'["季節"]',sort_order:3,status:'未設定'},{name:'フットネイル&ボディグリッター',month:8,categories:'["ギャル"]',sort_order:4,status:'未設定'},
+    {name:'お月見',month:9,categories:'["文化行事","季節"]',sort_order:1,status:'未設定'},{name:'秋分の日',month:9,day:23,categories:'["祝日","季節"]',sort_order:2,status:'未設定'},
+    {name:'秋コスメ',month:9,categories:'["ギャル","季節"]',sort_order:3,status:'未設定'},{name:'AW展示会',month:9,categories:'["ギャル","ビジネス"]',sort_order:4,status:'未設定'},
+    {name:'ハロウィン',month:10,day:31,categories:'["文化行事"]',sort_order:1,status:'未設定'},{name:'食欲の秋',month:10,categories:'["文化行事","季節"]',sort_order:2,status:'未設定'},
+    {name:'スポーツの日',month:10,day:12,categories:'["祝日"]',sort_order:3,status:'未設定'},{name:'紅葉シーズン',month:10,categories:'["季節"]',sort_order:4,status:'未設定'},
+    {name:'ハロウィンネイル&メイク',month:10,categories:'["ギャル","文化行事"]',sort_order:5,status:'未設定'},{name:'推しの秋',month:10,categories:'["ギャル","文化行事"]',sort_order:6,status:'未設定'},
+    {name:'七五三',month:11,day:15,categories:'["文化行事"]',sort_order:1,status:'未設定'},{name:'文化の日',month:11,day:3,categories:'["祝日"]',sort_order:2,status:'未設定'},
+    {name:'ブラックフライデー',month:11,day:27,categories:'["ギャル","ビジネス"]',sort_order:3,status:'未設定'},{name:'年末ライブチケット',month:11,categories:'["ギャル","ビジネス"]',sort_order:4,status:'未設定'},
+    {name:'ポッキーの日',month:11,day:11,categories:'["日別テーマ"]',sort_order:5,status:'未設定'},
+    {name:'クリスマス',month:12,day:25,categories:'["文化行事","祝日"]',sort_order:1,status:'未設定'},{name:'忘年会シーズン',month:12,categories:'["ビジネス","文化行事"]',sort_order:2,status:'未設定'},
+    {name:'年末カウントダウン',month:12,day:31,categories:'["ギャル","文化行事"]',sort_order:3,status:'未設定'},{name:'年末セール',month:12,categories:'["ギャル","ビジネス"]',sort_order:4,status:'未設定'},
+    {name:'年越しそば',month:12,day:31,categories:'["文化行事","季節"]',sort_order:5,status:'未設定'},
+  ];
+  await sb.from('pm_content_events').insert(seeds);
+}
+
+async function seedLinks(){
+  const seeds=[
+    {name:'QRコード・クリック数計測',url:'https://00m.in/user',category:'ツール',description:'QRコード生成＆クリック数確認',sort_order:1},
+    {name:'AI音声生成ツール',url:'https://fish.audio/ja/app/',category:'ツール',description:'AI音声生成',sort_order:2},
+    {name:'TuneCore',url:'https://www.tunecore.co.jp/dashboard/reports/estimate?_acid=NDgyNDUx',category:'ツール',description:'楽曲配信・レポート確認',sort_order:3},
+    {name:'LINE Creator Market',url:'https://creator.line.me/ja/',category:'ツール',description:'LINEスタンプ売上確認',sort_order:4},
+    {name:'STORES',url:'https://dashboard.stores.app/',category:'ツール',description:'グッズ販売管理',sort_order:5},
+    {name:'Instagram',url:'https://www.instagram.com/usapoyo_gal/reels/?hl=ja',category:'公式アカウント',description:'@usapoyo_gal',sort_order:10},
+    {name:'TikTok',url:'https://www.tiktok.com/ja-JP/',category:'公式アカウント',description:'TikTok公式',sort_order:11},
+    {name:'YouTube Studio',url:'https://studio.youtube.com/channel/UCne0zg3-54OW12wJlAnsM2w',category:'公式アカウント',description:'YouTubeチャンネル管理',sort_order:12},
+    {name:'X (Twitter)',url:'https://x.com/usapoyo_gal',category:'公式アカウント',description:'@usapoyo_gal',sort_order:13},
+    {name:'lit.link（リンク集約）',url:'https://lit.link/usapoyo428',category:'公式アカウント',description:'公式アカウントリンク集約',sort_order:14},
+  ];
+  await sb.from('pm_links').insert(seeds);
+}
+
+async function seedAll(){
+  console.log('Seeding initial data...');
+  const{data:existingMembers}=await sb.from('pm_members').select('id').limit(1);
+  if(existingMembers&&existingMembers.length>0){console.log('Already seeded.');return;}
+  await sb.from('pm_members').insert([
+    {name:'長田',role:'プロデューサー / PM',sort_order:1,monthly_hours:120},
+    {name:'小森',role:'イラスト / デザイン',sort_order:2,monthly_hours:152},
+    {name:'西村',role:'SNS / コンテンツ',sort_order:3,monthly_hours:119},
+    {name:'中野',role:'プロデューサー',sort_order:4,monthly_hours:80},
+    {name:'緑川',role:'',sort_order:5,monthly_hours:80},
+    {name:'関根',role:'',sort_order:6,monthly_hours:80},
+  ]);
+  console.log('Seed complete.');
+}
+
+window.addEventListener('DOMContentLoaded',async()=>{
+  const ok=loadSetup();
+  if(ok)await start();
+});
+</script>
+</body>
+</html>
