@@ -68,10 +68,10 @@ nav{padding:12px 0;flex:1}
 .kpi-card.tt::before{background:var(--tt)}
 .kpi-card.yt::before{background:var(--yt)}
 .kpi-card.xb::before{background:var(--xb)}
-.kpi-card.ig{background:linear-gradient(135deg,#FFFBEB 0%,white 60%)}
-.kpi-card.tt{background:linear-gradient(135deg,#F5F3FF 0%,white 60%)}
-.kpi-card.yt{background:linear-gradient(135deg,#FEF2F2 0%,white 60%)}
-.kpi-card.xb{background:linear-gradient(135deg,#EFF8FF 0%,white 60%)}
+.kpi-card.ig{background:#FFFBEB}
+.kpi-card.tt{background:#F5F3FF}
+.kpi-card.yt{background:#FEF2F2}
+.kpi-card.xb{background:#EFF8FF}
 .kpi-platform{display:flex;align-items:center;gap:8px;margin-bottom:12px}
 .kpi-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px;letter-spacing:.3px}
 .kpi-badge.ig{background:var(--ig-bg);color:var(--ig)}
@@ -375,20 +375,48 @@ textarea{resize:vertical;min-height:72px}
     <div class="grid-2" style="margin-bottom:16px">
       <div class="card">
         <div class="card-title">再生数 TOP5</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="rank-filter-btn active" onclick="setRankFilter(this,'rank-plays','all')" data-plat="all">全媒体</button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-plays','Instagram')" data-plat="Instagram"><span class="kpi-badge ig" style="font-size:9px">IG</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-plays','TikTok')" data-plat="TikTok"><span class="kpi-badge tt" style="font-size:9px">TT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-plays','YouTube')" data-plat="YouTube"><span class="kpi-badge yt" style="font-size:9px">YT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-plays','X')" data-plat="X"><span class="kpi-badge xb" style="font-size:9px">X</span></button>
+        </div>
         <table class="rank-table" id="rank-plays"></table>
       </div>
       <div class="card">
         <div class="card-title">ER% TOP5</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="rank-filter-btn active" onclick="setRankFilter(this,'rank-er','all')" data-plat="all">全媒体</button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-er','Instagram')" data-plat="Instagram"><span class="kpi-badge ig" style="font-size:9px">IG</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-er','TikTok')" data-plat="TikTok"><span class="kpi-badge tt" style="font-size:9px">TT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-er','YouTube')" data-plat="YouTube"><span class="kpi-badge yt" style="font-size:9px">YT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-er','X')" data-plat="X"><span class="kpi-badge xb" style="font-size:9px">X</span></button>
+        </div>
         <table class="rank-table" id="rank-er"></table>
       </div>
     </div>
     <div class="grid-2">
       <div class="card">
         <div class="card-title">フォロー獲得 TOP5</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="rank-filter-btn active" onclick="setRankFilter(this,'rank-follow','all')" data-plat="all">全媒体</button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-follow','Instagram')" data-plat="Instagram"><span class="kpi-badge ig" style="font-size:9px">IG</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-follow','TikTok')" data-plat="TikTok"><span class="kpi-badge tt" style="font-size:9px">TT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-follow','YouTube')" data-plat="YouTube"><span class="kpi-badge yt" style="font-size:9px">YT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-follow','X')" data-plat="X"><span class="kpi-badge xb" style="font-size:9px">X</span></button>
+        </div>
         <table class="rank-table" id="rank-follow"></table>
       </div>
       <div class="card">
         <div class="card-title">保存率 TOP5</div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
+          <button class="rank-filter-btn active" onclick="setRankFilter(this,'rank-save','all')" data-plat="all">全媒体</button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-save','Instagram')" data-plat="Instagram"><span class="kpi-badge ig" style="font-size:9px">IG</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-save','TikTok')" data-plat="TikTok"><span class="kpi-badge tt" style="font-size:9px">TT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-save','YouTube')" data-plat="YouTube"><span class="kpi-badge yt" style="font-size:9px">YT</span></button>
+          <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-save','X')" data-plat="X"><span class="kpi-badge xb" style="font-size:9px">X</span></button>
+        </div>
         <table class="rank-table" id="rank-save"></table>
       </div>
     </div>
@@ -1275,13 +1303,28 @@ function renderCategoryPlaysChart(){
   });
 }
 
-function renderRanking(elId,metric,label,fmtFn,isRate=false){
+function setRankFilter(btn,elId,plat){
+  btn.closest('.card').querySelectorAll('.rank-filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // elIdからmetric/fmtFn/isRateを特定して再描画
+  const rankMap={
+    'rank-plays':['plays','再生数',fmt,false],
+    'rank-er':['er','ER%',fmtPct,true],
+    'rank-follow':['follows','フォロー獲得',fmt,false],
+    'rank-save':['saveRate','保存率%',fmtPct,true]
+  };
+  const r=rankMap[elId];
+  if(r)renderRanking(elId,r[0],r[1],r[2],r[3],plat);
+}
+
+function renderRanking(elId,metric,label,fmtFn,isRate=false,platFilter='all'){
   const cutoff=new Date();cutoff.setDate(cutoff.getDate()-90);
   const cutoffStr=cutoff.toISOString().slice(0,10);
-  const posts=DB.posts.filter(p=>p.insight1d&&p.date>=cutoffStr);
+  let posts=DB.posts.filter(p=>p.insight1d&&p.date>=cutoffStr);
+  if(platFilter&&platFilter!=='all')posts=posts.filter(p=>p.platform===platFilter);
   let sorted;
   if(isRate){
-    sorted=posts.map(p=>{const r=calcInsightRates(p.insight1d);return{post:p,val:r[metric]||0}}).sort((a,b)=>b.val-a.val).slice(0,15);
+    sorted=posts.map(p=>{const r=calcInsightRates(p.insight1d);return{post:p,val:r[metric]||0}}).sort((a,b)=>b.val-a.val).slice(0,5);
   } else {
     sorted=posts.map(p=>({post:p,val:p.insight1d[metric]||0})).sort((a,b)=>b.val-a.val).slice(0,5);
   }
