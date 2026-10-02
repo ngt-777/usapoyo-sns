@@ -2965,7 +2965,7 @@ function renderWeeklyReport(){
 
   // Load saved goal from DB
   const goal=DB.goals[month]||0;
-  document.getElementById('goal-count').value=goal||'';
+  // goal-count は削除済み（feed/videoに分割）
 
   // Posts this month — タイトル重複を除いてカウント（同一タイトルは複数媒体でも1本）
   const monthPosts=DB.posts.filter(p=>p.date&&p.date.startsWith(month));
