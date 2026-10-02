@@ -680,14 +680,18 @@ textarea{resize:vertical;min-height:72px}
     <div class="grid-2" style="margin-bottom:20px">
       <div class="card">
         <div class="card-title">今月の投稿目標</div>
-        <div style="display:flex;gap:12px;align-items:flex-end;margin-bottom:16px">
-          <div class="form-group" style="flex:1">
-            <label id="goal-month-label">目標月</label>
+        <div style="display:flex;gap:10px;align-items:flex-end;margin-bottom:14px;flex-wrap:wrap">
+          <div class="form-group" style="flex:1;min-width:100px">
+            <label>目標月</label>
             <input type="month" id="goal-month" onchange="renderWeeklyReport()">
           </div>
-          <div class="form-group" style="flex:1">
-            <label>目標投稿本数</label>
-            <input type="number" id="goal-count" min="0" placeholder="例: 20" onchange="saveGoal()">
+          <div class="form-group" style="flex:1;min-width:80px">
+            <label>フィード目標</label>
+            <input type="number" id="goal-feed" min="0" placeholder="0" onchange="saveGoal()">
+          </div>
+          <div class="form-group" style="flex:1;min-width:80px">
+            <label>動画目標</label>
+            <input type="number" id="goal-video" min="0" placeholder="0" onchange="saveGoal()">
           </div>
         </div>
         <div id="goal-progress"></div>
@@ -942,6 +946,92 @@ function onAgeGroupChange(val){
   }
 }
 
+// 投稿本数カウント（同タイトルは1本扱い、フィード/動画判別）
+function countPostsByType(monthPosts){
+  const IS_VIDEO=p=>['リール','ショート','動画'].includes(p.format);
+  // 重複タイトル除去（タイトルの正規化）
+  const uniqueTitles=new Set();
+  const uniquePosts=monthPosts.filter(p=>{
+    const key=(p.title||'').trim().toLowerCase();
+    if(!key||uniqueTitles.has(key))return false;
+    uniqueTitles.add(key);return true;
+  });
+  const feedPosts=uniquePosts.filter(p=>!IS_VIDEO(p));
+  const videoPosts=uniquePosts.filter(p=>IS_VIDEO(p));
+  return{total:uniquePosts.length,feed:feedPosts.length,video:videoPosts.length};
+}
+
+// 目標データ取得ヘルパー
+function getGoalData(month){
+  const g=DB.goals[month];
+  if(!g)return{count:0,feed:0,video:0};
+  if(typeof g==='object')return{count:g.count||0,feed:g.feed||0,video:g.video||0};
+  return{count:g,feed:0,video:0};
+}
+
+// 目標プログレスHTML生成
+function buildGoalProgressHTML(month,monthPosts){
+  const cnt=countPostsByType(monthPosts);
+  const goal=getGoalData(month);
+  const pct=(a,b)=>b>0?Math.min(Math.round(a/b*100),100):0;
+  const bar=(a,b,color)=>`<div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden;margin:3px 0 6px">
+    <div style="height:100%;width:${pct(a,b)}%;background:${color};border-radius:3px;transition:width .3s"></div></div>`;
+  const row=(label,actual,target,color)=>target>0?`
+    <div style="font-size:12px;color:var(--gray2);margin-bottom:2px">${label}</div>
+    <div style="display:flex;justify-content:space-between;font-size:13px">
+      <span style="font-weight:600;color:var(--navy2)">${actual} / ${target}本</span>
+      <span style="color:${color};font-weight:700">${pct(actual,target)}%</span>
+    </div>
+    ${bar(actual,target,color)}
+    <div style="font-size:11px;color:var(--gray);margin-bottom:8px">残り${Math.max(0,target-actual)}本</div>`:'';
+  if(!goal.feed&&!goal.video&&!goal.count)return'<div style="font-size:12px;color:var(--gray)">目標未設定</div>';
+  const totalGoal=goal.feed+goal.video||goal.count;
+  return row('フィード',cnt.feed,goal.feed,'#F59E0B')
+    +row('動画',cnt.video,goal.video,'#8B5CF6')
+    +(totalGoal?`<div style="font-size:12px;color:var(--gray2);margin-bottom:2px">全体</div>
+    <div style="display:flex;justify-content:space-between;font-size:13px">
+      <span style="font-weight:600;color:var(--navy2)">${cnt.total} / ${totalGoal}本</span>
+      <span style="color:var(--green);font-weight:700">${pct(cnt.total,totalGoal)}%</span>
+    </div>${bar(cnt.total,totalGoal,'var(--green)')}
+    <div style="font-size:11px;color:var(--gray)">残り${Math.max(0,totalGoal-cnt.total)}本</div>`:'');
+}
+
+// ダッシュボードの目標表示を更新
+function renderDashboardGoal(){
+  const el=document.getElementById('dashboard-goal');
+  if(!el)return;
+  const now=new Date();
+  const month=now.toISOString().slice(0,7); // "2026-10"
+  const monthPosts=DB.posts.filter(p=>p.date&&p.date.slice(0,7)===month);
+  const cnt=countPostsByType(monthPosts);
+  const goal=getGoalData(month);
+  const pct=(a,b)=>b>0?Math.min(Math.round(a/b*100),100):0;
+  const totalGoal=goal.feed+goal.video||goal.count;
+  const bar=(a,b,color)=>`<div style="flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+    <div style="height:100%;width:${pct(a,b)}%;background:${color};border-radius:3px"></div></div>`;
+  if(!totalGoal){el.innerHTML='';return;}
+  el.innerHTML=`<div style="background:var(--card-bg);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px">
+    <div style="font-size:11px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">今月の投稿目標｜${month.replace('-','年')}月</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      ${goal.feed?`<div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--gray2);width:44px">フィード</span>
+        ${bar(cnt.feed,goal.feed,'#F59E0B')}
+        <span style="font-size:12px;font-weight:600;min-width:70px;text-align:right">${cnt.feed}/${goal.feed}本 ${pct(cnt.feed,goal.feed)}%</span>
+      </div>`:''}
+      ${goal.video?`<div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--gray2);width:44px">動画</span>
+        ${bar(cnt.video,goal.video,'#8B5CF6')}
+        <span style="font-size:12px;font-weight:600;min-width:70px;text-align:right">${cnt.video}/${goal.video}本 ${pct(cnt.video,goal.video)}%</span>
+      </div>`:''}
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:11px;color:var(--gray2);width:44px">全体</span>
+        ${bar(cnt.total,totalGoal,'var(--green)')}
+        <span style="font-size:12px;font-weight:600;min-width:70px;text-align:right">${cnt.total}/${totalGoal}本 ${pct(cnt.total,totalGoal)}%</span>
+      </div>
+    </div>
+  </div>`;
+}
+
 function onCategoryChange(val, otherId){
   const el=document.getElementById(otherId);
   if(!el)return;
@@ -1189,6 +1279,7 @@ document.querySelectorAll('.nav-item').forEach(el=>{
 let chartFollowerAll=null, chartCategoryPlays=null;
 
 function renderDashboard(){
+  renderDashboardGoal();
   renderKPICards();
   renderAlerts();
   renderFollowerAllChart();
@@ -2983,10 +3074,14 @@ function renderWeeklyReport(){
 
 async function saveGoal(){
   const month=document.getElementById('goal-month').value;
-  const count=parseInt(document.getElementById('goal-count').value)||0;
-  await gasPost('saveGoal', {month, count});
+  if(!month)return;
+  const feed=parseInt(document.getElementById('goal-feed')?.value)||0;
+  const video=parseInt(document.getElementById('goal-video')?.value)||0;
+  const count=feed+video; // 後方互換のため合計も保存
+  await gasPost('saveGoal', {month, count, feed, video});
   await DB.init();
   renderWeeklyReport();
+  renderDashboardGoal();
 }
 
 function buildTextReport(month, monthPosts, topLikes, topFollows, weeks, goal, platFields){
