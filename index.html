@@ -2504,15 +2504,22 @@ function renderFollowerTable(){
     const prev=fols.filter(f=>f.date<date&&f[field]!=null).sort((a,b)=>b.date<a.date?-1:1)[0];
     return prev?.[field]??null;
   };
+  const platColors={instagram:'#F59E0B',tiktok:'#8B5CF6',youtube:'#EF4444',x:'#1D9BF0'};
+  const platBg={instagram:'#FFFBEB',tiktok:'#F5F3FF',youtube:'#FEF2F2',x:'#EFF8FF'};
   table.innerHTML=`<thead><tr>
-    <th>日付</th><th>Instagram</th><th>前回比</th><th>TikTok</th><th>前回比</th><th>YouTube</th><th>前回比</th><th>X</th><th>前回比</th><th></th>
+    <th>日付</th>
+    <th style="color:${platColors.instagram};border-bottom:2px solid ${platColors.instagram}">Instagram</th><th style="color:${platColors.instagram}">前回比</th>
+    <th style="color:${platColors.tiktok};border-bottom:2px solid ${platColors.tiktok}">TikTok</th><th style="color:${platColors.tiktok}">前回比</th>
+    <th style="color:${platColors.youtube};border-bottom:2px solid ${platColors.youtube}">YouTube</th><th style="color:${platColors.youtube}">前回比</th>
+    <th style="color:${platColors.x};border-bottom:2px solid ${platColors.x}">X</th><th style="color:${platColors.x}">前回比</th>
+    <th></th>
   </tr></thead><tbody>${fols.map(f=>`<tr>
     <td style="font-weight:600">${f.date}</td>
     ${fields.map(field=>{
       const cur=f[field];const prev=getPrevVal(f.date,field);
       const diff=cur!=null&&prev!=null?cur-prev:null;
-      const cls=diff>0?'color:var(--green);font-weight:600':diff<0?'color:var(--red);font-weight:600':'color:var(--gray)';
-      return`<td>${cur!=null?fmt(cur):'—'}</td><td style="${cls}">${diff!=null?(diff>=0?'+':'')+fmt(diff):'—'}</td>`;
+      const diffCls=diff>0?'color:var(--green);font-weight:600':diff<0?'color:var(--red);font-weight:600':'color:var(--gray)';
+      return`<td style="background:${platBg[field]};font-weight:500">${cur!=null?fmt(cur):'—'}</td><td style="${diffCls}">${diff!=null?(diff>=0?'+':'')+fmt(diff):'—'}</td>`;
     }).join('')}
     <td><button class="btn btn-ghost btn-sm" onclick="deleteFolEntry('${f.date}')" style="padding:3px 8px;font-size:11px">削除</button></td>
   </tr>`).join('')}</tbody>`;
