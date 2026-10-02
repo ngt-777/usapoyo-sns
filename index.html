@@ -385,7 +385,7 @@ textarea{resize:vertical;min-height:72px}
         <table class="rank-table" id="rank-plays"></table>
       </div>
       <div class="card">
-        <div class="card-title">ER% TOP5</div>
+        <div class="card-title">いいね数 TOP5</div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:10px">
           <button class="rank-filter-btn active" onclick="setRankFilter(this,'rank-er','all')" data-plat="all">全媒体</button>
           <button class="rank-filter-btn" onclick="setRankFilter(this,'rank-er','Instagram')" data-plat="Instagram"><span class="kpi-badge ig" style="font-size:9px">IG</span></button>
@@ -1194,7 +1194,7 @@ function renderDashboard(){
   renderFollowerAllChart();
   renderCategoryPlaysChart();
   renderRanking('rank-plays','plays','再生数',fmt);
-  renderRanking('rank-er','er','ER%',fmtPct,true);
+  renderRanking('rank-er','likes','いいね数',fmt,false);
   renderRanking('rank-follow','follows','フォロー獲得',fmt);
   renderRanking('rank-save','saveRate','保存率%',fmtPct,true);
 }
@@ -1251,21 +1251,42 @@ function renderKPICards(){
 
 function renderAlerts(){
   const posts=DB.posts;
+  // 入力待ち：day1-input（1日後入力待ち）またはweek1-input（1週間後入力待ち）
   const needInput=posts.filter(p=>{
     const s=getPostStatus(p);
-    return s==='waiting'||s==='week1';
+    return s==='day1-input'||s==='week1-input';
   });
   const area=document.getElementById('alert-area');
-  if(!needInput.length){area.innerHTML='';return}
-  const items=needInput.slice(0,5).map(p=>`<li><strong>${p.platform}</strong> — ${p.title} (${p.date}) ${statusBadge(p)}</li>`).join('');
-  area.innerHTML=`
-  <div class="alert-box" style="margin-bottom:16px">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-    <div class="alert-body">
-      <div class="alert-title">インサイト入力が必要な投稿が ${needInput.length}件 あります</div>
-      <ul class="alert-list">${items}</ul>
-      ${needInput.length>5?`<div style="margin-top:4px;opacity:.7">他 ${needInput.length-5}件...</div>`:''}
+
+  if(!needInput.length){
+    area.innerHTML=`<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#F0FDF4;border-radius:10px;margin-bottom:14px;font-size:12px;color:#166534">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      インサイト入力完了 ✓ 入力待ちの投稿はありません
+    </div>`;
+    return;
+  }
+
+  // 媒体別集計
+  const platCount={};
+  const platColors={Instagram:'var(--ig)',TikTok:'var(--tt)',YouTube:'var(--yt)',X:'var(--xb)'};
+  const platCls={Instagram:'ig',TikTok:'tt',YouTube:'yt',X:'xb'};
+  needInput.forEach(p=>{platCount[p.platform]=(platCount[p.platform]||0)+1;});
+  const platItems=Object.entries(platCount)
+    .sort((a,b)=>b[1]-a[1])
+    .map(([plat,cnt])=>`<span style="display:inline-flex;align-items:center;gap:4px;margin-right:10px">
+      <span class="kpi-badge ${platCls[plat]}" style="font-size:9px">${platAbbr(plat)}</span>
+      <span style="font-size:12px;font-weight:600">${cnt}件</span>
+    </span>`).join('');
+
+  area.innerHTML=`<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;padding:12px 16px;background:#FFFBEB;border:1px solid #FDE68A;border-radius:10px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:6px">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span style="font-size:13px;font-weight:700;color:#92400E">⚠ インサイト入力待ち　${needInput.length}件</span>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;align-items:center">${platItems}</div>
     </div>
+    <button class="btn btn-sm" onclick="navigateTo('post-list');document.getElementById('filter-status').value='any-input';renderPostList();" style="background:#D97706;color:#fff;border:none;font-size:11px;flex-shrink:0">未入力を確認 →</button>
   </div>`;
 }
 
@@ -1309,7 +1330,7 @@ function setRankFilter(btn,elId,plat){
   // elIdからmetric/fmtFn/isRateを特定して再描画
   const rankMap={
     'rank-plays':['plays','再生数',fmt,false],
-    'rank-er':['er','ER%',fmtPct,true],
+    'rank-er':['likes','いいね数',fmt,false],
     'rank-follow':['follows','フォロー獲得',fmt,false],
     'rank-save':['saveRate','保存率%',fmtPct,true]
   };
