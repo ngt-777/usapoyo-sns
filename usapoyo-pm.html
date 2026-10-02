@@ -201,11 +201,11 @@ a{color:var(--accent)}
     <nav class="nav-sec">
       <div class="nav-sec-l">スケジュール</div>
       <div class="nav-item" data-page="sns" onclick="nav('sns')"><span class="ni">📅</span><span>カレンダー</span></div>
+      <div class="nav-item" data-page="content" onclick="nav('content')"><span class="ni">🗓</span><span>コンテンツカレンダー</span></div>
     </nav>
     <nav class="nav-sec">
       <div class="nav-sec-l">運用</div>
       <div class="nav-item" data-page="meeting" onclick="nav('meeting')"><span class="ni">📝</span><span>定例会議</span></div>
-      <div class="nav-item" data-page="content" onclick="nav('content')"><span class="ni">🗓</span><span>コンテンツカレンダー</span></div>
       <div class="nav-item" data-page="links" onclick="nav('links')"><span class="ni">📦</span><span>素材・リンク</span></div>
     </nav>
       <div style="margin-top:auto;padding:16px 20px;border-top:1px solid rgba(255,255,255,.07)">
@@ -603,7 +603,14 @@ a{color:var(--accent)}
           <option value="10">10月</option><option value="11">11月</option><option value="12">12月</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">日（任意）</label><input class="fi" type="number" id="ccm-day" min="1" max="31" placeholder="例：14"></div>
+      <div class="fg"><label class="fl">日程（任意）</label>
+      <div style="display:flex;align-items:center;gap:8px">
+        <input class="fi" id="ccm-day" type="number" min="1" max="31" placeholder="開始日" style="flex:1">
+        <span style="color:var(--tm);font-size:12px;flex-shrink:0">〜</span>
+        <input class="fi" id="ccm-day-end" type="number" min="1" max="31" placeholder="終了日（期間の場合）" style="flex:1">
+      </div>
+      <div style="font-size:10px;color:var(--tm);margin-top:3px">1日だけ→開始日のみ｜期間→開始〜終了日</div>
+    </div>
     </div>
     <div class="fg"><label class="fl">カテゴリ（複数選択可）</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;padding:4px 0" id="ccm-cats">
@@ -1682,20 +1689,13 @@ function renderContent(){
     if(ccFilter!=='all')evts=evts.filter(e=>{try{return JSON.parse(e.categories||'[]').includes(ccFilter);}catch(er){return false;}});
     if(ccStatusFilter!=='all')evts=evts.filter(e=>(e.status||'未設定')===ccStatusFilter);
     const year=new Date().getFullYear();
-    const firstDay=new Date(year,ccMonthView-1,1);
-    const daysInMonth=new Date(year,ccMonthView,0).getDate();
-    const startDow=firstDay.getDay();
-    const evtsWithDay=evts.filter(e=>e.day);
+    const evtsWithDay=evts.filter(e=>e.day).sort((a,b)=>a.day-b.day||0);
     const evtsNoDay=evts.filter(e=>!e.day);
-    const dow=['日','月','火','水','木','金','土'];
-    const today=new Date();
-    const isCurMonth=today.getFullYear()===year&&today.getMonth()+1===ccMonthView;
-    const chip=e=>{
-      const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';
-      const st=e.status||'未設定';const stC=CC_STATUS[st]?.col||'#9CA3AF';
-      return`<div style="font-size:9px;padding:2px 4px;border-radius:2px;margin-bottom:2px;background:${col}20;color:${col};font-weight:700;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid ${col}" onclick="openContentModal('${e.id}')" title="${e.name}（${st}）">${e.name}</div>`;
-    };
-    let h=`<div style="margin-bottom:12px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
+    const nowM=new Date().getMonth()+1,nowD=new Date().getDate();
+    const DOW=['日','月','火','水','木','金','土'];
+    const stChip=e=>{const st=e.status||'未設定';const sc=CC_STATUS[st]||CC_STATUS['未設定'];return`<span style="font-size:10px;padding:1px 8px;border-radius:100px;background:${sc.bg};color:${sc.col};font-weight:600">${st}</span>`;};
+    const catChip=e=>{const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';return`<span style="font-size:10px;padding:1px 8px;border-radius:100px;background:${col}18;color:${col};border:1px solid ${col}44;font-weight:600">${cats[0]||''}</span>`;};
+    let h=`<div style="margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px">
       <div style="display:flex;align-items:center;gap:10px">
         <button class="btn bs bsm" onclick="ccMonthView=null;renderContent()">← 年間へ戻る</button>
         <div style="font-size:18px;font-weight:800">${year}年${ccMonthView}月</div>
@@ -1703,40 +1703,46 @@ function renderContent(){
       <button class="btn bg bsm" onclick="openContentModal(null,${ccMonthView})">＋ イベント追加</button>
     </div>`;
     if(evtsNoDay.length>0){
-      h+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:10px 14px;margin-bottom:10px">
-        <div style="font-size:10px;font-weight:700;color:var(--tm);margin-bottom:6px;text-transform:uppercase">📌 日付未設定のイベント</div>
-        <div style="display:flex;flex-wrap:wrap;gap:4px">${evtsNoDay.map(e=>{
-          const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';
-          return`<div style="font-size:11px;padding:2px 10px;border-radius:100px;background:${col}18;color:${col};border:1px solid ${col}40;cursor:pointer" onclick="openContentModal('${e.id}')">${e.name}</div>`;
-        }).join('')}</div>
+      h+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:12px 16px;margin-bottom:12px">
+        <div style="font-size:11px;font-weight:700;color:var(--tm);margin-bottom:8px;letter-spacing:.04em">📌 日付未設定</div>
+        <div style="display:flex;flex-direction:column;gap:6px">${evtsNoDay.map(e=>{const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';
+          return`<div style="display:flex;align-items:center;gap:10px;padding:6px 8px;border-radius:6px;cursor:pointer;border-left:3px solid ${col}" onclick="showContentDetail('${e.id}')" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background=''">
+            <div style="flex:1;font-size:13px;font-weight:600">${e.name}</div>
+            <div style="display:flex;gap:4px;align-items:center">${catChip(e)}${stChip(e)}</div>
+          </div>`;}).join('')}
+        </div>
       </div>`;
     }
-    h+=`<div style="background:var(--card);border:1px solid var(--border);border-radius:var(--r);overflow:hidden">
-      <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr));background:var(--sidebar-bg)">
-        ${dow.map((d,i)=>`<div style="text-align:center;padding:8px 0;font-size:12px;font-weight:700;color:${i===0?'#F87171':i===6?'#93C5FD':'rgba(255,255,255,.8)'}">${d}</div>`).join('')}
-      </div>
-      <div style="display:grid;grid-template-columns:repeat(7,minmax(0,1fr))">
-        ${[...Array(startDow)].map(()=>`<div style="min-height:100px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);background:#FAFAFA;min-width:0"></div>`).join('')}
-        ${[...Array(daysInMonth)].map((_,i)=>{
-          const day=i+1;
-          const isToday=isCurMonth&&day===today.getDate();
-          const dow2=new Date(year,ccMonthView-1,day).getDay();
-          const dateStr=`${year}-${String(ccMonthView).padStart(2,'0')}-${String(day).padStart(2,'0')}`;
-          const isHol=JP_HOL.has(dateStr);
-          const numCol=isToday?'#fff':(dow2===0||isHol)?'var(--red)':dow2===6?'var(--blu)':'var(--tp)';
-          const dayEvts=evtsWithDay.filter(e=>e.day===day).sort((a,b)=>(a.sort_order||0)-(b.sort_order||0));
-          return`<div style="min-height:100px;border-right:1px solid var(--border);border-bottom:1px solid var(--border);padding:5px;min-width:0;overflow:hidden;box-sizing:border-box">
-            <div style="margin-bottom:4px">
-              <span style="font-size:12px;font-weight:700;color:${numCol};${isToday?'background:var(--accent);border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;':''}">${day}</span>
-            </div>
-            ${dayEvts.map(chip).join('')}
-          </div>`;
-        }).join('')}
-      </div>
-    </div>`;
+    if(evtsWithDay.length===0&&evtsNoDay.length===0){
+      h+='<div class="card" style="text-align:center;padding:24px;color:var(--tm)">イベントはありません</div>';
+    }
+    // 日付ごとにグループ化
+    const byDay={};evtsWithDay.forEach(e=>{if(!byDay[e.day])byDay[e.day]=[];byDay[e.day].push(e);});
+    Object.keys(byDay).sort((a,b)=>a-b).forEach(day=>{
+      const d=parseInt(day);const dow=new Date(year,ccMonthView-1,d).getDay();
+      const isToday=ccMonthView===nowM&&d===nowD;
+      const dayCol=isToday?'var(--accent)':(dow===0)?'var(--red)':dow===6?'var(--blu)':'var(--tp)';
+      h+=`<div style="margin-bottom:10px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span style="font-size:14px;font-weight:800;color:${dayCol};${isToday?'background:var(--accent);color:#fff;border-radius:50%;width:26px;height:26px;display:inline-flex;align-items:center;justify-content:center;font-size:12px;':''}min-width:26px;text-align:center">${d}</span>
+          <span style="font-size:11px;color:${dayCol};font-weight:600}">${DOW[dow]}曜日</span>
+          <div style="flex:1;height:1px;background:var(--border)"></div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;padding-left:8px">
+          ${byDay[day].map(e=>{const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';
+            return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;border-left:4px solid ${col}" onclick="showContentDetail('${e.id}')" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--card)'">
+              <div style="flex:1">
+                <div style="font-size:13px;font-weight:700;margin-bottom:2px">${e.name}</div>
+                ${(e.day_end&&e.day_end!==e.day)?`<div style="font-size:10px;color:var(--tm)">${e.day}日〜${e.day_end}日</div>`:''}
+                <div style="display:flex;gap:4px;flex-wrap:wrap">${catChip(e)}${stChip(e)}</div>
+              </div>
+              <span style="font-size:11px;color:var(--tm)">→</span>
+            </div>`;}).join('')}
+        </div>
+      </div>`;
+    });
     document.getElementById('content-body').innerHTML=h;return;
   }
-
 
   // 年間ビュー（春夏秋冬順）
   const seasons=[
@@ -1772,18 +1778,41 @@ function renderContent(){
   document.getElementById('content-body').innerHTML=h2;
 }
 function toggleCCat(el){el.classList.toggle('on');}
+function showContentDetail(id){
+  const e=D.contentEvents.find(x=>x.id===id);if(!e)return;
+  const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';
+  const st=e.status||'未設定';const sc=CC_STATUS[st]||CC_STATUS['未設定'];
+  const year=new Date().getFullYear();
+  const DOW=['日','月','火','水','木','金','土'];
+  const dateStr=e.day?(e.day_end&&e.day_end!==e.day?`${year}年${e.month}月${e.day}日〜${e.day_end}日`:`${year}年${e.month}月${e.day}日（${DOW[new Date(year,e.month-1,e.day).getDay()]}）`):`${e.month}月（日付未定）`;
+  document.getElementById('det-title').textContent=e.name;
+  document.getElementById('det-edit').onclick=()=>{closeDetail();openContentModal(e.id);};
+  document.getElementById('det-del').onclick=()=>{closeDetail();if(confirm('このイベントを削除しますか？'))sb.from('pm_content_events').delete().eq('id',e.id).then(()=>{loadAll().then(()=>renderContent());});};
+  document.getElementById('det-body').innerHTML=`
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">日付</span>
+        <div style="margin-top:4px;font-weight:600">${dateStr}</div></div>
+      <div><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">採用状況</span>
+        <div style="margin-top:4px"><span style="font-size:12px;font-weight:700;color:${sc.col};background:${sc.bg};padding:3px 10px;border-radius:100px">${st}</span></div></div>
+      <div style="grid-column:span 2"><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">カテゴリ</span>
+        <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${cats.map(c=>`<span style="font-size:12px;padding:2px 10px;border-radius:100px;background:${CC_COLS[c]||'#9CA3AF'}18;color:${CC_COLS[c]||'#9CA3AF'};border:1px solid ${CC_COLS[c]||'#9CA3AF'}44;font-weight:600">${c}</span>`).join('')}</div></div>
+    </div>
+    ${e.description?`<div style="background:var(--bg);border-radius:8px;padding:12px;font-size:13px;color:var(--tp)">${e.description}</div>`:'<div style="font-size:12px;color:var(--tm)">説明なし</div>'}`;
+  document.getElementById('detail-modal').style.display='flex';
+}
 function openContentModal(id,preMonth){
   document.getElementById('ccm-title').textContent=id?'イベントを編集':'イベントを追加';
   document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>c.classList.remove('on'));
   document.getElementById('ccm-del').style.display=id?'inline-flex':'none';
   if(id){const e=D.contentEvents.find(x=>x.id===id);if(!e)return;
     document.getElementById('ccm-id').value=e.id;document.getElementById('ccm-name').value=e.name||'';
-    document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';
+    document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';document.getElementById('ccm-day-end').value=e.day_end||'';
     document.getElementById('ccm-desc').value=e.description||'';
     try{const cats=JSON.parse(e.categories||'[]');document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>{if(cats.includes(c.dataset.val))c.classList.add('on');});}catch(er){}
     const st=e.status||'未設定';document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===st));
   }else{['ccm-id','ccm-name','ccm-day','ccm-desc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('ccm-month').value=preMonth||new Date().getMonth()+1;
+    document.getElementById('ccm-day-end').value='';
     document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val==='未設定'));}
   document.getElementById('content-modal').style.display='flex';
 }
@@ -1793,7 +1822,7 @@ async function saveContent(){
   const id=document.getElementById('ccm-id').value;
   const cats=Array.from(document.querySelectorAll('#ccm-cats .asgn-chip.on')).map(c=>c.dataset.val);
   const stEl=document.querySelector('#ccm-status-chips .asgn-chip.on');
-  const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null,status:stEl?stEl.dataset.val:'未設定'};
+  const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,day_end:parseInt(document.getElementById('ccm-day-end').value)||null,categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null,status:stEl?stEl.dataset.val:'未設定'};
   const{error}=id?await sb.from('pm_content_events').update(data).eq('id',id):await sb.from('pm_content_events').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
   closeContentModal();await loadAll();renderContent();
