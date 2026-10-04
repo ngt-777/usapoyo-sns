@@ -2342,10 +2342,10 @@ function buildInsightForm(platform, ins, format){
     }
     if(f.type==='early-sec'){
       const secOpts=[2,3,4,5,6,7,8,10].map(s=>{
-        const sel=(ins.earlySecSec||3)===s?' selected':'';
+        const sel=((ins&&ins.earlySecSec)||3)===s?' selected':'';
         return`<option value="${s}"${sel}>${s}秒</option>`;
       }).join('');
-      const pctVal=ins.earlySecVal??ins.sec3Rate??'';
+      const pctVal=ins?.(ins.earlySecVal??ins.sec3Rate)??'';
       return`<div class="form-group full" style="display:flex;gap:8px;align-items:flex-end">
         <div style="flex:0 0 90px"><label>${f.label}</label>
           <select id="i-early-sec-sec" style="width:100%"><option value="">未入力</option>${secOpts}</select>
