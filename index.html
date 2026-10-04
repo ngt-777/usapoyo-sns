@@ -2208,6 +2208,7 @@ const INSIGHT_FIELDS = {
   TikTok: [
     {type:'section', label:'基本指標'},
     {id:'i-plays',        label:'投稿の視聴数',               type:'number'},
+    {id:'i-avg-view',     label:'平均視聴時間（秒）',           type:'number', step:'0.01'},
     {id:'i-watch-h',      label:'総再生時間（時間）',           type:'number'},
     {id:'i-watch-m',      label:'総再生時間（分）',             type:'number'},
     {id:'i-watch-s',      label:'総再生時間（秒）',             type:'number'},
@@ -2228,7 +2229,6 @@ const INSIGHT_FIELDS = {
     {id:'i-male-pct',     label:'男性の割合 (%)',             type:'number', step:'0.1'},
     {id:'i-female-pct',   label:'女性の割合 (%)',             type:'number', step:'0.1'},
     {type:'section', label:'動画指標（任意）'},
-    {id:'i-avg-play-time', label:'平均再生時間（秒）',        type:'number'},
     {id:'i-skip-rate',     label:'スキップ率 (%)',            type:'number', step:'0.1'},
     {id:'i-early-sec',     label:'序盤視聴維持率（秒数）',      type:'early-sec'},
     {type:'section', label:'閲覧数上位のソース（任意）'},
@@ -2492,6 +2492,7 @@ function applyParsedInsight(parsed){
   setVal('i-watch-m',parsed.watchM);
   setVal('i-watch-s',parsed.watchS);
   // TikTok 動画フル視聴率
+  setVal('i-avg-view',parsed.avgView);    // TikTok平均視聴時間（秒）
   setVal('i-full-view-pct',parsed.fullViewPct);
   // TikTok 戻ってきた視聴者
   setVal('i-return-viewer',parsed.returnViewer);
@@ -2595,6 +2596,7 @@ async function analyzeScreenshot(e){
   "saves": 保存数,
   "follows": 新しいフォロワー数,
   "unique": ユニーク視聴者数,
+  "avgView": 「平均視聴時間」ラベルの直下・付近にある「○○s」の数値部分（sを除く。例:4.09s→4.09、8.5s→8.5。小数点を丸めない）,
   "watchH": 「総再生時間」ラベル付近の時間表示から時間部分（例:8時間8分5秒→8、0時間24分56秒→0）,
   "watchM": 同じく分部分（例:8時間8分5秒→8、24分56秒→24）,
   "watchS": 同じく秒部分（例:8時間8分5秒→5、24分56秒→56）,
@@ -2602,8 +2604,8 @@ async function analyzeScreenshot(e){
   "fullViewPct": 「動画をフル視聴」ラベルの直下・付近にある%の数値のみ（他の%と混同しないこと）,
   "newViewer": 「新しい視聴者」ラベル付近の%数値,
   "returnViewer": 「戻ってきた視聴者」ラベル付近の%数値,
-  "folRate": 「フォロワー」ラベル付近の%数値（「非フォロワー」ではなく「フォロワー」のもの）,
-  "nonFolRate": 「非フォロワー」ラベル付近の%数値,
+  "folRate": 「非フォロワー」ラベルと紐づく%（TikTokでは非フォロワー側の割合。左側に表示されることが多い）,
+  "nonFolRate": 「フォロワー」ラベルと紐づく%（TikTokではフォロワー側の割合。右側に表示されることが多い）,
   "src1Name": 「トラフィックのソース」内で割合が最も高いソース名,
   "src1Pct": そのソースの%,
   "src2Name": 2番目に高いソース名,
