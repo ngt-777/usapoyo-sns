@@ -590,7 +590,7 @@ a{color:var(--accent)}
 
 <!-- Content Calendar Modal -->
 <div id="content-modal" class="moverlay" style="display:none" onclick="if(event.target===this)closeContentModal()">
-  <div class="mbox" style="max-width:500px"><div class="mhead"><div class="mtitle" id="ccm-title">イベントを追加</div><button class="mclose" onclick="closeContentModal()">✕</button></div>
+  <div class="mbox" style="max-width:680px;width:95%"><div class="mhead"><div class="mtitle" id="ccm-title">イベントを追加</div><button class="mclose" onclick="closeContentModal()">✕</button></div>
   <div class="mbody">
     <input type="hidden" id="ccm-id">
     <div class="fg"><label class="fl">イベント名 *</label><input class="fi" id="ccm-name" placeholder="例：バレンタインデー"></div>
@@ -623,14 +623,74 @@ a{color:var(--accent)}
         <div class="asgn-chip" data-val="日別テーマ" onclick="toggleCCat(this)">日別テーマ</div>
       </div>
     </div>
-    <div class="fg"><label class="fl">採用ステータス</label>
+    <!-- 静止画案 -->
+    <div style="background:var(--purbg);border:1px solid #DDD6FE;border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--pur);margin-bottom:10px">🖼 静止画案（フィード投稿）</div>
+      <div class="fg" style="margin-bottom:8px">
+        <label class="fl">企画内容</label>
+        <textarea class="fta" id="ccm-image-plan" style="height:80px" placeholder="例：ゆるっとうさぽよの一枚絵&#10;ハロウィンメイク4選&#10;季節イベントの作り込みイラスト"></textarea>
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <label class="fl">採用状況</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="ccm-img-status-chips">
+          <div class="asgn-chip on" data-val="未設定" onclick="selectImgStatus(this)">未設定</div>
+          <div class="asgn-chip" data-val="採用" onclick="selectImgStatus(this)">✓ 採用</div>
+          <div class="asgn-chip" data-val="不採用" onclick="selectImgStatus(this)">✗ 不採用</div>
+        </div>
+      </div>
+      <div id="ccm-img-adopted" style="display:none">
+        <div class="fg" style="margin-bottom:6px">
+          <label class="fl">投稿予定日</label>
+          <input class="fi" id="ccm-image-post-date" type="date">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">参考URL（最大3件）</label>
+        <input class="fi" id="ccm-img-ref-1" placeholder="URL①" style="margin-bottom:4px">
+        <input class="fi" id="ccm-img-ref-2" placeholder="URL②" style="margin-bottom:4px">
+        <input class="fi" id="ccm-img-ref-3" placeholder="URL③">
+      </div>
+    </div>
+    <!-- 動画案 -->
+    <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:14px;margin-bottom:12px">
+      <div style="font-size:12px;font-weight:700;color:var(--org);margin-bottom:10px">🎬 動画案</div>
+      <div class="fg" style="margin-bottom:8px">
+        <label class="fl">企画内容</label>
+        <textarea class="fta" id="ccm-video-plan" style="height:80px" placeholder="例：キャラクター同士の対話動画&#10;ワンアクション動画&#10;季節イベントに合わせたショート動画"></textarea>
+      </div>
+      <div class="fg" style="margin-bottom:8px">
+        <label class="fl">採用状況</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="ccm-vid-status-chips">
+          <div class="asgn-chip on" data-val="未設定" onclick="selectVidStatus(this)">未設定</div>
+          <div class="asgn-chip" data-val="採用" onclick="selectVidStatus(this)">✓ 採用</div>
+          <div class="asgn-chip" data-val="不採用" onclick="selectVidStatus(this)">✗ 不採用</div>
+        </div>
+      </div>
+      <div id="ccm-vid-adopted" style="display:none">
+        <div class="fg" style="margin-bottom:6px">
+          <label class="fl">投稿予定日</label>
+          <input class="fi" id="ccm-video-post-date" type="date">
+        </div>
+      </div>
+      <div class="fg">
+        <label class="fl">参考URL（最大3件）</label>
+        <input class="fi" id="ccm-vid-ref-1" placeholder="URL①" style="margin-bottom:4px">
+        <input class="fi" id="ccm-vid-ref-2" placeholder="URL②" style="margin-bottom:4px">
+        <input class="fi" id="ccm-vid-ref-3" placeholder="URL③">
+      </div>
+    </div>
+    <!-- メモ・旧リリース内容 -->
+    <div class="fg">
+      <label class="fl">メモ・その他</label>
+      <textarea class="fta" id="ccm-desc" style="height:54px" placeholder="その他メモなど"></textarea>
+    </div>
+    <div class="fg"><label class="fl">採用ステータス（全体）</label>
       <div style="display:flex;gap:8px" id="ccm-status-chips">
         <div class="asgn-chip" data-val="採用" onclick="selectCCStatus(this)">✓ 採用</div>
         <div class="asgn-chip on" data-val="未設定" onclick="selectCCStatus(this)">未設定</div>
         <div class="asgn-chip" data-val="不採用" onclick="selectCCStatus(this)">✗ 不採用</div>
       </div>
     </div>
-    <div class="fg"><label class="fl">リリース内容</label><textarea class="fta" id="ccm-desc" style="height:54px" placeholder="このイベントに合わせたコンテンツ案など"></textarea></div>
     <div class="sep"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
       <button class="btn-del" id="ccm-del" style="display:none;margin-right:auto" onclick="deleteContent()">削除</button>
@@ -1732,9 +1792,13 @@ function renderContent(){
           ${byDay[day].map(e=>{const cats=JSON.parse(e.categories||'[]');const col=CC_COLS[cats[0]]||'#9CA3AF';
             return`<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--card);border:1px solid var(--border);border-radius:8px;cursor:pointer;border-left:4px solid ${col}" onclick="showContentDetail('${e.id}')" onmouseover="this.style.background='var(--bg)'" onmouseout="this.style.background='var(--card)'">
               <div style="flex:1">
-                <div style="font-size:13px;font-weight:700;margin-bottom:2px">${e.name}</div>
-                ${(e.day_end&&e.day_end!==e.day)?`<div style="font-size:10px;color:var(--tm)">${e.day}日〜${e.day_end}日</div>`:''}
-                <div style="display:flex;gap:4px;flex-wrap:wrap">${catChip(e)}${stChip(e)}</div>
+                <div style="font-size:13px;font-weight:700;margin-bottom:4px">${e.name}</div>
+                ${(e.day_end&&e.day_end!==e.day)?`<div style="font-size:10px;color:var(--tm);margin-bottom:2px">${e.day}日〜${e.day_end}日</div>`:''}
+                <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:2px">${catChip(e)}${stChip(e)}</div>
+                <div style="display:flex;gap:3px;flex-wrap:wrap">
+                  ${(e.image_status==='採用')?`<span style="font-size:10px;background:#EDE9FE;color:#7C3AED;padding:1px 6px;border-radius:100px;font-weight:600">🖼${e.image_post_date?' '+e.image_post_date.slice(5).replace('-','/')+'予定':' 静止画採用'}</span>`:(e.image_plan?`<span style="font-size:10px;background:#F5F3FF;color:#8B5CF6;padding:1px 6px;border-radius:100px">🖼 静止画案あり</span>`:'')}
+                  ${(e.video_status==='採用')?`<span style="font-size:10px;background:#FFF3E0;color:#EA6C00;padding:1px 6px;border-radius:100px;font-weight:600">🎬${e.video_post_date?' '+e.video_post_date.slice(5).replace('-','/')+'予定':' 動画採用'}</span>`:(e.video_plan?`<span style="font-size:10px;background:#FFF7ED;color:#F97316;padding:1px 6px;border-radius:100px">🎬 動画案あり</span>`:'')}
+                </div>
               </div>
               <span style="font-size:11px;color:var(--tm)">→</span>
             </div>`;}).join('')}
@@ -1797,8 +1861,45 @@ function showContentDetail(id){
       <div style="grid-column:span 2"><span style="font-size:10px;color:var(--tm);text-transform:uppercase;letter-spacing:.06em">カテゴリ</span>
         <div style="margin-top:4px;display:flex;gap:4px;flex-wrap:wrap">${cats.map(c=>`<span style="font-size:12px;padding:2px 10px;border-radius:100px;background:${CC_COLS[c]||'#9CA3AF'}18;color:${CC_COLS[c]||'#9CA3AF'};border:1px solid ${CC_COLS[c]||'#9CA3AF'}44;font-weight:600">${c}</span>`).join('')}</div></div>
     </div>
-    ${e.description?`<div style="background:var(--bg);border-radius:8px;padding:16px;font-size:13px;color:var(--tp);line-height:1.75;white-space:pre-wrap;min-height:80px;max-height:360px;overflow-y:auto">${e.description}</div>`:'<div style="font-size:12px;color:var(--tm)">説明なし</div>'}`;
+    ${(()=>{
+      const imgSt=e.image_status||'未設定',vidSt=e.video_status||'未設定';
+      const imgStC=CC_STATUS[imgSt]?.col||'#9CA3AF',imgStBg=CC_STATUS[imgSt]?.bg||'#F3F4F6';
+      const vidStC=CC_STATUS[vidSt]?.col||'#9CA3AF',vidStBg=CC_STATUS[vidSt]?.bg||'#F3F4F6';
+      const imgRefs=Array.isArray(e.image_refs)?e.image_refs:(JSON.parse(e.image_refs||'[]'));
+      const vidRefs=Array.isArray(e.video_refs)?e.video_refs:(JSON.parse(e.video_refs||'[]'));
+      const refLinks=urls=>urls.map(u=>`<a href="${u}" target="_blank" style="font-size:11px;color:var(--accent);word-break:break-all;display:block">${u}</a>`).join('');
+      const imgDate=e.image_post_date?`<span style="font-size:11px;font-weight:600;color:var(--ts)">📅 ${e.image_post_date.replace(/-/g,'/')} 投稿予定</span>`:'';
+      const vidDate=e.video_post_date?`<span style="font-size:11px;font-weight:600;color:var(--ts)">📅 ${e.video_post_date.replace(/-/g,'/')} 投稿予定</span>`:'';
+      return`
+        <div style="background:var(--purbg);border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:700;color:var(--pur)">🖼 静止画案</span>
+            <span style="font-size:10px;padding:1px 8px;border-radius:100px;background:${imgStBg};color:${imgStC};font-weight:700">${imgSt}</span>
+            ${imgDate}
+          </div>
+          ${e.image_plan?`<div style="font-size:13px;white-space:pre-wrap;line-height:1.7;margin-bottom:8px">${e.image_plan}</div>`:'<div style="font-size:11px;color:var(--tm);margin-bottom:8px">未入力</div>'}
+          ${imgRefs.length?`<div style="border-top:1px solid #DDD6FE;padding-top:6px;margin-top:4px"><div style="font-size:10px;color:var(--tm);margin-bottom:3px">参考URL</div>${refLinks(imgRefs)}</div>`:''}
+        </div>
+        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <span style="font-size:12px;font-weight:700;color:var(--org)">🎬 動画案</span>
+            <span style="font-size:10px;padding:1px 8px;border-radius:100px;background:${vidStBg};color:${vidStC};font-weight:700">${vidSt}</span>
+            ${vidDate}
+          </div>
+          ${e.video_plan?`<div style="font-size:13px;white-space:pre-wrap;line-height:1.7;margin-bottom:8px">${e.video_plan}</div>`:'<div style="font-size:11px;color:var(--tm);margin-bottom:8px">未入力</div>'}
+          ${vidRefs.length?`<div style="border-top:1px solid #FED7AA;padding-top:6px;margin-top:4px"><div style="font-size:10px;color:var(--tm);margin-bottom:3px">参考URL</div>${refLinks(vidRefs)}</div>`:''}
+        </div>
+        ${e.description?`<div style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--tm);white-space:pre-wrap">📝 ${e.description}</div>`:''}`;
+    })()}`;
   document.getElementById('detail-modal').style.display='flex';
+}
+function selectImgStatus(el){
+  document.querySelectorAll('#ccm-img-status-chips .asgn-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+  document.getElementById('ccm-img-adopted').style.display=el.dataset.val==='採用'?'block':'none';
+}
+function selectVidStatus(el){
+  document.querySelectorAll('#ccm-vid-status-chips .asgn-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
+  document.getElementById('ccm-vid-adopted').style.display=el.dataset.val==='採用'?'block':'none';
 }
 function openContentModal(id,preMonth){
   document.getElementById('ccm-title').textContent=id?'イベントを編集':'イベントを追加';
@@ -1807,12 +1908,33 @@ function openContentModal(id,preMonth){
   if(id){const e=D.contentEvents.find(x=>x.id===id);if(!e)return;
     document.getElementById('ccm-id').value=e.id;document.getElementById('ccm-name').value=e.name||'';
     document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';document.getElementById('ccm-day-end').value=e.day_end||'';
+    // 静止画
+    document.getElementById('ccm-image-plan').value=e.image_plan||'';
+    const imgSt=e.image_status||'未設定';
+    document.querySelectorAll('#ccm-img-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===imgSt));
+    document.getElementById('ccm-img-adopted').style.display=imgSt==='採用'?'block':'none';
+    document.getElementById('ccm-image-post-date').value=e.image_post_date||'';
+    const ir=Array.isArray(e.image_refs)?e.image_refs:(JSON.parse(e.image_refs||'[]'));
+    ['ccm-img-ref-1','ccm-img-ref-2','ccm-img-ref-3'].forEach((id,i)=>document.getElementById(id).value=ir[i]||'');
+    // 動画
+    document.getElementById('ccm-video-plan').value=e.video_plan||'';
+    const vidSt=e.video_status||'未設定';
+    document.querySelectorAll('#ccm-vid-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===vidSt));
+    document.getElementById('ccm-vid-adopted').style.display=vidSt==='採用'?'block':'none';
+    document.getElementById('ccm-video-post-date').value=e.video_post_date||'';
+    const vr=Array.isArray(e.video_refs)?e.video_refs:(JSON.parse(e.video_refs||'[]'));
+    ['ccm-vid-ref-1','ccm-vid-ref-2','ccm-vid-ref-3'].forEach((id,i)=>document.getElementById(id).value=vr[i]||'');
     document.getElementById('ccm-desc').value=e.description||'';
     try{const cats=JSON.parse(e.categories||'[]');document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>{if(cats.includes(c.dataset.val))c.classList.add('on');});}catch(er){}
     const st=e.status||'未設定';document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===st));
   }else{['ccm-id','ccm-name','ccm-day','ccm-desc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('ccm-month').value=preMonth||new Date().getMonth()+1;
     document.getElementById('ccm-day-end').value='';
+    ['ccm-image-plan','ccm-video-plan','ccm-image-post-date','ccm-video-post-date',
+     'ccm-img-ref-1','ccm-img-ref-2','ccm-img-ref-3','ccm-vid-ref-1','ccm-vid-ref-2','ccm-vid-ref-3'].forEach(x=>document.getElementById(x).value='');
+    ['ccm-img-status-chips','ccm-vid-status-chips'].forEach(id=>document.querySelectorAll('#'+id+' .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val==='未設定')));
+    document.getElementById('ccm-img-adopted').style.display='none';
+    document.getElementById('ccm-vid-adopted').style.display='none';
     document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val==='未設定'));}
   document.getElementById('content-modal').style.display='flex';
 }
@@ -1822,7 +1944,22 @@ async function saveContent(){
   const id=document.getElementById('ccm-id').value;
   const cats=Array.from(document.querySelectorAll('#ccm-cats .asgn-chip.on')).map(c=>c.dataset.val);
   const stEl=document.querySelector('#ccm-status-chips .asgn-chip.on');
-  const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,day_end:parseInt(document.getElementById('ccm-day-end').value)||null,categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null,status:stEl?stEl.dataset.val:'未設定'};
+  const imgStEl=document.querySelector('#ccm-img-status-chips .asgn-chip.on');
+  const vidStEl=document.querySelector('#ccm-vid-status-chips .asgn-chip.on');
+  const imgRefs=['ccm-img-ref-1','ccm-img-ref-2','ccm-img-ref-3'].map(x=>document.getElementById(x).value.trim()).filter(Boolean);
+  const vidRefs=['ccm-vid-ref-1','ccm-vid-ref-2','ccm-vid-ref-3'].map(x=>document.getElementById(x).value.trim()).filter(Boolean);
+  const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,
+    day_end:parseInt(document.getElementById('ccm-day-end').value)||null,
+    categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null,
+    status:stEl?stEl.dataset.val:'未設定',
+    image_plan:document.getElementById('ccm-image-plan').value.trim()||null,
+    video_plan:document.getElementById('ccm-video-plan').value.trim()||null,
+    image_status:imgStEl?imgStEl.dataset.val:'未設定',
+    video_status:vidStEl?vidStEl.dataset.val:'未設定',
+    image_post_date:document.getElementById('ccm-image-post-date').value||null,
+    video_post_date:document.getElementById('ccm-video-post-date').value||null,
+    image_refs:imgRefs.length?JSON.stringify(imgRefs):null,
+    video_refs:vidRefs.length?JSON.stringify(vidRefs):null};
   const{error}=id?await sb.from('pm_content_events').update(data).eq('id',id):await sb.from('pm_content_events').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
   closeContentModal();await loadAll();renderContent();
