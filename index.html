@@ -2196,7 +2196,7 @@ const INSIGHT_FIELDS = {
     {type:'section', label:'動画指標（任意）'},
     {id:'i-avg-play-time', label:'平均再生時間（秒）',        type:'number'},
     {id:'i-skip-rate',     label:'スキップ率 (%)',            type:'number', step:'0.1'},
-    {id:'i-3sec-rate',     label:'冒頭3秒視聴率 (%)',         type:'number', step:'0.1'},
+    {id:'i-early-sec',     label:'序盤視聴維持率（秒数）',      type:'early-sec'},
     {type:'section', label:'閲覧数上位のソース（任意）'},
     {id:'i-src1-name',  label:'1位ソース',                 type:'src-select'},
     {id:'i-src1-pct',   label:'1位 割合 (%)',              type:'number', step:'0.1'},
@@ -2230,7 +2230,7 @@ const INSIGHT_FIELDS = {
     {type:'section', label:'動画指標（任意）'},
     {id:'i-avg-play-time', label:'平均再生時間（秒）',        type:'number'},
     {id:'i-skip-rate',     label:'スキップ率 (%)',            type:'number', step:'0.1'},
-    {id:'i-3sec-rate',     label:'冒頭3秒視聴率 (%)',         type:'number', step:'0.1'},
+    {id:'i-early-sec',     label:'序盤視聴維持率（秒数）',      type:'early-sec'},
     {type:'section', label:'閲覧数上位のソース（任意）'},
     {id:'i-src1-name',  label:'1位ソース',                 type:'src-select'},
     {id:'i-src1-pct',   label:'1位 割合 (%)',              type:'number', step:'0.1'},
@@ -2302,7 +2302,7 @@ const INSIGHT_FIELDS = {
     {type:'section', label:'動画の場合（任意）'},
     {id:'i-unique-plays', label:'ユニーク再生数',               type:'number'},
     {id:'i-plays',        label:'再生数',                     type:'number'},
-    {id:'i-3sec-rate',    label:'開始3秒の視聴維持率 (%)',      type:'number', step:'0.1'},
+    {id:'i-early-sec',    label:'序盤視聴維持率（秒数）',        type:'early-sec'},
   ],
 };
 const AGE_OPTIONS = ['13-17歳','18-24歳','25-34歳','35-44歳','45-54歳','55-64歳','65歳以上'];
@@ -2318,6 +2318,7 @@ const KEY_MAP = {
   'i-full-view-pct':'fullViewPct','i-new-viewer':'newViewer','i-return-viewer':'returnViewer',
   'i-male-pct':'malePct','i-female-pct':'femalePct',
   'i-avg-play-time':'avgPlayTime','i-skip-rate':'skipRate','i-3sec-rate':'sec3Rate',
+  'i-early-sec':'earlySec','i-early-sec-val':'earlySecVal',
   'i-src1-name':'src1Name','i-src1-pct':'src1Pct',
   'i-src2-name':'src2Name','i-src2-pct':'src2Pct',
   'i-src3-name':'src3Name','i-src3-pct':'src3Pct',
@@ -2338,6 +2339,21 @@ function buildInsightForm(platform, ins, format){
       // 年齢層の場合：選択時に保存済みパーセンテージを自動入力
       const onchange=f.id==='i-age-group'?`onchange="onAgeGroupChange(this.value)"`:''
       return`<div class="form-group"><label>${f.label}</label><select id="${f.id}" ${onchange}><option value="">未入力</option>${opts}</select></div>`;
+    }
+    if(f.type==='early-sec'){
+      const secOpts=[2,3,4,5,6,7,8,10].map(s=>{
+        const sel=(ins.earlySecSec||3)===s?' selected':'';
+        return`<option value="${s}"${sel}>${s}秒</option>`;
+      }).join('');
+      const pctVal=ins.earlySecVal??ins.sec3Rate??'';
+      return`<div class="form-group full" style="display:flex;gap:8px;align-items:flex-end">
+        <div style="flex:0 0 90px"><label>${f.label}</label>
+          <select id="i-early-sec-sec" style="width:100%"><option value="">未入力</option>${secOpts}</select>
+        </div>
+        <div style="flex:1"><label>視聴維持率 (%)</label>
+          <input type="number" id="i-early-sec-val" min="0" max="100" step="0.1" placeholder="0" value="${pctVal}">
+        </div>
+      </div>`;
     }
     if(f.type==='src-select'){
       const SRC_OPTIONS=['フィード','発見タブ','リールタブ','ショートフィード','おすすめ','フォロー中','プロフィール','ハッシュタグ・検索','ストーリーズ','おすすめ動画','YouTube検索','ブラウジング機能','外部','チャンネルページ','再生リスト','通知','その他'];
@@ -2390,6 +2406,15 @@ function getInsightFormData(){
   const getStr=id=>{const el=document.getElementById(id);return el?el.value||null:null};
   const data={savedAt:new Date().toISOString()};
   // collect all possible field ids via KEY_MAP
+  // early-sec（序盤視聴維持率）を専用収集
+  const earlySecEl=document.getElementById('i-early-sec-sec');
+  const earlySecValEl=document.getElementById('i-early-sec-val');
+  if(earlySecEl&&earlySecEl.value){
+    data.earlySecSec=parseInt(earlySecEl.value);
+    data.earlySecVal=earlySecValEl?parseFloat(earlySecValEl.value)||null:null;
+    // 後方互換：3秒の場合はsec3Rateにも入れる
+    if(data.earlySecSec===3&&data.earlySecVal!=null)data.sec3Rate=data.earlySecVal;
+  }
   const strKeys=['ageGroup','src1Name','src2Name','src3Name'];
   Object.entries(KEY_MAP).forEach(([fieldId,dataKey])=>{
     if(strKeys.includes(dataKey)) data[dataKey]=getStr(fieldId);
@@ -2474,6 +2499,13 @@ function applyParsedInsight(parsed){
   setVal('i-detail-clicks',parsed.detailClicks);
   // YouTube専用
   setVal('i-retain-continue',parsed.retainContinue); // 視聴を継続%
+  // 序盤視聴維持率（スクショ解析結果）
+  if(parsed.sec3Rate!=null){
+    const secEl=document.getElementById('i-early-sec-sec');
+    const valEl=document.getElementById('i-early-sec-val');
+    if(secEl)secEl.value='3';
+    if(valEl)valEl.value=parsed.sec3Rate;
+  }
   setVal('i-retain-sec',parsed.retainSec); // 平均視聴時間（秒）
   setVal('i-skip-rate',parsed.skipRate);     // スワイプして消去%
   setVal('i-new-viewer',parsed.newViewer);
