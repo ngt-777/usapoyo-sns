@@ -627,11 +627,9 @@ a{color:var(--accent)}
     <div style="background:var(--purbg);border:1px solid #DDD6FE;border-radius:8px;padding:14px;margin-bottom:12px">
       <div style="font-size:12px;font-weight:700;color:var(--pur);margin-bottom:12px">🖼 静止画案</div>
       <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #DDD6FE">
-        <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:6px">① ゆるっとうさぽよ <span style="font-size:10px;color:var(--red);font-weight:700">必須</span></div>
-        <textarea class="fta" id="plan-yuru-content" style="height:72px;margin-bottom:6px" placeholder="例：日常のゆるっとした一枚絵、日常会話シーンなど"></textarea>
-        <div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>
-        <div id="plan-yuru-refs"><input class="fi" placeholder="参考URLを入力"></div>
-        <button onclick="addPlanRef('yuru')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>
+        <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:8px">ゆるっとうさぽよ <span style="font-size:10px;color:var(--red);font-weight:700">必須</span></div>
+        <div id="yuru-items-container"></div>
+        <button onclick="addYuruItem()" style="font-size:11px;color:var(--pur);background:none;border:1px dashed #A78BFA;border-radius:4px;cursor:pointer;padding:4px 12px;margin-top:6px;width:100%">＋ 企画内容を追加</button>
       </div>
       <div>
         <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:6px">② イベントイラスト <span style="font-size:10px;color:var(--tm)">任意</span></div>
@@ -1853,8 +1851,23 @@ function showContentDetail(id){
       const imgStC=CC_STATUS[imgSt]?.col||'#9CA3AF',imgStBg=CC_STATUS[imgSt]?.bg||'#F3F4F6';
       const vidStC=CC_STATUS[vidSt]?.col||'#9CA3AF',vidStBg=CC_STATUS[vidSt]?.bg||'#F3F4F6';
       const pl=e.plans&&typeof e.plans==='object'?e.plans:{};
+      // yuru後方互換
+      if(pl.yuru&&!pl.yuru.items&&pl.yuru.content!==undefined)pl.yuru={items:[{content:pl.yuru.content||'',refs:pl.yuru.refs||[]}]};
       const PLBL={'yuru':'① ゆるっとうさぽよ','event':'② イベントイラスト','video1':'動画案①','video2':'動画案②','video3':'動画案③'};
       const imgKeys=['yuru','event'],vidKeys=['video1','video2','video3'];
+      const yuruBlock=()=>{
+        const yuruPl=pl['yuru']||{};
+        const yuruIts=yuruPl.items||[];
+        if(!yuruIts.filter(i=>i.content||i.refs?.length).length)return`<div style="background:var(--purbg);border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:10px"><div style="font-size:12px;font-weight:700;color:var(--pur);margin-bottom:6px">🖼 ゆるっとうさぽよ</div><div style="font-size:11px;color:var(--tm)">未入力</div></div>`;
+        return`<div style="background:var(--purbg);border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:var(--pur);margin-bottom:8px">🖼 ゆるっとうさぽよ</div>
+          ${yuruIts.map((item,i)=>`<div style="${i>0?'border-top:1px dashed #DDD6FE;margin-top:10px;padding-top:10px':''}">
+            ${yuruIts.length>1?`<div style="font-size:11px;font-weight:700;color:var(--pur);margin-bottom:4px">【企画${i+1}】</div>`:''}
+            <div style="font-size:13px;white-space:pre-wrap;line-height:1.7">${item.content||'（未入力）'}</div>
+            ${item.refs&&item.refs.length?`<div style="margin-top:6px">${item.refs.map(u=>`<a href="${u}" target="_blank" style="font-size:11px;color:var(--accent);word-break:break-all;display:block">🔗 ${u}</a>`).join('')}</div>`:''}
+          </div>`).join('')}
+        </div>`;
+      };
       const planBlock=(keys,bgCol,borderCol,icon,label,textCol)=>{
         const entries=keys.map(key=>{const p=pl[key]||{};return{key,label:PLBL[key],content:p.content||'',refs:p.refs||[]};}).filter(p=>p.content||p.refs.length);
         if(!entries.length)return`<div style="background:${bgCol};border:1px solid ${borderCol};border-radius:8px;padding:12px;margin-bottom:10px;color:var(--tm);font-size:12px">${icon} ${label}：未入力</div>`;
@@ -1867,13 +1880,15 @@ function showContentDetail(id){
           </div>`).join('')}
         </div>`;
       };
-      return planBlock(imgKeys,'var(--purbg)','#DDD6FE','🖼','静止画案','var(--pur)')
+      return yuruBlock()
+           + planBlock(['event'],'var(--purbg)','#DDD6FE','🖼','イベントイラスト','var(--pur)')
            + planBlock(vidKeys,'#FFF7ED','#FED7AA','🎬','動画案','var(--org)')
            + (e.description?`<div style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--tm);white-space:pre-wrap">📝 ${e.description}</div>`:'');
     })()}`;
   document.getElementById('detail-modal').style.display='flex';
 }
 // ── Plan URL helpers ──
+function escYuru(str){return(str||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 const PLAN_KEYS=['yuru','event','video1','video2','video3'];
 function addPlanRef(key){
   const cont=document.getElementById('plan-'+key+'-refs');if(!cont)return;
@@ -1897,6 +1912,61 @@ function loadPlanRefs(key,refs){
   });
 }
 
+// ── ゆるっとうさぽよ 複数企画管理 ──
+function addYuruItem(){
+  const cont=document.getElementById('yuru-items-container');if(!cont)return;
+  const div=document.createElement('div');div.className='yuru-item';
+  div.style.cssText='border-top:1px dashed #DDD6FE;margin-top:10px;padding-top:10px';
+  div.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">'+
+    '<span class="yuru-label" style="font-size:11px;font-weight:700;color:var(--pur)"></span>'+
+    '<button onclick="removeYuruItem(this)" style="font-size:11px;color:var(--red);background:none;border:1px solid var(--redbg);border-radius:3px;padding:1px 6px;cursor:pointer">× 削除</button></div>'+
+    '<textarea class="fta yuru-content" placeholder="例：うさぽよの日常コント、今日の一言など" style="height:72px;margin-bottom:6px"></textarea>'+
+    '<div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>'+
+    '<div class="yuru-refs"><input class="fi" placeholder="参考URLを入力"></div>'+
+    '<button onclick="addYuruRef(this)" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>';
+  cont.appendChild(div);updateYuruLabels();
+}
+function removeYuruItem(btn){btn.closest('.yuru-item').remove();updateYuruLabels();}
+function addYuruRef(btn){
+  const refsDiv=btn.previousElementSibling;const wrap=document.createElement('div');
+  wrap.style.cssText='display:flex;gap:4px;margin-top:4px';
+  wrap.innerHTML='<input class="fi" placeholder="参考URLを入力" style="flex:1"><button onclick="this.parentElement.remove()" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--red);font-size:11px;flex-shrink:0">×</button>';
+  refsDiv.appendChild(wrap);
+}
+function updateYuruLabels(){
+  const items=document.querySelectorAll('#yuru-items-container .yuru-item');
+  if(items.length===1){items[0].querySelector('.yuru-label').textContent='';}
+  else{items.forEach((item,i)=>{item.querySelector('.yuru-label').textContent='【企画'+(i+1)+'】';});}
+}
+function loadYuruItems(items){
+  const cont=document.getElementById('yuru-items-container');if(!cont)return;
+  cont.innerHTML='';
+  const list=items&&items.length?items:[{content:'',refs:['']}];
+  list.forEach((item,idx)=>{
+    const div=document.createElement('div');div.className='yuru-item';
+    if(idx>0)div.style.cssText='border-top:1px dashed #DDD6FE;margin-top:10px;padding-top:10px';
+    const refs=item.refs&&item.refs.length?item.refs:[''];
+    const refsHTML=refs.map((ref,ri)=>ri===0
+      ?`<input class="fi" placeholder="参考URLを入力" value="${escYuru(ref)}">`
+      :`<div style="display:flex;gap:4px;margin-top:4px"><input class="fi" placeholder="参考URLを入力" value="${escYuru(ref)}" style="flex:1"><button onclick="this.parentElement.remove()" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--red);font-size:11px;flex-shrink:0">×</button></div>`
+    ).join('');
+    div.innerHTML=(list.length>1?'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><span class="yuru-label" style="font-size:11px;font-weight:700;color:var(--pur)">【企画'+(idx+1)+'】</span>'+(idx>0?'<button onclick="removeYuruItem(this)" style="font-size:11px;color:var(--red);background:none;border:1px solid var(--redbg);border-radius:3px;padding:1px 6px;cursor:pointer">× 削除</button>':'')+'</div>':'<div class="yuru-label" style="font-size:11px;font-weight:700;color:var(--pur);margin-bottom:6px"></div>')+
+      '<textarea class="fta yuru-content" placeholder="例：うさぽよの日常コント、今日の一言など" style="height:72px;margin-bottom:6px">'+escYuru(item.content||'')+'</textarea>'+
+      '<div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>'+
+      '<div class="yuru-refs">'+refsHTML+'</div>'+
+      '<button onclick="addYuruRef(this)" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>';
+    cont.appendChild(div);
+  });
+}
+function getYuruItems(){
+  const items=[];
+  document.querySelectorAll('#yuru-items-container .yuru-item').forEach(item=>{
+    const content=item.querySelector('.yuru-content')?.value.trim()||'';
+    const refs=Array.from(item.querySelectorAll('.yuru-refs input')).map(i=>i.value.trim()).filter(Boolean);
+    if(content||refs.length)items.push({content,refs});
+  });
+  return items;
+}
 function selectImgStatus(el){
   document.querySelectorAll('#ccm-img-status-chips .asgn-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
   document.getElementById('ccm-img-adopted').style.display=el.dataset.val==='採用'?'block':'none';
@@ -1914,7 +1984,12 @@ function openContentModal(id,preMonth){
     document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';document.getElementById('ccm-day-end').value=e.day_end||'';
     // plans JSONB読み込み
     const pl=e.plans&&typeof e.plans==='object'?e.plans:{};
-    PLAN_KEYS.forEach(key=>{
+    // yuru: 複数企画対応（後方互換）
+    const yuruRaw=pl['yuru']||{};
+    const yuruItems2=yuruRaw.items||(yuruRaw.content!==undefined?[{content:yuruRaw.content||'',refs:yuruRaw.refs||['']}]:[]);
+    loadYuruItems(yuruItems2.length?yuruItems2:[{content:'',refs:['']}]);
+    // 他のキー
+    ['event','video1','video2','video3'].forEach(key=>{
       const p=pl[key]||{};
       const ta=document.getElementById('plan-'+key+'-content');if(ta)ta.value=p.content||'';
       loadPlanRefs(key,p.refs||[]);
@@ -1925,7 +2000,8 @@ function openContentModal(id,preMonth){
   }else{['ccm-id','ccm-name','ccm-day','ccm-desc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('ccm-month').value=preMonth||new Date().getMonth()+1;
     document.getElementById('ccm-day-end').value='';
-    PLAN_KEYS.forEach(key=>{
+    loadYuruItems([]);
+    ['event','video1','video2','video3'].forEach(key=>{
       const ta=document.getElementById('plan-'+key+'-content');if(ta)ta.value='';
       loadPlanRefs(key,[]);
     });
@@ -1939,7 +2015,11 @@ async function saveContent(){
   const cats=Array.from(document.querySelectorAll('#ccm-cats .asgn-chip.on')).map(c=>c.dataset.val);
   const stEl=document.querySelector('#ccm-status-chips .asgn-chip.on');
   const plansData={};
-  PLAN_KEYS.forEach(key=>{
+  // yuru: 複数企画
+  const yuruSave=getYuruItems();
+  if(yuruSave.length)plansData['yuru']={items:yuruSave};
+  // 他のキー
+  ['event','video1','video2','video3'].forEach(key=>{
     const ta=document.getElementById('plan-'+key+'-content');
     const content=(ta?ta.value.trim():'');
     const refs=getPlanRefs(key);
