@@ -625,58 +625,45 @@ a{color:var(--accent)}
     </div>
     <!-- 静止画案 -->
     <div style="background:var(--purbg);border:1px solid #DDD6FE;border-radius:8px;padding:14px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:var(--pur);margin-bottom:10px">🖼 静止画案（フィード投稿）</div>
-      <div class="fg" style="margin-bottom:8px">
-        <label class="fl">企画内容</label>
-        <textarea class="fta" id="ccm-image-plan" style="height:80px" placeholder="例：ゆるっとうさぽよの一枚絵&#10;ハロウィンメイク4選&#10;季節イベントの作り込みイラスト"></textarea>
+      <div style="font-size:12px;font-weight:700;color:var(--pur);margin-bottom:12px">🖼 静止画案</div>
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #DDD6FE">
+        <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:6px">① ゆるっとうさぽよ <span style="font-size:10px;color:var(--red);font-weight:700">必須</span></div>
+        <textarea class="fta" id="plan-yuru-content" style="height:72px;margin-bottom:6px" placeholder="例：日常のゆるっとした一枚絵、日常会話シーンなど"></textarea>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>
+        <div id="plan-yuru-refs"><input class="fi" placeholder="参考URLを入力"></div>
+        <button onclick="addPlanRef('yuru')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>
       </div>
-      <div class="fg" style="margin-bottom:8px">
-        <label class="fl">採用状況</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="ccm-img-status-chips">
-          <div class="asgn-chip on" data-val="未設定" onclick="selectImgStatus(this)">未設定</div>
-          <div class="asgn-chip" data-val="採用" onclick="selectImgStatus(this)">✓ 採用</div>
-          <div class="asgn-chip" data-val="不採用" onclick="selectImgStatus(this)">✗ 不採用</div>
-        </div>
-      </div>
-      <div id="ccm-img-adopted" style="display:none">
-        <div class="fg" style="margin-bottom:6px">
-          <label class="fl">投稿予定日</label>
-          <input class="fi" id="ccm-image-post-date" type="date">
-        </div>
-      </div>
-      <div class="fg">
-        <label class="fl">参考URL（最大3件）</label>
-        <input class="fi" id="ccm-img-ref-1" placeholder="URL①" style="margin-bottom:4px">
-        <input class="fi" id="ccm-img-ref-2" placeholder="URL②" style="margin-bottom:4px">
-        <input class="fi" id="ccm-img-ref-3" placeholder="URL③">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:6px">② イベントイラスト <span style="font-size:10px;color:var(--tm)">任意</span></div>
+        <textarea class="fta" id="plan-event-content" style="height:72px;margin-bottom:6px" placeholder="例：ハロウィンメイク4選、季節の作り込みイラストなど"></textarea>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>
+        <div id="plan-event-refs"><input class="fi" placeholder="参考URLを入力"></div>
+        <button onclick="addPlanRef('event')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>
       </div>
     </div>
     <!-- 動画案 -->
     <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:14px;margin-bottom:12px">
-      <div style="font-size:12px;font-weight:700;color:var(--org);margin-bottom:10px">🎬 動画案</div>
-      <div class="fg" style="margin-bottom:8px">
-        <label class="fl">企画内容</label>
-        <textarea class="fta" id="ccm-video-plan" style="height:80px" placeholder="例：キャラクター同士の対話動画&#10;ワンアクション動画&#10;季節イベントに合わせたショート動画"></textarea>
+      <div style="font-size:12px;font-weight:700;color:var(--org);margin-bottom:12px">🎬 動画案（最大3案）</div>
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #FED7AA">
+        <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:6px">動画案①</div>
+        <textarea class="fta" id="plan-video1-content" style="height:72px;margin-bottom:6px" placeholder="例：キャラクター同士の対話動画、ワンアクション動画など"></textarea>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>
+        <div id="plan-video1-refs"><input class="fi" placeholder="参考URLを入力"></div>
+        <button onclick="addPlanRef('video1')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>
       </div>
-      <div class="fg" style="margin-bottom:8px">
-        <label class="fl">採用状況</label>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px" id="ccm-vid-status-chips">
-          <div class="asgn-chip on" data-val="未設定" onclick="selectVidStatus(this)">未設定</div>
-          <div class="asgn-chip" data-val="採用" onclick="selectVidStatus(this)">✓ 採用</div>
-          <div class="asgn-chip" data-val="不採用" onclick="selectVidStatus(this)">✗ 不採用</div>
-        </div>
+      <div style="margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid #FED7AA">
+        <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:6px">動画案②</div>
+        <textarea class="fta" id="plan-video2-content" style="height:72px;margin-bottom:6px" placeholder="例：季節イベントに合わせたショート動画など"></textarea>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>
+        <div id="plan-video2-refs"><input class="fi" placeholder="参考URLを入力"></div>
+        <button onclick="addPlanRef('video2')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>
       </div>
-      <div id="ccm-vid-adopted" style="display:none">
-        <div class="fg" style="margin-bottom:6px">
-          <label class="fl">投稿予定日</label>
-          <input class="fi" id="ccm-video-post-date" type="date">
-        </div>
-      </div>
-      <div class="fg">
-        <label class="fl">参考URL（最大3件）</label>
-        <input class="fi" id="ccm-vid-ref-1" placeholder="URL①" style="margin-bottom:4px">
-        <input class="fi" id="ccm-vid-ref-2" placeholder="URL②" style="margin-bottom:4px">
-        <input class="fi" id="ccm-vid-ref-3" placeholder="URL③">
+      <div>
+        <div style="font-size:12px;font-weight:600;color:var(--tp);margin-bottom:6px">動画案③</div>
+        <textarea class="fta" id="plan-video3-content" style="height:72px;margin-bottom:6px" placeholder="例：コラボ企画、特別イベント動画など"></textarea>
+        <div style="font-size:11px;color:var(--tm);margin-bottom:4px">参考URL</div>
+        <div id="plan-video3-refs"><input class="fi" placeholder="参考URLを入力"></div>
+        <button onclick="addPlanRef('video3')" style="font-size:11px;color:var(--accent);background:none;border:none;cursor:pointer;padding:4px 0;margin-top:4px">＋ 参考URLを追加</button>
       </div>
     </div>
     <!-- メモ・旧リリース内容 -->
@@ -1865,34 +1852,51 @@ function showContentDetail(id){
       const imgSt=e.image_status||'未設定',vidSt=e.video_status||'未設定';
       const imgStC=CC_STATUS[imgSt]?.col||'#9CA3AF',imgStBg=CC_STATUS[imgSt]?.bg||'#F3F4F6';
       const vidStC=CC_STATUS[vidSt]?.col||'#9CA3AF',vidStBg=CC_STATUS[vidSt]?.bg||'#F3F4F6';
-      const imgRefs=Array.isArray(e.image_refs)?e.image_refs:(JSON.parse(e.image_refs||'[]'));
-      const vidRefs=Array.isArray(e.video_refs)?e.video_refs:(JSON.parse(e.video_refs||'[]'));
-      const refLinks=urls=>urls.map(u=>`<a href="${u}" target="_blank" style="font-size:11px;color:var(--accent);word-break:break-all;display:block">${u}</a>`).join('');
-      const imgDate=e.image_post_date?`<span style="font-size:11px;font-weight:600;color:var(--ts)">📅 ${e.image_post_date.replace(/-/g,'/')} 投稿予定</span>`:'';
-      const vidDate=e.video_post_date?`<span style="font-size:11px;font-weight:600;color:var(--ts)">📅 ${e.video_post_date.replace(/-/g,'/')} 投稿予定</span>`:'';
-      return`
-        <div style="background:var(--purbg);border:1px solid #DDD6FE;border-radius:8px;padding:12px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-size:12px;font-weight:700;color:var(--pur)">🖼 静止画案</span>
-            <span style="font-size:10px;padding:1px 8px;border-radius:100px;background:${imgStBg};color:${imgStC};font-weight:700">${imgSt}</span>
-            ${imgDate}
-          </div>
-          ${e.image_plan?`<div style="font-size:13px;white-space:pre-wrap;line-height:1.7;margin-bottom:8px">${e.image_plan}</div>`:'<div style="font-size:11px;color:var(--tm);margin-bottom:8px">未入力</div>'}
-          ${imgRefs.length?`<div style="border-top:1px solid #DDD6FE;padding-top:6px;margin-top:4px"><div style="font-size:10px;color:var(--tm);margin-bottom:3px">参考URL</div>${refLinks(imgRefs)}</div>`:''}
-        </div>
-        <div style="background:#FFF7ED;border:1px solid #FED7AA;border-radius:8px;padding:12px;margin-bottom:10px">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
-            <span style="font-size:12px;font-weight:700;color:var(--org)">🎬 動画案</span>
-            <span style="font-size:10px;padding:1px 8px;border-radius:100px;background:${vidStBg};color:${vidStC};font-weight:700">${vidSt}</span>
-            ${vidDate}
-          </div>
-          ${e.video_plan?`<div style="font-size:13px;white-space:pre-wrap;line-height:1.7;margin-bottom:8px">${e.video_plan}</div>`:'<div style="font-size:11px;color:var(--tm);margin-bottom:8px">未入力</div>'}
-          ${vidRefs.length?`<div style="border-top:1px solid #FED7AA;padding-top:6px;margin-top:4px"><div style="font-size:10px;color:var(--tm);margin-bottom:3px">参考URL</div>${refLinks(vidRefs)}</div>`:''}
-        </div>
-        ${e.description?`<div style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--tm);white-space:pre-wrap">📝 ${e.description}</div>`:''}`;
+      const pl=e.plans&&typeof e.plans==='object'?e.plans:{};
+      const PLBL={'yuru':'① ゆるっとうさぽよ','event':'② イベントイラスト','video1':'動画案①','video2':'動画案②','video3':'動画案③'};
+      const imgKeys=['yuru','event'],vidKeys=['video1','video2','video3'];
+      const planBlock=(keys,bgCol,borderCol,icon,label,textCol)=>{
+        const entries=keys.map(key=>{const p=pl[key]||{};return{key,label:PLBL[key],content:p.content||'',refs:p.refs||[]};}).filter(p=>p.content||p.refs.length);
+        if(!entries.length)return`<div style="background:${bgCol};border:1px solid ${borderCol};border-radius:8px;padding:12px;margin-bottom:10px;color:var(--tm);font-size:12px">${icon} ${label}：未入力</div>`;
+        return`<div style="background:${bgCol};border:1px solid ${borderCol};border-radius:8px;padding:12px;margin-bottom:10px">
+          <div style="font-size:12px;font-weight:700;color:${textCol};margin-bottom:10px">${icon} ${label}</div>
+          ${entries.map((p,i)=>`<div style="${i>0?'margin-top:10px;padding-top:10px;border-top:1px solid '+borderCol:''}">
+            <div style="font-size:11px;font-weight:600;color:${textCol};margin-bottom:4px">${p.label}</div>
+            <div style="font-size:13px;white-space:pre-wrap;line-height:1.7">${p.content||'（企画内容未入力）'}</div>
+            ${p.refs.length?`<div style="margin-top:6px">${p.refs.map(u=>`<a href="${u}" target="_blank" style="font-size:11px;color:var(--accent);word-break:break-all;display:block">🔗 ${u}</a>`).join('')}</div>`:''}
+          </div>`).join('')}
+        </div>`;
+      };
+      return planBlock(imgKeys,'var(--purbg)','#DDD6FE','🖼','静止画案','var(--pur)')
+           + planBlock(vidKeys,'#FFF7ED','#FED7AA','🎬','動画案','var(--org)')
+           + (e.description?`<div style="background:var(--bg);border-radius:8px;padding:12px;font-size:12px;color:var(--tm);white-space:pre-wrap">📝 ${e.description}</div>`:'');
     })()}`;
   document.getElementById('detail-modal').style.display='flex';
 }
+// ── Plan URL helpers ──
+const PLAN_KEYS=['yuru','event','video1','video2','video3'];
+function addPlanRef(key){
+  const cont=document.getElementById('plan-'+key+'-refs');if(!cont)return;
+  const wrap=document.createElement('div');wrap.style.cssText='display:flex;gap:4px;margin-top:4px';
+  wrap.innerHTML='<input class="fi" placeholder="参考URLを入力" style="flex:1"><button onclick="this.parentElement.remove()" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--red);font-size:11px;flex-shrink:0">×</button>';
+  cont.appendChild(wrap);
+}
+function getPlanRefs(key){
+  const cont=document.getElementById('plan-'+key+'-refs');if(!cont)return[];
+  return Array.from(cont.querySelectorAll('input')).map(i=>i.value.trim()).filter(Boolean);
+}
+function loadPlanRefs(key,refs){
+  const cont=document.getElementById('plan-'+key+'-refs');if(!cont)return;
+  cont.innerHTML='';
+  const list=refs&&refs.length?refs:[''];
+  list.forEach((url,i)=>{
+    if(i===0){const inp=document.createElement('input');inp.className='fi';inp.placeholder='参考URLを入力';inp.value=url;cont.appendChild(inp);}
+    else{const w=document.createElement('div');w.style.cssText='display:flex;gap:4px;margin-top:4px';
+      w.innerHTML=`<input class="fi" placeholder="参考URLを入力" value="${url.replace(/"/g,'&quot;')}" style="flex:1"><button onclick="this.parentElement.remove()" style="padding:4px 8px;background:none;border:1px solid var(--border);border-radius:4px;cursor:pointer;color:var(--red);font-size:11px;flex-shrink:0">×</button>`;
+      cont.appendChild(w);}
+  });
+}
+
 function selectImgStatus(el){
   document.querySelectorAll('#ccm-img-status-chips .asgn-chip').forEach(c=>c.classList.remove('on'));el.classList.add('on');
   document.getElementById('ccm-img-adopted').style.display=el.dataset.val==='採用'?'block':'none';
@@ -1908,33 +1912,23 @@ function openContentModal(id,preMonth){
   if(id){const e=D.contentEvents.find(x=>x.id===id);if(!e)return;
     document.getElementById('ccm-id').value=e.id;document.getElementById('ccm-name').value=e.name||'';
     document.getElementById('ccm-month').value=e.month||1;document.getElementById('ccm-day').value=e.day||'';document.getElementById('ccm-day-end').value=e.day_end||'';
-    // 静止画
-    document.getElementById('ccm-image-plan').value=e.image_plan||'';
-    const imgSt=e.image_status||'未設定';
-    document.querySelectorAll('#ccm-img-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===imgSt));
-    document.getElementById('ccm-img-adopted').style.display=imgSt==='採用'?'block':'none';
-    document.getElementById('ccm-image-post-date').value=e.image_post_date||'';
-    const ir=Array.isArray(e.image_refs)?e.image_refs:(JSON.parse(e.image_refs||'[]'));
-    ['ccm-img-ref-1','ccm-img-ref-2','ccm-img-ref-3'].forEach((id,i)=>document.getElementById(id).value=ir[i]||'');
-    // 動画
-    document.getElementById('ccm-video-plan').value=e.video_plan||'';
-    const vidSt=e.video_status||'未設定';
-    document.querySelectorAll('#ccm-vid-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===vidSt));
-    document.getElementById('ccm-vid-adopted').style.display=vidSt==='採用'?'block':'none';
-    document.getElementById('ccm-video-post-date').value=e.video_post_date||'';
-    const vr=Array.isArray(e.video_refs)?e.video_refs:(JSON.parse(e.video_refs||'[]'));
-    ['ccm-vid-ref-1','ccm-vid-ref-2','ccm-vid-ref-3'].forEach((id,i)=>document.getElementById(id).value=vr[i]||'');
+    // plans JSONB読み込み
+    const pl=e.plans&&typeof e.plans==='object'?e.plans:{};
+    PLAN_KEYS.forEach(key=>{
+      const p=pl[key]||{};
+      const ta=document.getElementById('plan-'+key+'-content');if(ta)ta.value=p.content||'';
+      loadPlanRefs(key,p.refs||[]);
+    });
     document.getElementById('ccm-desc').value=e.description||'';
     try{const cats=JSON.parse(e.categories||'[]');document.querySelectorAll('#ccm-cats .asgn-chip').forEach(c=>{if(cats.includes(c.dataset.val))c.classList.add('on');});}catch(er){}
     const st=e.status||'未設定';document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val===st));
   }else{['ccm-id','ccm-name','ccm-day','ccm-desc'].forEach(x=>document.getElementById(x).value='');
     document.getElementById('ccm-month').value=preMonth||new Date().getMonth()+1;
     document.getElementById('ccm-day-end').value='';
-    ['ccm-image-plan','ccm-video-plan','ccm-image-post-date','ccm-video-post-date',
-     'ccm-img-ref-1','ccm-img-ref-2','ccm-img-ref-3','ccm-vid-ref-1','ccm-vid-ref-2','ccm-vid-ref-3'].forEach(x=>document.getElementById(x).value='');
-    ['ccm-img-status-chips','ccm-vid-status-chips'].forEach(id=>document.querySelectorAll('#'+id+' .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val==='未設定')));
-    document.getElementById('ccm-img-adopted').style.display='none';
-    document.getElementById('ccm-vid-adopted').style.display='none';
+    PLAN_KEYS.forEach(key=>{
+      const ta=document.getElementById('plan-'+key+'-content');if(ta)ta.value='';
+      loadPlanRefs(key,[]);
+    });
     document.querySelectorAll('#ccm-status-chips .asgn-chip').forEach(c=>c.classList.toggle('on',c.dataset.val==='未設定'));}
   document.getElementById('content-modal').style.display='flex';
 }
@@ -1944,22 +1938,18 @@ async function saveContent(){
   const id=document.getElementById('ccm-id').value;
   const cats=Array.from(document.querySelectorAll('#ccm-cats .asgn-chip.on')).map(c=>c.dataset.val);
   const stEl=document.querySelector('#ccm-status-chips .asgn-chip.on');
-  const imgStEl=document.querySelector('#ccm-img-status-chips .asgn-chip.on');
-  const vidStEl=document.querySelector('#ccm-vid-status-chips .asgn-chip.on');
-  const imgRefs=['ccm-img-ref-1','ccm-img-ref-2','ccm-img-ref-3'].map(x=>document.getElementById(x).value.trim()).filter(Boolean);
-  const vidRefs=['ccm-vid-ref-1','ccm-vid-ref-2','ccm-vid-ref-3'].map(x=>document.getElementById(x).value.trim()).filter(Boolean);
+  const plansData={};
+  PLAN_KEYS.forEach(key=>{
+    const ta=document.getElementById('plan-'+key+'-content');
+    const content=(ta?ta.value.trim():'');
+    const refs=getPlanRefs(key);
+    if(content||refs.length)plansData[key]={content,refs};
+  });
   const data={name,month:parseInt(document.getElementById('ccm-month').value),day:parseInt(document.getElementById('ccm-day').value)||null,
     day_end:parseInt(document.getElementById('ccm-day-end').value)||null,
     categories:JSON.stringify(cats),description:document.getElementById('ccm-desc').value.trim()||null,
     status:stEl?stEl.dataset.val:'未設定',
-    image_plan:document.getElementById('ccm-image-plan').value.trim()||null,
-    video_plan:document.getElementById('ccm-video-plan').value.trim()||null,
-    image_status:imgStEl?imgStEl.dataset.val:'未設定',
-    video_status:vidStEl?vidStEl.dataset.val:'未設定',
-    image_post_date:document.getElementById('ccm-image-post-date').value||null,
-    video_post_date:document.getElementById('ccm-video-post-date').value||null,
-    image_refs:imgRefs.length?JSON.stringify(imgRefs):null,
-    video_refs:vidRefs.length?JSON.stringify(vidRefs):null};
+    plans:Object.keys(plansData).length?plansData:null};
   const{error}=id?await sb.from('pm_content_events').update(data).eq('id',id):await sb.from('pm_content_events').insert(data);
   if(error){alert('保存エラー: '+error.message);return;}
   closeContentModal();await loadAll();renderContent();
