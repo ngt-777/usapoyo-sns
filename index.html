@@ -1786,7 +1786,6 @@ function renderPostList(){
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.impressions):'—'}</div><div class="stat-label">インプレッション</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">いいね</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.shares):'—'}</div><div class="stat-label">リツイート</div></div>
-          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.engagement):'—'}</div><div class="stat-label">エンゲージメント</div></div>
         `:post.platform==='YouTube'&&post.format==='コミュニティ'?`
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">高評価</div></div>
@@ -1797,13 +1796,15 @@ function renderPostList(){
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">高評価</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">登録増加</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.unique):'—'}</div><div class="stat-label">ユニーク視聴</div></div>
+        `:post.platform==='TikTok'?`
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.plays):'—'}</div><div class="stat-label">再生数</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">いいね</div></div>
+          <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
         `:`
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.plays):'—'}</div><div class="stat-label">再生数</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.likes):'—'}</div><div class="stat-label">いいね</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.profile):'—'}</div><div class="stat-label">プロフアクセス</div></div>
           <div class="stat-col"><div class="stat-num">${ins?fmt(ins.follows):'—'}</div><div class="stat-label">フォロー獲得</div></div>
-          <div class="stat-col"><div class="stat-num">${(()=>{const u=ins?.unique||ins?.plays;return u&&ins?.follows!=null?(ins.follows/u*100).toFixed(2)+'%':'—'})()}</div><div class="stat-label">フォロー転換率</div></div>
-          <div class="stat-col"><div class="stat-num">${ins&&rates.saveRate!=null?rates.saveRate.toFixed(1)+'%':'—'}</div><div class="stat-label">保存率</div></div>
         `}
       </div>
     </div>`;
