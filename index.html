@@ -547,22 +547,34 @@ textarea{resize:vertical;min-height:72px}
 
   <!-- ③ 投稿一覧 -->
   <div class="page" id="page-post-list">
-    <div style="display:flex;gap:12px;margin-bottom:16px;align-items:center">
-      <select id="filter-platform" onchange="renderPostList()" style="width:140px">
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px;align-items:center">
+      <select id="filter-platform" onchange="renderPostList()" style="min-width:120px">
         <option value="">すべての媒体</option>
         <option>Instagram</option><option>TikTok</option><option>YouTube</option><option>X</option>
       </select>
-      <select id="filter-category" onchange="renderPostList()" style="width:160px">
+      <select id="filter-period" onchange="renderPostList()" style="min-width:130px">
+        <option value="">すべての期間</option>
+        <option value="7d">直近1週間</option>
+        <option value="30d">直近1ヶ月</option>
+        <option value="90d">直近3ヶ月</option>
+      </select>
+      <select id="filter-category" onchange="renderPostList()" style="min-width:140px">
         <option value="">すべてのカテゴリー</option>
         <option>イベント系</option><option>LINEスタンプ関連</option><option>楽曲/MV</option><option>グッズ関連</option><option>質問コーナー</option><option>会話劇</option><option>漫画</option><option>企業タイアップ関連</option><option>日常イラスト</option><option>ギャル間違い探し</option><option>一言フィード</option><option>その他（書き込み）</option>
       </select>
-      <select id="filter-status" onchange="renderPostList()" style="width:160px">
+      <select id="filter-status" onchange="renderPostList()" style="min-width:140px">
         <option value="">すべてのステータス</option>
         <option value="scheduled">投稿予定</option>
         <option value="day1-input">1日後入力待ち</option>
         <option value="week1-input">1週間後入力待ち</option>
         <option value="any-input">入力待ち（全部）</option>
         <option value="done">完了</option>
+      </select>
+      <select id="filter-sort" onchange="renderPostList()" style="min-width:140px">
+        <option value="date">投稿日順（新しい順）</option>
+        <option value="plays">再生数が多い順</option>
+        <option value="likes">いいね数が多い順</option>
+        <option value="follows">フォロー獲得数が多い順</option>
       </select>
       <span style="margin-left:auto;font-size:12px;color:var(--gray)" id="post-count-label"></span>
     </div>
@@ -1261,7 +1273,7 @@ function navigateTo(page){
   document.getElementById('page-title').textContent=title;
   document.getElementById('page-sub').textContent=sub;
   if(page==='dashboard')renderDashboard();
-  if(page==='post-list')renderPostList();
+  if(page==='post-list'){updatePeriodFilterOptions();renderPostList();}
   if(page==='follower'){renderFollowerTable();renderFollowerChart('all');prefillFollowerForm();}
   if(page==='content-analysis')renderContentAnalysis();
   if(page==='platform-analysis')renderPlatformAnalysis();
@@ -1735,18 +1747,62 @@ function resetPostForm(){
 // ═══════════════════════════════════════════
 //  POST LIST
 // ═══════════════════════════════════════════
+function updatePeriodFilterOptions(){
+  // 月別オプションを投稿データから動的生成
+  const sel=document.getElementById('filter-period');
+  if(!sel)return;
+  const months=[...new Set(DB.posts.map(p=>p.date?p.date.slice(0,7):null).filter(Boolean))].sort((a,b)=>b.localeCompare(a));
+  // 既存の固定オプションを残しつつ月別を追加
+  const fixed=['','7d','30d','90d'];
+  // 月別オプションが既にあれば削除してから再追加
+  [...sel.options].forEach(o=>{if(!fixed.includes(o.value))o.remove();});
+  const sep=document.createElement('option');
+  sep.value='';sep.disabled=true;sep.text='──────';
+  sel.appendChild(sep);
+  months.forEach(m=>{
+    const opt=document.createElement('option');
+    opt.value='month:'+m;
+    const [y,mo]=m.split('-');
+    opt.text=`${y}年${parseInt(mo)}月`;
+    sel.appendChild(opt);
+  });
+}
+
 function renderPostList(){
   const posts=DB.posts;
   const pf=document.getElementById('filter-platform').value;
+  const prd=document.getElementById('filter-period')?.value||'';
   const cf=document.getElementById('filter-category').value;
   const sf=document.getElementById('filter-status').value;
-  // 投稿日時降順でソート（新しい・未来が上）
+  const sortBy=document.getElementById('filter-sort')?.value||'date';
+
   const postDateTime=p=>{
     if(!p.date) return '';
     return p.date + 'T' + (p.time||'00:00');
   };
-  let filtered=[...posts].sort((a,b)=>postDateTime(b).localeCompare(postDateTime(a)));
+
+  let filtered=[...posts];
   if(pf)filtered=filtered.filter(p=>p.platform===pf);
+
+  // 期間フィルター
+  if(prd){
+    const now=new Date();
+    if(prd==='7d'){
+      const cutoff=new Date(now);cutoff.setDate(now.getDate()-7);
+      const cs=cutoff.toISOString().slice(0,10);
+      filtered=filtered.filter(p=>p.date>=cs);
+    } else if(prd==='30d'){
+      const cutoff=new Date(now);cutoff.setDate(now.getDate()-30);
+      filtered=filtered.filter(p=>p.date>=cutoff.toISOString().slice(0,10));
+    } else if(prd==='90d'){
+      const cutoff=new Date(now);cutoff.setDate(now.getDate()-90);
+      filtered=filtered.filter(p=>p.date>=cutoff.toISOString().slice(0,10));
+    } else if(prd.startsWith('month:')){
+      const m=prd.slice(6);
+      filtered=filtered.filter(p=>p.date&&p.date.slice(0,7)===m);
+    }
+  }
+
   if(cf)filtered=filtered.filter(p=>p.category===cf);
   if(sf){
     if(sf==='any-input'){
@@ -1754,6 +1810,30 @@ function renderPostList(){
     } else {
       filtered=filtered.filter(p=>getPostStatus(p)===sf);
     }
+  }
+
+  // 並び替え
+  const getIns=p=>p.insight7d||p.insight1d;
+  if(sortBy==='date'){
+    filtered.sort((a,b)=>postDateTime(b).localeCompare(postDateTime(a)));
+  } else if(sortBy==='plays'){
+    filtered.sort((a,b)=>{
+      const va=(getIns(a)||{}).plays??-1;
+      const vb=(getIns(b)||{}).plays??-1;
+      return vb!==va?vb-va:postDateTime(b).localeCompare(postDateTime(a));
+    });
+  } else if(sortBy==='likes'){
+    filtered.sort((a,b)=>{
+      const va=(getIns(a)||{}).likes??-1;
+      const vb=(getIns(b)||{}).likes??-1;
+      return vb!==va?vb-va:postDateTime(b).localeCompare(postDateTime(a));
+    });
+  } else if(sortBy==='follows'){
+    filtered.sort((a,b)=>{
+      const va=(getIns(a)||{}).follows??-1;
+      const vb=(getIns(b)||{}).follows??-1;
+      return vb!==va?vb-va:postDateTime(b).localeCompare(postDateTime(a));
+    });
   }
   document.getElementById('post-count-label').textContent=`${filtered.length}件`;
   const container=document.getElementById('post-list-container');
