@@ -362,6 +362,7 @@ textarea{resize:vertical;min-height:72px}
   <div class="page active" id="page-dashboard">
     <div class="kpi-grid" id="kpi-grid"></div>
     <div id="alert-area"></div>
+    <div id="dashboard-goal"></div>
     <div class="grid-2" style="margin-bottom:16px">
       <div class="card">
         <div class="card-title">フォロワー推移 — 全媒体</div>
@@ -3133,28 +3134,19 @@ function renderWeeklyReport(){
   const [yr,mo]=month.split('-').map(Number);
 
   // Load saved goal from DB
-  const goal=DB.goals[month]||0;
-  // goal-count は削除済み（feed/videoに分割）
+  const goalData=getGoalData(month);
+  const goal=goalData.count||(goalData.feed+goalData.video)||0; // 後方互換
+  // feed/videoのUI反映
+  const feedEl=document.getElementById('goal-feed');
+  const videoEl=document.getElementById('goal-video');
+  if(feedEl)feedEl.value=goalData.feed||'';
+  if(videoEl)videoEl.value=goalData.video||'';
 
-  // Posts this month — タイトル重複を除いてカウント（同一タイトルは複数媒体でも1本）
+  // Posts this month
   const monthPosts=DB.posts.filter(p=>p.date&&p.date.startsWith(month));
-  const uniqueTitles=new Set(monthPosts.map(p=>(p.title||'').trim().toLowerCase()).filter(Boolean));
-  const uniqueCount=uniqueTitles.size;
-  const totalCount=monthPosts.length;
-  const pct=goal>0?Math.round(uniqueCount/goal*100):0;
-  const barW=Math.min(pct,100);
-  const barColor=pct>=100?'var(--green)':pct>=60?'var(--ig)':'var(--amber)';
-  const dupNote=totalCount>uniqueCount?`<span style="font-size:10px;color:var(--gray)">（投稿数 ${totalCount}本 / うち重複タイトル ${totalCount-uniqueCount}本を除く）</span>`:'';
-  document.getElementById('goal-progress').innerHTML=`
-    <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:4px">
-      <span style="font-size:28px;font-weight:700;color:var(--navy)">${uniqueCount}<span style="font-size:14px;color:var(--gray);font-weight:400"> / ${goal||'—'} 本</span></span>
-      <span style="font-size:18px;font-weight:700;color:${barColor}">${goal?pct+'%':'目標未設定'}</span>
-    </div>
-    ${dupNote}
-    <div style="height:10px;background:var(--border);border-radius:5px;overflow:hidden;margin-top:8px">
-      <div style="height:100%;width:${barW}%;background:${barColor};border-radius:5px;transition:width .4s"></div>
-    </div>
-    <div style="font-size:11px;color:var(--gray);margin-top:6px">${month} の投稿進捗 · 残り ${goal?Math.max(0,goal-uniqueCount):'—'} 本</div>`;
+  // goal-progressをフィード/動画対応のものに更新
+  const gpEl=document.getElementById('goal-progress');
+  if(gpEl)gpEl.innerHTML=buildGoalProgressHTML(month,monthPosts);
 
   // Weekly follower summary (last 4 weeks)
   const fols=[...DB.followers].sort((a,b)=>a.date>b.date?1:-1);
